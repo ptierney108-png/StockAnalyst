@@ -29,6 +29,7 @@ function App() {
           <main className="container mx-auto px-4 py-8">
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/analysis" element={<StockAnalysis />} />
               <Route path="/stock/:symbol" element={<StockDetail />} />
               <Route path="/portfolio" element={<Portfolio />} />
               <Route path="/watchlist" element={<Watchlist />} />
