@@ -420,65 +420,107 @@ async def get_advanced_stock_data(symbol: str) -> Dict[str, Any]:
         return create_demo_analysis_data(symbol)
 
 def create_demo_analysis_data(symbol: str) -> Dict[str, Any]:
-    """Create realistic demo technical analysis data"""
+    """Create sophisticated demo technical analysis data with realistic values"""
     base_price = 150.0 + hash(symbol) % 100
     price_change = (hash(symbol) % 20) - 10
     
-    # Generate realistic technical indicators
+    # Generate realistic technical indicators based on symbol hash for consistency
+    ppo_base = (hash(symbol) % 600) / 100 - 3  # Range: -3% to +3%
+    rsi_base = 30 + (hash(symbol) % 40)        # Range: 30-70 (realistic range)
+    
     indicators = TechnicalIndicators(
-        ppo=2.3 + (hash(symbol) % 10) - 5,
-        ppo_signal=1.8 + (hash(symbol) % 8) - 4,
-        ppo_histogram=0.5 + (hash(symbol) % 4) - 2,
-        ppo_slope=-0.15 + (hash(symbol) % 30) / 100,
-        ppo_slope_percentage=-1.5 + (hash(symbol) % 30) / 10,
-        dmi_plus=25.5 + (hash(symbol) % 30),
-        dmi_minus=18.2 + (hash(symbol) % 25),
-        adx=35.8 + (hash(symbol) % 40),
-        sma_20=base_price - 2,
-        sma_50=base_price - 5,
-        sma_200=base_price - 15,
-        rsi=45.5 + (hash(symbol) % 30),
-        macd=1.2 + (hash(symbol) % 8) - 4,
-        macd_signal=0.8 + (hash(symbol) % 6) - 3,
-        macd_histogram=0.4 + (hash(symbol) % 4) - 2
+        ppo=ppo_base,
+        ppo_signal=ppo_base * 0.85,  # Signal typically lags PPO
+        ppo_histogram=ppo_base * 0.15,  # Histogram is difference
+        ppo_slope=(hash(symbol) % 40) / 100 - 0.2,  # Range: -0.2 to +0.2
+        ppo_slope_percentage=((hash(symbol) % 40) / 100 - 0.2) * 100,
+        dmi_plus=15 + (hash(symbol) % 25),  # Range: 15-40
+        dmi_minus=10 + (hash(symbol) % 20),  # Range: 10-30
+        adx=20 + (hash(symbol) % 35),       # Range: 20-55
+        sma_20=base_price - (hash(symbol) % 10),
+        sma_50=base_price - (hash(symbol) % 20),
+        sma_200=base_price - (hash(symbol) % 30),
+        rsi=rsi_base,
+        macd=ppo_base * 0.8,  # MACD often correlates with PPO
+        macd_signal=ppo_base * 0.6,
+        macd_histogram=ppo_base * 0.2
     )
     
-    # Generate PPO and DMI history
-    ppo_history = [
-        {"date": (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d'), "ppo": indicators.ppo - 0.8},
-        {"date": (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d'), "ppo": indicators.ppo - 0.3},
-        {"date": datetime.now().strftime('%Y-%m-%d'), "ppo": indicators.ppo}
-    ]
+    # Generate realistic PPO history with trending behavior
+    ppo_trend = (hash(symbol) % 3) - 1  # -1, 0, or 1 for trend direction
+    ppo_history = []
+    for i in range(3):
+        date = (datetime.now() - timedelta(days=2-i)).strftime('%Y-%m-%d')
+        ppo_value = ppo_base + (ppo_trend * i * 0.3) + ((hash(f"{symbol}{i}") % 20) / 100 - 0.1)
+        ppo_history.append({"date": date, "ppo": ppo_value})
     
-    dmi_history = [
-        {"date": (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d'), "dmi_plus": indicators.dmi_plus - 3, "dmi_minus": indicators.dmi_minus + 2, "adx": indicators.adx - 4},
-        {"date": (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d'), "dmi_plus": indicators.dmi_plus - 1, "dmi_minus": indicators.dmi_minus + 1, "adx": indicators.adx - 2},
-        {"date": datetime.now().strftime('%Y-%m-%d'), "dmi_plus": indicators.dmi_plus, "dmi_minus": indicators.dmi_minus, "adx": indicators.adx}
-    ]
-    
-    # Generate chart data
-    chart_data = []
-    for i in range(30):
-        date = (datetime.now() - timedelta(days=29-i)).strftime('%Y-%m-%d')
-        price_var = (hash(f"{symbol}{i}") % 20) - 10
-        chart_data.append({
+    # Generate realistic DMI history
+    dmi_history = []
+    for i in range(3):
+        date = (datetime.now() - timedelta(days=2-i)).strftime('%Y-%m-%d')
+        dmi_plus_val = indicators.dmi_plus + (i * 2) - 2
+        dmi_minus_val = indicators.dmi_minus + (i * -1.5) + 1.5
+        adx_val = indicators.adx + (i * 1.5) - 1.5
+        dmi_history.append({
             "date": date,
-            "open": base_price + price_var,
-            "high": base_price + price_var + 3,
-            "low": base_price + price_var - 3,
-            "close": base_price + price_var + 1,
-            "volume": 1000000 + hash(f"{symbol}{i}") % 2000000,
-            "ppo": indicators.ppo + (i * 0.05) - 0.75
+            "dmi_plus": max(5, dmi_plus_val),
+            "dmi_minus": max(5, dmi_minus_val),
+            "adx": max(10, adx_val)
         })
     
-    # Demo AI recommendations
-    recommendations = ["BUY", "SELL", "HOLD"]
-    recommendation = recommendations[hash(symbol) % 3]
-    confidence = 0.6 + (hash(symbol) % 40) / 100
+    # Generate realistic chart data with proper OHLCV
+    chart_data = []
+    current_price = base_price
+    for i in range(30):
+        date = (datetime.now() - timedelta(days=29-i)).strftime('%Y-%m-%d')
+        
+        # Create realistic price movement
+        price_change_daily = (hash(f"{symbol}{i}") % 10) - 5  # -5% to +5%
+        open_price = current_price
+        
+        # Calculate high/low based on volatility
+        volatility = abs(price_change_daily) * 0.5
+        high_price = open_price + volatility
+        low_price = open_price - volatility
+        
+        # Close price with trend
+        close_price = open_price + (price_change_daily * 0.5)
+        current_price = close_price  # Update for next iteration
+        
+        # Generate PPO value for this date
+        ppo_daily = ppo_base + (i * 0.02) - 0.3 + ((hash(f"{symbol}ppo{i}") % 10) / 20 - 0.25)
+        
+        chart_data.append({
+            "date": date,
+            "open": max(1, open_price),
+            "high": max(1, high_price),
+            "low": max(1, low_price),
+            "close": max(1, close_price),
+            "volume": 1000000 + hash(f"{symbol}{i}") % 3000000,
+            "ppo": ppo_daily
+        })
     
-    sentiments = ["Positive", "Negative", "Neutral"]
-    sentiment = sentiments[hash(symbol) % 3]
-    sentiment_score = (hash(symbol) % 200 - 100) / 100
+    # Realistic AI recommendations based on technical indicators
+    if indicators.ppo > 1 and indicators.rsi < 70 and indicators.adx > 25:
+        recommendation = "BUY"
+        confidence = 0.75 + (hash(symbol) % 20) / 100
+    elif indicators.ppo < -1 and indicators.rsi > 30 and indicators.adx > 25:
+        recommendation = "SELL"
+        confidence = 0.70 + (hash(symbol) % 15) / 100
+    else:
+        recommendation = "HOLD"
+        confidence = 0.60 + (hash(symbol) % 25) / 100
+    
+    # Realistic sentiment based on PPO and market conditions
+    if indicators.ppo > 0.5:
+        sentiment = "Positive"
+        sentiment_score = 0.2 + (indicators.ppo / 10)
+    elif indicators.ppo < -0.5:
+        sentiment = "Negative"
+        sentiment_score = -0.2 + (indicators.ppo / 10)
+    else:
+        sentiment = "Neutral"
+        sentiment_score = indicators.ppo / 20
     
     return {
         "symbol": symbol,
@@ -490,9 +532,9 @@ def create_demo_analysis_data(symbol: str) -> Dict[str, Any]:
         "ppo_history": ppo_history,
         "dmi_history": dmi_history,
         "ai_recommendation": recommendation,
-        "ai_confidence": confidence,
+        "ai_confidence": min(0.95, confidence),  # Cap at 95%
         "sentiment_analysis": sentiment,
-        "sentiment_score": sentiment_score,
+        "sentiment_score": max(-1.0, min(1.0, sentiment_score)),  # Clamp to valid range
         "chart_data": chart_data
     }
 
