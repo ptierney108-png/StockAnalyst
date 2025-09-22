@@ -1121,6 +1121,29 @@ const StockAnalysis = () => {
                 </div>
               </div>
             )}
+
+            {/* Professional Call-to-Action */}
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl shadow-lg p-8 border border-purple-100 text-center">
+              <div className="flex items-center justify-center space-x-2 mb-4">
+                <Zap className="h-6 w-6 text-purple-600" />
+                <h3 className="text-xl font-bold text-gray-900">Professional Analysis Complete</h3>
+              </div>
+              <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
+                Like this institutional-grade analysis? SmartInvest Hub provides comprehensive market insights, 
+                technical analysis, and fundamental research for informed investment decisions.
+              </p>
+              <div className="flex flex-wrap justify-center gap-4">
+                <button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                  Subscribe for Weekly Insights
+                </button>
+                <button className="border border-purple-600 text-purple-600 hover:bg-purple-50 px-6 py-3 rounded-lg font-semibold transition-colors">
+                  View More Analyses
+                </button>
+              </div>
+              <div className="mt-4 text-sm text-gray-600">
+                💡 <em>Join 10,000+ investors who rely on our professional market research and analysis</em>
+              </div>
+            </div>
           </>
         )}
       </div>
