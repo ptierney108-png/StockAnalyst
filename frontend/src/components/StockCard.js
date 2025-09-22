@@ -4,7 +4,7 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 
 const StockCard = ({ stock }) => {
   const isPositive = stock.change >= 0;
-  const changePercent = stock.change_percent?.replace('%', '') || '0';
+  const changePercent = stock.change_percent || 0;
   
   return (
     <Link
