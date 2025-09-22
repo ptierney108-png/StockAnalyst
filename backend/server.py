@@ -731,6 +731,67 @@ async def get_stock_details(symbol: str):
         "volume": analysis_data["volume"]
     }
 
+# Market Data Endpoints
+@api_router.get("/market/trending")
+async def get_trending_stocks():
+    """Get trending stocks with mock data"""
+    trending_stocks = [
+        {"symbol": "AAPL", "name": "Apple Inc.", "price": 175.43, "change": 2.35, "change_percent": 1.36, "volume": 58234567},
+        {"symbol": "TSLA", "name": "Tesla, Inc.", "price": 248.75, "change": -5.42, "change_percent": -2.13, "volume": 89567234},
+        {"symbol": "GOOGL", "name": "Alphabet Inc.", "price": 138.21, "change": 1.87, "change_percent": 1.37, "volume": 34567891},
+        {"symbol": "MSFT", "name": "Microsoft Corporation", "price": 378.85, "change": 4.23, "change_percent": 1.13, "volume": 45672389},
+        {"symbol": "AMZN", "name": "Amazon.com, Inc.", "price": 142.33, "change": -1.25, "change_percent": -0.87, "volume": 67234856},
+        {"symbol": "NVDA", "name": "NVIDIA Corporation", "price": 875.28, "change": 15.67, "change_percent": 1.82, "volume": 78923456},
+        {"symbol": "META", "name": "Meta Platforms, Inc.", "price": 298.47, "change": 3.89, "change_percent": 1.32, "volume": 56789234},
+        {"symbol": "NFLX", "name": "Netflix, Inc.", "price": 425.67, "change": -8.23, "change_percent": -1.90, "volume": 23456789}
+    ]
+    return trending_stocks
+
+@api_router.get("/market/gainers")
+async def get_top_gainers():
+    """Get top gaining stocks with mock data"""
+    gainers = [
+        {"symbol": "NVDA", "name": "NVIDIA Corporation", "price": 875.28, "change": 15.67, "change_percent": 1.82, "volume": 78923456},
+        {"symbol": "GOOGL", "name": "Alphabet Inc.", "price": 138.21, "change": 1.87, "change_percent": 1.37, "volume": 34567891},
+        {"symbol": "AAPL", "name": "Apple Inc.", "price": 175.43, "change": 2.35, "change_percent": 1.36, "volume": 58234567},
+        {"symbol": "META", "name": "Meta Platforms, Inc.", "price": 298.47, "change": 3.89, "change_percent": 1.32, "volume": 56789234},
+        {"symbol": "MSFT", "name": "Microsoft Corporation", "price": 378.85, "change": 4.23, "change_percent": 1.13, "volume": 45672389}
+    ]
+    return gainers
+
+@api_router.get("/market/losers")
+async def get_top_losers():
+    """Get top losing stocks with mock data"""
+    losers = [
+        {"symbol": "TSLA", "name": "Tesla, Inc.", "price": 248.75, "change": -5.42, "change_percent": -2.13, "volume": 89567234},
+        {"symbol": "NFLX", "name": "Netflix, Inc.", "price": 425.67, "change": -8.23, "change_percent": -1.90, "volume": 23456789},
+        {"symbol": "AMZN", "name": "Amazon.com, Inc.", "price": 142.33, "change": -1.25, "change_percent": -0.87, "volume": 67234856},
+        {"symbol": "PYPL", "name": "PayPal Holdings, Inc.", "price": 58.92, "change": -0.45, "change_percent": -0.76, "volume": 34567234},
+        {"symbol": "DIS", "name": "The Walt Disney Company", "price": 89.45, "change": -0.67, "change_percent": -0.74, "volume": 45678923}
+    ]
+    return losers
+
+# Portfolio Management Endpoints
+@api_router.get("/portfolios")
+async def get_portfolios():
+    """Get user portfolios with mock data"""
+    portfolios = [
+        {"id": "portfolio_1", "name": "Growth Portfolio", "value": 125000, "change": 2500, "change_percent": 2.04},
+        {"id": "portfolio_2", "name": "Dividend Portfolio", "value": 85000, "change": -1200, "change_percent": -1.39}
+    ]
+    return portfolios
+
+# Watchlist Management Endpoints  
+@api_router.get("/watchlists")
+async def get_watchlists():
+    """Get user watchlists with mock data"""
+    watchlists = [
+        {"id": "watchlist_1", "name": "Tech Stocks", "count": 8},
+        {"id": "watchlist_2", "name": "Dividend Stocks", "count": 12},
+        {"id": "watchlist_3", "name": "Growth Stocks", "count": 6}
+    ]
+    return watchlists
+
 # Include the router in the main app
 app.include_router(api_router)
 
