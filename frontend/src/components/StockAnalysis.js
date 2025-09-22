@@ -8,6 +8,7 @@ import api from '../services/api';
 const StockAnalysis = () => {
   const [searchParams] = useSearchParams();
   const urlSymbol = searchParams.get('symbol');
+  const queryClient = useQueryClient();
   
   const [symbol, setSymbol] = useState(urlSymbol || 'AAPL');
   const [inputSymbol, setInputSymbol] = useState('');
