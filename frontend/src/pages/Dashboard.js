@@ -6,6 +6,15 @@ import StockCard from '../components/StockCard';
 import api from '../services/api';
 
 const Dashboard = () => {
+  const [quickAnalysisSymbol, setQuickAnalysisSymbol] = useState('');
+  const navigate = useNavigate();
+
+  const handleQuickAnalysis = (e) => {
+    e.preventDefault();
+    if (quickAnalysisSymbol.trim()) {
+      navigate(`/analysis?symbol=${quickAnalysisSymbol.toUpperCase()}`);
+    }
+  };
   const {
     data: trendingStocks,
     isLoading: loadingTrending,
