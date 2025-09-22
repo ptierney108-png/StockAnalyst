@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import Chart from 'react-apexcharts';
-import { Search, TrendingUp, TrendingDown, Brain, BarChart3, Activity, Target, Zap, AlertCircle } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, Brain, BarChart3, Activity, Target, Zap, AlertCircle, DollarSign } from 'lucide-react';
 import api from '../services/api';
 
 const StockAnalysis = () => {
