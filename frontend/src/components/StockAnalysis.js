@@ -751,55 +751,58 @@ const StockAnalysis = () => {
             {/* PPO Components Analysis */}
             {analysisData && (
               <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <div className="flex items-center space-x-2 mb-6">
-                <BarChart3 className="h-5 w-5 text-blue-600" />
-                <h3 className="text-2xl font-bold text-gray-900">Past 3 Days PPO Components</h3>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {analysisData.ppo_history?.map((item, index) => (
-                  <div key={index} className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border border-blue-100">
-                    <div className="text-center mb-4">
-                      <div className="text-sm font-medium text-gray-500 mb-2">{item.date}</div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-blue-600 font-semibold">PPO Line:</span>
-                        <span className="font-bold text-green-600 text-lg">{item.ppo?.toFixed(3)}%</span>
+                <div className="flex items-center space-x-2 mb-6">
+                  <BarChart3 className="h-5 w-5 text-blue-600" />
+                  <h3 className="text-2xl font-bold text-gray-900">Past 3 Days PPO Components</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {analysisData.ppo_history?.slice(-3).map((item, index) => (
+                    <div key={index} className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                      <div className="text-center mb-4">
+                        <div className="text-sm font-medium text-gray-500 mb-2">{item.date}</div>
                       </div>
                       
-                      <div className="flex justify-between items-center">
-                        <span className="text-orange-600 font-semibold">Signal:</span>
-                        <span className="font-bold text-orange-600 text-lg">
-                          {(item.ppo * 0.85)?.toFixed(3)}%
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="text-purple-600 font-semibold">Histogram:</span>
-                        <span className={`font-bold text-lg ${item.ppo >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {(item.ppo * 0.15)?.toFixed(3)}%
-                        </span>
-                      </div>
-                      
-                      <div className="mt-4">
-                        <div className="text-xs text-gray-500 mb-2 font-medium">Momentum Bar</div>
-                        <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-3 rounded-full transition-all duration-500 ${item.ppo >= 0 ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-red-400 to-red-600'}`}
-                            style={{ width: `${Math.min(Math.abs(item.ppo) * 15, 100)}%` }}
-                          ></div>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-blue-600 font-semibold">PPO Line:</span>
+                          <span className="font-bold text-blue-600 text-lg">{item.ppo?.toFixed(3)}%</span>
                         </div>
-                        <div className="text-xs text-center mt-2 font-semibold">
-                          {item.ppo >= 0 ? 'Bullish Momentum' : 'Bearish Momentum'}
+                        
+                        <div className="flex justify-between items-center">
+                          <span className="text-amber-600 font-semibold">Signal:</span>
+                          <span className="font-bold text-amber-600 text-lg">{(item.ppo * 0.85)?.toFixed(3)}%</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center">
+                          <span className="text-green-600 font-semibold">Histogram:</span>
+                          <span className="font-bold text-green-600 text-lg">{(item.ppo * 0.15)?.toFixed(3)}%</span>
+                        </div>
+                        
+                        <div className="mt-4">
+                          <div className="text-xs text-gray-500 mb-2 font-medium">PPO Momentum Bar</div>
+                          <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-3 rounded-full transition-all duration-500 ${item.ppo > 0 ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-red-400 to-red-600'}`}
+                              style={{ width: `${Math.min(Math.abs(item.ppo) * 20, 100)}%` }}
+                            ></div>
+                          </div>
+                          <div className="text-xs text-center mt-2 font-semibold">
+                            {item.ppo > 0 ? 'Bullish Momentum' : 'Bearish Momentum'}
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                          <div className="text-xs font-semibold text-gray-700 mb-1">Trend Direction</div>
+                          <div className={`text-sm font-medium ${item.ppo > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {item.ppo > 0 ? '↗ Positive Momentum' : '↘ Negative Momentum'}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
             )}
 
             {/* PPO Slope Trend Analysis */}
