@@ -582,6 +582,15 @@ def create_demo_analysis_data(symbol: str) -> Dict[str, Any]:
         "dmi_history": dmi_history,
         "ai_recommendation": recommendation,
         "ai_confidence": min(0.95, confidence),  # Cap at 95%
+        "ai_reasoning": f"Technical analysis shows {recommendation.lower()} signals based on momentum and trend indicators.",
+        "ai_detailed_analysis": [
+            f"• PPO indicator at {indicators.ppo:.2f}% shows {'bullish' if indicators.ppo > 0 else 'bearish'} momentum with {'positive' if indicators.ppo_slope_percentage > 0 else 'negative'} slope trend",
+            f"• RSI at {indicators.rsi:.1f} indicates {'overbought' if indicators.rsi > 70 else 'oversold' if indicators.rsi < 30 else 'neutral'} conditions with room for {'upward' if indicators.rsi < 50 else 'downward'} movement",
+            f"• Price trading {'above' if base_price > indicators.sma_200 else 'below'} SMA 200 at ${indicators.sma_200:.2f} confirms {'bullish' if base_price > indicators.sma_200 else 'bearish'} long-term trend",
+            f"• DMI analysis shows {'bullish' if indicators.dmi_plus > indicators.dmi_minus else 'bearish'} directional bias with ADX at {indicators.adx:.1f} indicating {'strong' if indicators.adx > 25 else 'weak'} trend strength",
+            f"• MACD histogram {'expanding' if indicators.macd_histogram > 0 else 'contracting'} suggests momentum is {'accelerating' if abs(indicators.macd_histogram) > 0.1 else 'decelerating'}",
+            f"• Technical confluence supports {recommendation.lower()} recommendation with {'favorable' if recommendation == 'BUY' else 'cautious' if recommendation == 'HOLD' else 'defensive'} risk/reward profile"
+        ],
         "sentiment_analysis": sentiment,
         "sentiment_score": max(-1.0, min(1.0, sentiment_score)),  # Clamp to valid range
         "chart_data": chart_data
