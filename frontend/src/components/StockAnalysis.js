@@ -216,14 +216,6 @@ const StockAnalysis = () => {
     },
     yaxis: [
       {
-        seriesName: 'PPO',
-        labels: {
-          formatter: (value) => `${value?.toFixed(2)}%`,
-          style: {
-            colors: '#6b7280',
-            fontSize: '10px'
-          }
-        },
         title: {
           text: 'PPO (%)',
           style: {
@@ -231,24 +223,30 @@ const StockAnalysis = () => {
             fontSize: '10px',
             fontWeight: 600
           }
-        }
-      },
-      {
-        seriesName: 'Histogram',
-        opposite: true,
+        },
         labels: {
-          formatter: (value) => `${value?.toFixed(3)}`,
+          formatter: (value) => `${value?.toFixed(2)}%`,
           style: {
             colors: '#6b7280',
             fontSize: '10px'
           }
-        },
+        }
+      },
+      {
+        opposite: true,
         title: {
           text: 'Histogram',
           style: {
             color: '#6b7280',
             fontSize: '10px',
             fontWeight: 600
+          }
+        },
+        labels: {
+          formatter: (value) => `${value?.toFixed(3)}`,
+          style: {
+            colors: '#6b7280',
+            fontSize: '10px'
           }
         }
       }
@@ -295,22 +293,24 @@ const StockAnalysis = () => {
     }
   };
 
-  // Prepare PPO chart series data
+  // Prepare PPO chart series data with proper structure
   const ppoChartSeries = [
     {
       name: 'PPO Line',
       type: 'line',
+      yAxisIndex: 0,
       data: analysisData?.chart_data?.map(item => ({
         x: new Date(item.date).getTime(),
-        y: item.ppo || 0
+        y: parseFloat((item.ppo || 0).toFixed(3))
       })) || []
     },
     {
       name: 'PPO Signal',
-      type: 'line', 
+      type: 'line',
+      yAxisIndex: 0,
       data: analysisData?.chart_data?.map(item => ({
         x: new Date(item.date).getTime(),
-        y: (item.ppo || 0) * 0.85 // Signal line approximation
+        y: parseFloat(((item.ppo || 0) * 0.85).toFixed(3)) // Signal line approximation
       })) || []
     },
     {
@@ -319,7 +319,7 @@ const StockAnalysis = () => {
       yAxisIndex: 1,
       data: analysisData?.chart_data?.map(item => ({
         x: new Date(item.date).getTime(),
-        y: ((item.ppo || 0) - (item.ppo || 0) * 0.85) // Histogram = PPO - Signal
+        y: parseFloat(((item.ppo || 0) - (item.ppo || 0) * 0.85).toFixed(3)) // Histogram = PPO - Signal
       })) || []
     }
   ];
