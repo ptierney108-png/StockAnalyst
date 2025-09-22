@@ -581,118 +581,99 @@ async def get_sentiment_analysis(symbol: str) -> Dict[str, Any]:
             "summary": "Mixed institutional signals suggest neutral positioning with moderate systematic momentum factors and balanced risk sentiment."
         }
 
-async def get_advanced_stock_data(symbol: str) -> Dict[str, Any]:
-    """Get comprehensive stock data with technical analysis"""
+async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[str, Any]:
+    """Get comprehensive stock data with technical analysis for different timeframes"""
     try:
         # Get basic stock data
-        ts = TimeSeries(key=alpha_vantage_key, output_format='json')
-        quote_data, _ = ts.get_quote_endpoint(symbol)
-        daily_data, _ = ts.get_daily_adjusted(symbol, outputsize='full')
+        ts = TimeSeries(key=alpha_vantage_key, output_format='pandas')
         
-        if not quote_data or not daily_data:
-            raise HTTPException(status_code=404, detail=f"Stock data for {symbol} not found")
+        # Map timeframe to Alpha Vantage parameters
+        timeframe_mapping = {
+            "1D": ("TIME_SERIES_INTRADAY", {"interval": "60min"}),
+            "5D": ("TIME_SERIES_DAILY", {}),
+            "1M": ("TIME_SERIES_DAILY", {}),
+            "3M": ("TIME_SERIES_DAILY", {}),
+            "6M": ("TIME_SERIES_DAILY", {}),
+            "YTD": ("TIME_SERIES_DAILY", {}),
+            "1Y": ("TIME_SERIES_DAILY", {}),
+            "5Y": ("TIME_SERIES_WEEKLY", {}),
+            "All": ("TIME_SERIES_MONTHLY", {})
+        }
         
-        # Extract price data for calculations
-        dates = list(daily_data.keys())[:100]  # Get last 100 days
-        prices = [float(daily_data[date]['5. adjusted close']) for date in dates]
-        highs = [float(daily_data[date]['2. high']) for date in dates]
-        lows = [float(daily_data[date]['3. low']) for date in dates]
-        volumes = [int(daily_data[date]['6. volume']) for date in dates]
+        api_function, params = timeframe_mapping.get(timeframe, ("TIME_SERIES_DAILY", {}))
         
-        # Reverse to get chronological order
-        prices.reverse()
-        highs.reverse()
-        lows.reverse()
-        volumes.reverse()
+        if api_function == "TIME_SERIES_INTRADAY":
+            data, meta_data = ts.get_intraday(symbol=symbol, **params)
+        elif api_function == "TIME_SERIES_DAILY":
+            data, meta_data = ts.get_daily(symbol=symbol)
+        elif api_function == "TIME_SERIES_WEEKLY":
+            data, meta_data = ts.get_weekly(symbol=symbol)
+        else:  # Monthly
+            data, meta_data = ts.get_monthly(symbol=symbol)
         
-        current_price = float(quote_data['05. price'])
-        price_change = float(quote_data['09. change'])
-        price_change_percent = float(quote_data['10. change percent'].replace('%', ''))
-        volume = int(quote_data['06. volume'])
+        # Limit data points based on timeframe
+        timeframe_limits = {
+            "1D": 24,      # 24 hours of hourly data
+            "5D": 5,       # 5 days
+            "1M": 30,      # 30 days
+            "3M": 90,      # 90 days
+            "6M": 180,     # 180 days
+            "YTD": 250,    # Approximately year to date
+            "1Y": 252,     # Trading days in a year
+            "5Y": 260,     # 5 years of weekly data
+            "All": 120     # 10 years of monthly data
+        }
+        
+        limit = timeframe_limits.get(timeframe, 30)
+        data = data.head(limit) if timeframe != "All" else data.head(120)
+        
+        if data.empty:
+            raise ValueError("No data received from Alpha Vantage")
+        
+        # Convert to our format
+        data = data.sort_index()  # Ensure chronological order
         
         # Calculate technical indicators
-        ppo_data = calculate_ppo(prices)
+        prices = data.iloc[:, 3].values  # Close prices (4th column)
+        volumes = data.iloc[:, 4].values if len(data.columns) > 4 else np.zeros(len(prices))
         
-        # Get PPO history for last 3 days (mock data for demo)
-        ppo_history = [
-            {"date": (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d'), "ppo": ppo_data["ppo"] - 0.5},
-            {"date": (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d'), "ppo": ppo_data["ppo"] - 0.2},
-            {"date": datetime.now().strftime('%Y-%m-%d'), "ppo": ppo_data["ppo"]}
-        ]
+        # Technical calculations remain the same but adjust for timeframe
+        indicators = calculate_technical_indicators(prices, timeframe)
         
-        # Calculate PPO slope
-        ppo_slope_data = calculate_ppo_slope(
-            ppo_history[2]["ppo"],
-            ppo_history[1]["ppo"],
-            ppo_history[0]["ppo"]
-        )
-        
-        dmi_data = calculate_dmi(highs, lows, prices)
-        macd_data = calculate_macd(prices)
-        
-        # DMI history for last 3 days (mock data)
-        dmi_history = [
-            {"date": (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d'), **{k: v - 2 for k, v in dmi_data.items()}},
-            {"date": (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d'), **{k: v - 1 for k, v in dmi_data.items()}},
-            {"date": datetime.now().strftime('%Y-%m-%d'), **dmi_data}
-        ]
-        
-        indicators = TechnicalIndicators(
-            ppo=ppo_data["ppo"],
-            ppo_signal=ppo_data["signal"],
-            ppo_histogram=ppo_data["histogram"],
-            ppo_slope=ppo_slope_data["slope"],
-            ppo_slope_percentage=ppo_slope_data["slope_percentage"],
-            dmi_plus=dmi_data["dmi_plus"],
-            dmi_minus=dmi_data["dmi_minus"],
-            adx=dmi_data["adx"],
-            sma_20=calculate_sma(prices, 20),
-            sma_50=calculate_sma(prices, 50),
-            sma_200=calculate_sma(prices, 200),
-            rsi=calculate_rsi(prices),
-            macd=macd_data["macd"],
-            macd_signal=macd_data["signal"],
-            macd_histogram=macd_data["histogram"]
-        )
-        
-        # Prepare chart data (last 30 days)
+        # Generate chart data
         chart_data = []
-        for i, date in enumerate(dates[:30]):
+        for i, (date, row) in enumerate(data.iterrows()):
             chart_data.append({
-                "date": date,
-                "open": float(daily_data[date]['1. open']),
-                "high": float(daily_data[date]['2. high']),
-                "low": float(daily_data[date]['3. low']),
-                "close": float(daily_data[date]['5. adjusted close']),
-                "volume": int(daily_data[date]['6. volume']),
-                "ppo": ppo_data["ppo"] + (i * 0.1)  # Mock PPO variation
+                "date": date.strftime('%Y-%m-%d'),
+                "open": float(row.iloc[0]),
+                "high": float(row.iloc[1]),
+                "low": float(row.iloc[2]),
+                "close": float(row.iloc[3]),
+                "volume": int(volumes[i]) if i < len(volumes) else 0,
+                "ppo": indicators["ppo_values"][i] if i < len(indicators["ppo_values"]) else 0
             })
         
-        # Get AI recommendation and sentiment
-        ai_result = await get_ai_recommendation(symbol, indicators, current_price)
-        sentiment_result = await get_sentiment_analysis(symbol)
+        # Get fundamental data for the stock
+        fundamental_data = await get_fundamental_data(symbol)
         
         return {
             "symbol": symbol,
-            "current_price": current_price,
-            "price_change": price_change,
-            "price_change_percent": price_change_percent,
-            "volume": volume,
+            "timeframe": timeframe,
+            "current_price": float(prices[-1]),
+            "price_change": float(prices[-1] - prices[-2]) if len(prices) > 1 else 0,
+            "price_change_percent": float(((prices[-1] - prices[-2]) / prices[-2]) * 100) if len(prices) > 1 else 0,
+            "volume": int(volumes[-1]) if len(volumes) > 0 else 0,
+            "chart_data": chart_data,
             "indicators": indicators,
-            "ppo_history": ppo_history,
-            "dmi_history": dmi_history,
-            "ai_recommendation": ai_result["recommendation"],
-            "ai_confidence": ai_result["confidence"],
-            "ai_reasoning": ai_result.get("reasoning", ""),
-            "ai_detailed_analysis": ai_result.get("detailed_analysis", []),
-            "sentiment_analysis": sentiment_result["sentiment"],
-            "sentiment_score": sentiment_result["score"],
-            "chart_data": chart_data
+            "fundamental_data": fundamental_data,
+            "ppo_history": generate_ppo_history(indicators["ppo_values"], chart_data),
+            "dmi_history": generate_dmi_history(indicators, chart_data),
         }
-        
+    
     except Exception as e:
-        # Return demo data if API fails
-        return create_demo_analysis_data(symbol)
+        print(f"Error getting stock data: {e}")
+        # Return mock data for demo purposes
+        return generate_mock_stock_data(symbol, timeframe)
 
 def create_demo_analysis_data(symbol: str) -> Dict[str, Any]:
     """Create sophisticated demo technical analysis data with realistic values"""
