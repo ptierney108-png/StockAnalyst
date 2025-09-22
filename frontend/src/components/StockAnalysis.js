@@ -39,8 +39,8 @@ const StockAnalysis = () => {
     error,
     refetch
   } = useQuery({
-    queryKey: ['stock-analysis', symbol],
-    queryFn: () => api.getStockAnalysis(symbol),
+    queryKey: ['stock-analysis', symbol, selectedTimeframe],
+    queryFn: () => api.getStockAnalysis(symbol, selectedTimeframe),
     enabled: !!symbol,
     refetchInterval: 30000, // Refresh every 30 seconds
   });
