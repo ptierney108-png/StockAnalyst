@@ -884,6 +884,7 @@ const StockAnalysis = () => {
                 ))}
               </div>
             </div>
+            )}
 
             {/* Technical Indicators Dashboard */}
             <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
