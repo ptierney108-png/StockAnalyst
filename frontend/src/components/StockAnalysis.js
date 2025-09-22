@@ -11,6 +11,20 @@ const StockAnalysis = () => {
   
   const [symbol, setSymbol] = useState(urlSymbol || 'AAPL');
   const [inputSymbol, setInputSymbol] = useState('');
+  const [selectedTimeframe, setSelectedTimeframe] = useState('1D');
+
+  // Available timeframes like professional trading platforms
+  const timeframes = [
+    { label: '1D', value: '1D', description: '1 Day' },
+    { label: '5D', value: '5D', description: '5 Days' },
+    { label: '1M', value: '1M', description: '1 Month' },
+    { label: '3M', value: '3M', description: '3 Months' },
+    { label: '6M', value: '6M', description: '6 Months' },
+    { label: 'YTD', value: 'YTD', description: 'Year to Date' },
+    { label: '1Y', value: '1Y', description: '1 Year' },
+    { label: '5Y', value: '5Y', description: '5 Years' },
+    { label: 'All', value: 'All', description: 'All Time' }
+  ];
 
   // Update symbol when URL parameter changes
   useEffect(() => {
