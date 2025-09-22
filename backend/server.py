@@ -796,9 +796,10 @@ async def get_sentiment_analysis(symbol: str) -> Dict[str, Any]:
         }
 
 async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[str, Any]:
-    """Get comprehensive stock data with technical analysis for different timeframes"""
+    """Get comprehensive stock data with technical analysis using Alpha Vantage with Polygon.io fallback"""
+    
+    # First try Alpha Vantage
     try:
-        # Get basic stock data
         ts = TimeSeries(key=alpha_vantage_key, output_format='pandas')
         
         # Map timeframe to Alpha Vantage parameters
@@ -827,15 +828,8 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
         
         # Limit data points based on timeframe
         timeframe_limits = {
-            "1D": 24,      # 24 hours of hourly data
-            "5D": 5,       # 5 days
-            "1M": 30,      # 30 days
-            "3M": 90,      # 90 days
-            "6M": 180,     # 180 days
-            "YTD": 250,    # Approximately year to date
-            "1Y": 252,     # Trading days in a year
-            "5Y": 260,     # 5 years of weekly data
-            "All": 120     # 10 years of monthly data
+            "1D": 24, "5D": 5, "1M": 30, "3M": 90, "6M": 180,
+            "YTD": 250, "1Y": 252, "5Y": 260, "All": 120
         }
         
         limit = timeframe_limits.get(timeframe, 30)
@@ -844,17 +838,13 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
         if data.empty:
             raise ValueError("No data received from Alpha Vantage")
         
-        # Convert to our format
-        data = data.sort_index()  # Ensure chronological order
-        
-        # Calculate technical indicators
-        prices = data.iloc[:, 3].values  # Close prices (4th column)
+        # Process Alpha Vantage data
+        data = data.sort_index()
+        prices = data.iloc[:, 3].values
         volumes = data.iloc[:, 4].values if len(data.columns) > 4 else np.zeros(len(prices))
         
-        # Technical calculations remain the same but adjust for timeframe
         indicators = calculate_technical_indicators(prices, timeframe)
         
-        # Generate chart data
         chart_data = []
         for i, (date, row) in enumerate(data.iterrows()):
             chart_data.append({
@@ -867,7 +857,6 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
                 "ppo": indicators["ppo_values"][i] if i < len(indicators["ppo_values"]) else 0
             })
         
-        # Get fundamental data for the stock
         fundamental_data = await get_fundamental_data(symbol)
         
         return {
@@ -884,9 +873,103 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
             "dmi_history": generate_dmi_history(indicators, chart_data),
         }
     
-    except Exception as e:
-        print(f"Error getting stock data: {e}")
-        # Return mock data for demo purposes
+    except Exception as alpha_error:
+        print(f"Alpha Vantage API error: {alpha_error}")
+        
+        # Try Polygon.io as fallback
+        if polygon_client:
+            try:
+                print(f"Trying Polygon.io fallback for {symbol} ({timeframe})")
+                
+                # Map timeframe to Polygon parameters
+                from datetime import datetime, timedelta
+                end_date = datetime.now()
+                
+                timeframe_mapping = {
+                    "1D": {"multiplier": 1, "timespan": "hour", "days_back": 1},
+                    "5D": {"multiplier": 1, "timespan": "day", "days_back": 5},
+                    "1M": {"multiplier": 1, "timespan": "day", "days_back": 30},
+                    "3M": {"multiplier": 1, "timespan": "day", "days_back": 90},
+                    "6M": {"multiplier": 1, "timespan": "day", "days_back": 180},
+                    "YTD": {"multiplier": 1, "timespan": "day", "days_back": 270},
+                    "1Y": {"multiplier": 1, "timespan": "day", "days_back": 365},
+                    "5Y": {"multiplier": 1, "timespan": "week", "days_back": 1825},
+                    "All": {"multiplier": 1, "timespan": "month", "days_back": 3650}
+                }
+                
+                params = timeframe_mapping.get(timeframe, timeframe_mapping["1M"])
+                start_date = end_date - timedelta(days=params["days_back"])
+                
+                # Get aggregates from Polygon
+                aggs = polygon_client.get_aggs(
+                    ticker=symbol,
+                    multiplier=params["multiplier"],
+                    timespan=params["timespan"],
+                    from_=start_date.strftime('%Y-%m-%d'),
+                    to=end_date.strftime('%Y-%m-%d'),
+                    adjusted=True,
+                    sort="asc",
+                    limit=5000
+                )
+                
+                if not aggs or len(aggs) == 0:
+                    raise ValueError("No data received from Polygon")
+                
+                # Convert Polygon data to our format
+                chart_data = []
+                prices = []
+                
+                for agg in aggs:
+                    date_str = datetime.fromtimestamp(agg.timestamp / 1000).strftime(
+                        '%Y-%m-%d %H:%M' if params["timespan"] == "hour" else '%Y-%m-%d'
+                    )
+                    chart_data.append({
+                        "date": date_str,
+                        "open": float(agg.open),
+                        "high": float(agg.high),
+                        "low": float(agg.low),
+                        "close": float(agg.close),
+                        "volume": int(agg.volume),
+                        "ppo": 0  # Will be calculated
+                    })
+                    prices.append(float(agg.close))
+                
+                if len(prices) < 2:
+                    raise ValueError("Insufficient data points from Polygon")
+                
+                # Calculate technical indicators
+                indicators = calculate_technical_indicators(prices, timeframe)
+                
+                # Update PPO values in chart data
+                for i, item in enumerate(chart_data):
+                    if i < len(indicators["ppo_values"]):
+                        item["ppo"] = indicators["ppo_values"][i]
+                
+                fundamental_data = await get_fundamental_data(symbol)
+                current_price = prices[-1]
+                price_change = prices[-1] - prices[-2] if len(prices) > 1 else 0
+                
+                print(f"✅ Polygon.io success: {len(chart_data)} data points for {symbol}")
+                
+                return {
+                    "symbol": symbol,
+                    "timeframe": timeframe,
+                    "current_price": current_price,
+                    "price_change": price_change,
+                    "price_change_percent": (price_change / prices[-2]) * 100 if len(prices) > 1 and prices[-2] != 0 else 0,
+                    "volume": int(aggs[-1].volume) if aggs else 0,
+                    "chart_data": chart_data,
+                    "indicators": indicators,
+                    "fundamental_data": fundamental_data,
+                    "ppo_history": generate_ppo_history(indicators["ppo_values"], chart_data),
+                    "dmi_history": generate_dmi_history(indicators, chart_data),
+                }
+                
+            except Exception as polygon_error:
+                print(f"Polygon API error: {polygon_error}")
+        
+        # Final fallback to enhanced mock data
+        print(f"Using enhanced mock data for {symbol} ({timeframe})")
         return generate_mock_stock_data(symbol, timeframe)
 
 def create_demo_analysis_data(symbol: str) -> Dict[str, Any]:
