@@ -6,9 +6,19 @@ import { Search, TrendingUp, TrendingDown, Brain, BarChart3, Activity, Target } 
 import api from '../services/api';
 
 const StockAnalysis = () => {
-  const [symbol, setSymbol] = useState('AAPL');
+  const [searchParams] = useSearchParams();
+  const urlSymbol = searchParams.get('symbol');
+  
+  const [symbol, setSymbol] = useState(urlSymbol || 'AAPL');
   const [inputSymbol, setInputSymbol] = useState('');
   const [timeframe, setTimeframe] = useState('1D');
+
+  // Update symbol when URL parameter changes
+  useEffect(() => {
+    if (urlSymbol && urlSymbol !== symbol) {
+      setSymbol(urlSymbol.toUpperCase());
+    }
+  }, [urlSymbol, symbol]);
 
   const {
     data: analysisData,
