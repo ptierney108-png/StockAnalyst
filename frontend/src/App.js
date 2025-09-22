@@ -32,6 +32,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/analysis" element={<StockAnalysis />} />
+              <Route path="/screener" element={<StockScreener />} />
               <Route path="/point-decision" element={<PointBasedDecision />} />
               <Route path="/stock/:symbol" element={<StockDetail />} />
               <Route path="/portfolio" element={<Portfolio />} />
