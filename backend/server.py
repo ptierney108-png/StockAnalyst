@@ -29,9 +29,13 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# API Keys
+# API Keys and Configuration
 alpha_vantage_key = os.environ.get('ALPHA_VANTAGE_KEY', 'demo')
+polygon_api_key = os.environ.get('POLYGON_API_KEY')
 emergent_llm_key = os.environ.get('EMERGENT_LLM_KEY')
+
+# Initialize API clients
+polygon_client = RESTClient(polygon_api_key) if polygon_api_key else None
 
 # Create the main app without a prefix
 app = FastAPI(title="StockWise API", description="Advanced Stock Technical Analysis Platform")
