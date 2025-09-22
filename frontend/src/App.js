@@ -8,6 +8,7 @@ import Portfolio from './pages/Portfolio';
 import Watchlist from './pages/Watchlist';
 import Market from './pages/Market';
 import StockAnalysis from './components/StockAnalysis';
+import PointBasedDecision from './pages/PointBasedDecision';
 import './App.css';
 
 const queryClient = new QueryClient({
