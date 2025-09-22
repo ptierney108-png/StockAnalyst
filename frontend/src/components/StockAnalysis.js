@@ -496,13 +496,13 @@ const StockAnalysis = () => {
                 />
               </div>
 
-              {/* PPO Indicator Chart */}
+              {/* PPO Indicator Chart with Histogram */}
               <div>
                 <Chart
                   options={ppoChartOptions}
-                  series={[{ name: 'PPO', data: ppoData }]}
+                  series={ppoChartSeries}
                   type="line"
-                  height={150}
+                  height={200}
                 />
               </div>
             </div>
