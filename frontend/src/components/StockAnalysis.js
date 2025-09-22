@@ -888,29 +888,29 @@ const StockAnalysis = () => {
 
             {/* Technical Indicators Dashboard */}
             {analysisData && (
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">Technical Indicators Dashboard</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {[
-                  { label: 'PPO', value: analysisData.indicators?.ppo, suffix: '%', color: 'blue' },
-                  { label: 'RSI', value: analysisData.indicators?.rsi, suffix: '', color: analysisData.indicators?.rsi > 70 ? 'red' : analysisData.indicators?.rsi < 30 ? 'green' : 'gray' },
-                  { label: 'MACD', value: analysisData.indicators?.macd, suffix: '', color: analysisData.indicators?.macd >= 0 ? 'green' : 'red' },
-                  { label: 'DMI+', value: analysisData.indicators?.dmi_plus, suffix: '', color: 'green' },
-                  { label: 'DMI-', value: analysisData.indicators?.dmi_minus, suffix: '', color: 'red' },
-                  { label: 'ADX', value: analysisData.indicators?.adx, suffix: '', color: analysisData.indicators?.adx > 25 ? 'green' : 'gray' },
-                  { label: 'SMA 20', value: analysisData.indicators?.sma_20, suffix: '', color: 'gray', prefix: '$' },
-                  { label: 'SMA 50', value: analysisData.indicators?.sma_50, suffix: '', color: 'gray', prefix: '$' },
-                  { label: 'SMA 200', value: analysisData.indicators?.sma_200, suffix: '', color: 'gray', prefix: '$' }
-                ].map((indicator, index) => (
-                  <div key={index} className="p-4 border-2 border-gray-200 rounded-xl text-center bg-gradient-to-br from-white to-gray-50 hover:shadow-md transition-shadow">
-                    <div className="text-xs text-gray-500 mb-1 font-medium">{indicator.label}</div>
-                    <div className={`font-bold text-lg text-${indicator.color}-600`}>
-                      {indicator.prefix || ''}{indicator.value?.toFixed(indicator.prefix ? 2 : 1)}{indicator.suffix}
+              <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                <h3 className="text-2xl font-bold text-gray-900 mb-6">Technical Indicators Dashboard</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {[
+                    { label: 'PPO', value: analysisData.indicators?.ppo, suffix: '%', color: 'blue' },
+                    { label: 'RSI', value: analysisData.indicators?.rsi, suffix: '', color: analysisData.indicators?.rsi > 70 ? 'red' : analysisData.indicators?.rsi < 30 ? 'green' : 'gray' },
+                    { label: 'MACD', value: analysisData.indicators?.macd, suffix: '', color: analysisData.indicators?.macd >= 0 ? 'green' : 'red' },
+                    { label: 'DMI+', value: analysisData.indicators?.dmi_plus, suffix: '', color: 'green' },
+                    { label: 'DMI-', value: analysisData.indicators?.dmi_minus, suffix: '', color: 'red' },
+                    { label: 'ADX', value: analysisData.indicators?.adx, suffix: '', color: analysisData.indicators?.adx > 25 ? 'green' : 'gray' },
+                    { label: 'SMA 20', value: analysisData.indicators?.sma_20, suffix: '', color: 'gray', prefix: '$' },
+                    { label: 'SMA 50', value: analysisData.indicators?.sma_50, suffix: '', color: 'gray', prefix: '$' },
+                    { label: 'SMA 200', value: analysisData.indicators?.sma_200, suffix: '', color: 'gray', prefix: '$' }
+                  ].map((indicator, index) => (
+                    <div key={index} className="p-4 border-2 border-gray-200 rounded-xl text-center bg-gradient-to-br from-white to-gray-50 hover:shadow-md transition-shadow">
+                      <div className="text-xs font-medium text-gray-500 mb-1">{indicator.label}</div>
+                      <div className={`text-lg font-bold text-${indicator.color}-600`}>
+                        {indicator.prefix || ''}{indicator.value?.toFixed(indicator.label.includes('SMA') ? 2 : 3) || 'N/A'}{indicator.suffix}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
             )}
           </>
         )}
