@@ -860,7 +860,64 @@ const StockAnalysis = () => {
               </div>
             </div>
 
-            {/* Technical Indicators Grid */}
+            {/* DMI Components Analysis */}
+            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+              <div className="flex items-center space-x-2 mb-6">
+                <Activity className="h-5 w-5 text-green-600" />
+                <h3 className="text-2xl font-bold text-gray-900">Past 3 Days DMI Components</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {analysisData.dmi_history?.map((item, index) => (
+                  <div key={index} className="p-6 bg-gradient-to-br from-green-50 to-blue-50 rounded-xl border border-green-100">
+                    <div className="text-center mb-4">
+                      <div className="text-sm font-medium text-gray-500 mb-2">{item.date}</div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-green-600 font-semibold">DMI+ (Bullish):</span>
+                        <span className="font-bold text-green-600 text-lg">{item.dmi_plus?.toFixed(1)}</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-red-600 font-semibold">DMI- (Bearish):</span>
+                        <span className="font-bold text-red-600 text-lg">{item.dmi_minus?.toFixed(1)}</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-blue-600 font-semibold">ADX (Trend Strength):</span>
+                        <span className={`font-bold text-lg ${item.adx > 25 ? 'text-blue-600' : 'text-gray-600'}`}>
+                          {item.adx?.toFixed(1)}
+                        </span>
+                      </div>
+                      
+                      <div className="mt-4">
+                        <div className="text-xs text-gray-500 mb-2 font-medium">Trend Strength Bar</div>
+                        <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-3 rounded-full transition-all duration-500 ${item.adx > 25 ? 'bg-gradient-to-r from-blue-400 to-blue-600' : 'bg-gradient-to-r from-gray-400 to-gray-500'}`}
+                            style={{ width: `${Math.min(item.adx * 1.5, 100)}%` }}
+                          ></div>
+                        </div>
+                        <div className="text-xs text-center mt-2 font-semibold">
+                          {item.adx > 25 ? 'Strong Trend' : 'Weak Trend'}
+                        </div>
+                      </div>
+                      
+                      <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                        <div className="text-xs font-semibold text-gray-700 mb-1">Directional Movement</div>
+                        <div className={`text-sm font-medium ${item.dmi_plus > item.dmi_minus ? 'text-green-600' : 'text-red-600'}`}>
+                          {item.dmi_plus > item.dmi_minus ? '↗ Bullish Bias' : '↘ Bearish Bias'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Technical Indicators Dashboard */}
             <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
               <h3 className="text-2xl font-bold text-gray-900 mb-6">Technical Indicators Dashboard</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
