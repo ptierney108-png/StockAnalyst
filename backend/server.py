@@ -299,7 +299,27 @@ def generate_dmi_history(indicators: Dict[str, Any], chart_data: List[Dict]) -> 
     return dmi_history
 
 def generate_mock_stock_data(symbol: str, timeframe: str) -> Dict[str, Any]:
-    """Generate mock stock data for demo purposes"""
+    """Generate realistic mock stock data with proper timeframe handling for demo purposes"""
+    
+    # Different data amounts based on timeframe
+    timeframe_data_points = {
+        "1D": 24,      # 24 hours of hourly data
+        "5D": 5,       # 5 days
+        "1M": 30,      # 30 days
+        "3M": 90,      # 90 days
+        "6M": 180,     # 180 days
+        "YTD": 250,    # Year to date
+        "1Y": 365,     # 1 year
+        "5Y": 1825,    # 5 years (but we'll sample)
+        "All": 3650    # 10 years (but we'll sample)
+    }
+    
+    data_points = timeframe_data_points.get(timeframe, 30)
+    
+    # Limit data points for performance (max 365 for demo)
+    if data_points > 365:
+        data_points = 365
+    
     base_price = 150.0 + hash(symbol) % 100
     price_change = (hash(symbol) % 20) - 10
     
@@ -308,7 +328,7 @@ def generate_mock_stock_data(symbol: str, timeframe: str) -> Dict[str, Any]:
     rsi_base = 30 + (hash(symbol) % 40)        # Range: 30-70 (realistic range)
     
     indicators = {
-        "ppo_values": [ppo_base + (i * 0.1) for i in range(30)],
+        "ppo_values": [ppo_base + (i * 0.02) for i in range(data_points)],
         "rsi": rsi_base,
         "macd": ppo_base * 0.8,
         "sma_20": base_price - (hash(symbol) % 10),
@@ -316,26 +336,67 @@ def generate_mock_stock_data(symbol: str, timeframe: str) -> Dict[str, Any]:
         "sma_200": base_price - (hash(symbol) % 30)
     }
     
-    # Generate chart data
+    # Generate chart data with different date ranges based on timeframe
     chart_data = []
     current_price = base_price
-    for i in range(30):
-        date = (datetime.now() - timedelta(days=29-i)).strftime('%Y-%m-%d')
-        price_change_daily = (hash(f"{symbol}{i}") % 10) - 5
+    
+    # Calculate start date based on timeframe
+    from datetime import datetime, timedelta
+    
+    if timeframe == "1D":
+        # Hourly data for 1 day
+        start_time = datetime.now() - timedelta(hours=data_points)
+        time_delta = timedelta(hours=1)
+        date_format = '%Y-%m-%d %H:%M'
+    elif timeframe in ["5D", "1M"]:
+        # Daily data
+        start_time = datetime.now() - timedelta(days=data_points)
+        time_delta = timedelta(days=1)
+        date_format = '%Y-%m-%d'
+    elif timeframe in ["3M", "6M", "YTD", "1Y"]:
+        # Daily data for longer periods
+        start_time = datetime.now() - timedelta(days=data_points)
+        time_delta = timedelta(days=1)
+        date_format = '%Y-%m-%d'
+    elif timeframe == "5Y":
+        # Weekly data for 5 years
+        start_time = datetime.now() - timedelta(weeks=260)  # 5 years of weeks
+        time_delta = timedelta(weeks=1)
+        date_format = '%Y-%m-%d'
+        data_points = min(data_points, 260)
+    else:  # "All"
+        # Monthly data for 10 years
+        start_time = datetime.now() - timedelta(days=3650)
+        time_delta = timedelta(days=30)  # Approximate monthly
+        date_format = '%Y-%m-%d'
+        data_points = min(data_points, 120)
+    
+    for i in range(data_points):
+        current_time = start_time + (time_delta * i)
+        date_str = current_time.strftime(date_format)
+        
+        # Generate realistic price movement
+        volatility_factor = 1.0
+        if timeframe == "1D":
+            volatility_factor = 0.5  # Less volatile for intraday
+        elif timeframe in ["5Y", "All"]:
+            volatility_factor = 2.0  # More volatile for longer periods
+            
+        price_change_daily = (hash(f"{symbol}{i}{timeframe}") % 10 - 5) * volatility_factor
         open_price = current_price
-        volatility = abs(price_change_daily) * 0.5
+        volatility = abs(price_change_daily) * 0.3
         high_price = open_price + volatility
         low_price = open_price - volatility
-        close_price = open_price + (price_change_daily * 0.5)
+        close_price = open_price + (price_change_daily * 0.3)
         current_price = close_price
         
         chart_data.append({
-            "date": date,
+            "date": date_str,
             "open": max(1, open_price),
             "high": max(1, high_price),
             "low": max(1, low_price),
             "close": max(1, close_price),
-            "volume": 1000000 + hash(f"{symbol}{i}") % 3000000,
+            "volume": 1000000 + hash(f"{symbol}{i}{timeframe}") % 3000000,
             "ppo": indicators["ppo_values"][i] if i < len(indicators["ppo_values"]) else 0
         })
     
@@ -347,7 +408,7 @@ def generate_mock_stock_data(symbol: str, timeframe: str) -> Dict[str, Any]:
         "current_price": base_price,
         "price_change": price_change,
         "price_change_percent": (price_change / base_price) * 100,
-        "volume": 1500000 + hash(symbol) % 3000000,
+        "volume": 1500000 + hash(f"{symbol}{timeframe}") % 3000000,
         "chart_data": chart_data,
         "indicators": indicators,
         "fundamental_data": fundamental_data,
