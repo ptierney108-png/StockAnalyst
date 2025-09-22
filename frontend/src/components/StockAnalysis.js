@@ -690,7 +690,7 @@ const StockAnalysis = () => {
                       <Target className="h-5 w-5 text-orange-600" />
                       <h3 className="font-semibold text-gray-900">Market Sentiment</h3>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-3">
                       <span className={`px-4 py-2 rounded-full text-sm font-bold border-2 ${getSentimentColor(analysisData.sentiment_analysis)}`}>
                         {analysisData.sentiment_analysis}
                       </span>
@@ -698,6 +698,28 @@ const StockAnalysis = () => {
                         Score: {analysisData.sentiment_score?.toFixed(2)}
                       </span>
                     </div>
+                    
+                    {/* Sentiment Summary */}
+                    {analysisData.sentiment_summary && (
+                      <div className="mt-3 p-3 bg-white bg-opacity-50 rounded-lg border border-orange-200">
+                        <p className="text-sm text-gray-700 font-medium">{analysisData.sentiment_summary}</p>
+                      </div>
+                    )}
+                    
+                    {/* Detailed Sentiment Analysis */}
+                    {analysisData.sentiment_details && analysisData.sentiment_details.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">Sentiment Drivers:</h4>
+                        <div className="space-y-2">
+                          {analysisData.sentiment_details.map((detail, index) => (
+                            <div key={index} className="flex items-start space-x-2">
+                              <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                              <p className="text-xs text-gray-600 leading-relaxed">{detail}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
