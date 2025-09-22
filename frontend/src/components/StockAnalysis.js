@@ -436,17 +436,17 @@ const StockAnalysis = () => {
     },
     plotOptions: {
       bar: {
-        columnWidth: '80%',
-        borderRadius: 2,
+        columnWidth: '85%', // Wider bars like reference chart
+        borderRadius: 1,
         colors: {
           ranges: [{
             from: -100,
             to: 0,
-            color: '#ef4444'
+            color: '#ef4444' // Red for negative values
           }, {
             from: 0,
             to: 100,
-            color: '#10b981'
+            color: '#10b981' // Green for positive values
           }]
         },
         distributed: false
