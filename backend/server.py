@@ -954,12 +954,10 @@ def create_demo_analysis_data(symbol: str) -> Dict[str, Any]:
 async def root():
     return {"message": "StockWise API - Advanced Technical Analysis Platform"}
 
-@api_router.post("/analyze", response_model=StockAnalysis)
-async def analyze_stock(request: StockAnalysisRequest):
-    """Perform comprehensive technical analysis on a stock"""
-    symbol = request.symbol.upper()
-    analysis_data = await get_advanced_stock_data(symbol)
-    return StockAnalysis(**analysis_data)
+@api_router.post("/analyze")
+async def analyze_stock_post(request: StockAnalysisRequest):
+    """Get comprehensive technical analysis for a stock via POST with timeframe support"""
+    return await analyze_stock_get(request.symbol, request.timeframe)
 
 @api_router.get("/analyze/{symbol}")
 async def analyze_stock_get(symbol: str, timeframe: str = "1D"):
