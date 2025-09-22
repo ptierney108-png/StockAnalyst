@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, Home, Briefcase, Heart, TrendingUp, Activity } from 'lucide-react';
+import { BarChart3, Home, Briefcase, Heart, TrendingUp, Activity, Target } from 'lucide-react';
 
 const Navigation = () => {
   const location = useLocation();
