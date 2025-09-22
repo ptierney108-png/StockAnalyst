@@ -474,7 +474,7 @@ const StockAnalysis = () => {
     }
   };
 
-  // Enhanced PPO Chart Series with Professional Histogram
+  // Enhanced PPO Chart Series with Professional Histogram (Similar to Reference Chart)
   const ppoChartSeries = [
     {
       name: 'PPO Line',
@@ -504,8 +504,8 @@ const StockAnalysis = () => {
         const histogram = ppo - signal;
         return {
           x: new Date(item.date).getTime(),
-          y: parseFloat((histogram * 5).toFixed(4)), // Amplify histogram for better visibility
-          fillColor: histogram >= 0 ? '#10b981' : '#ef4444'
+          y: parseFloat((histogram * 8).toFixed(4)), // Amplify histogram for better visibility like reference chart
+          fillColor: histogram >= 0 ? '#10b981' : '#ef4444' // Green for positive, red for negative
         };
       }) || []
     }
