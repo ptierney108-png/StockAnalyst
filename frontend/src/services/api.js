@@ -6,7 +6,7 @@ const API_BASE = `${BACKEND_URL}/api`;
 // Create axios instance with default config
 const apiClient = axios.create({
   baseURL: API_BASE,
-  timeout: 10000,
+  timeout: 30000, // Increased timeout for analysis
   headers: {
     'Content-Type': 'application/json',
   },
@@ -40,6 +40,17 @@ const api = {
   // Health check
   health: async () => {
     const response = await apiClient.get('/');
+    return response.data;
+  },
+
+  // Advanced Stock Analysis - NEW
+  getStockAnalysis: async (symbol) => {
+    const response = await apiClient.get(`/analyze/${symbol}`);
+    return response.data;
+  },
+
+  performStockAnalysis: async (symbol, timeframe = 'daily') => {
+    const response = await apiClient.post('/analyze', { symbol, timeframe });
     return response.data;
   },
 
