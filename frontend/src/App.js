@@ -7,6 +7,7 @@ import StockDetail from './pages/StockDetail';
 import Portfolio from './pages/Portfolio';
 import Watchlist from './pages/Watchlist';
 import Market from './pages/Market';
+import StockAnalysis from './components/StockAnalysis';
 import './App.css';
 
 const queryClient = new QueryClient({
