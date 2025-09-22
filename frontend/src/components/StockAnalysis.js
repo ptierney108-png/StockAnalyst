@@ -59,11 +59,13 @@ const StockAnalysis = () => {
     }
   };
 
-  // Handle timeframe change with forced refresh
-  const handleTimeframeChange = (newTimeframe) => {
+  // Handle timeframe change with proper cache invalidation
+  const handleTimeframeChange = async (newTimeframe) => {
     setSelectedTimeframe(newTimeframe);
-    // Force refetch when timeframe changes
-    refetch();
+    // Invalidate and refetch the query with new timeframe
+    await queryClient.invalidateQueries({
+      queryKey: ['stock-analysis', symbol]
+    });
   };
 
   // Prepare sophisticated candlestick chart data
