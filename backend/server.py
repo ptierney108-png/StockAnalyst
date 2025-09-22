@@ -14,6 +14,7 @@ from alpha_vantage.timeseries import TimeSeries
 from alpha_vantage.fundamentaldata import FundamentalData
 from polygon import RESTClient
 import requests
+import yfinance as yf
 from alpha_vantage.fundamentaldata import FundamentalData
 from alpha_vantage.techindicators import TechIndicators
 import json
