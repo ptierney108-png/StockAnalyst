@@ -16,7 +16,7 @@ from alpha_vantage.techindicators import TechIndicators
 import json
 import math
 import numpy as np
-from emergentintegrations.openai import OpenAI as EmergentOpenAI
+from emergentintegrations.llm import chat
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -212,8 +212,6 @@ async def get_ai_recommendation(symbol: str, indicators: TechnicalIndicators, cu
         return {"recommendation": "HOLD", "confidence": 0.5, "reasoning": "AI analysis unavailable"}
     
     try:
-        client = EmergentOpenAI(api_key=emergent_llm_key)
-        
         prompt = f"""
         Analyze the following stock data for {symbol} and provide a recommendation:
         
@@ -238,14 +236,15 @@ async def get_ai_recommendation(symbol: str, indicators: TechnicalIndicators, cu
         Respond in JSON format: {{"recommendation": "BUY/SELL/HOLD", "confidence": 0.8, "reasoning": "explanation"}}
         """
         
-        response = client.chat.completions.create(
+        response = await chat(
+            api_key=emergent_llm_key,
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=200,
             temperature=0.3
         )
         
-        result = json.loads(response.choices[0].message.content)
+        result = json.loads(response)
         return result
     except Exception as e:
         print(f"AI recommendation error: {e}")
@@ -257,8 +256,6 @@ async def get_sentiment_analysis(symbol: str) -> Dict[str, Any]:
         return {"sentiment": "Neutral", "score": 0.0, "summary": "Sentiment analysis unavailable"}
     
     try:
-        client = EmergentOpenAI(api_key=emergent_llm_key)
-        
         prompt = f"""
         Analyze the current market sentiment for {symbol} stock. Consider recent news, market trends, and general investor sentiment.
         
@@ -270,14 +267,15 @@ async def get_sentiment_analysis(symbol: str) -> Dict[str, Any]:
         Respond in JSON format: {{"sentiment": "Positive/Negative/Neutral", "score": 0.2, "summary": "brief explanation"}}
         """
         
-        response = client.chat.completions.create(
+        response = await chat(
+            api_key=emergent_llm_key,
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=150,
             temperature=0.3
         )
         
-        result = json.loads(response.choices[0].message.content)
+        result = json.loads(response)
         return result
     except Exception as e:
         print(f"Sentiment analysis error: {e}")
