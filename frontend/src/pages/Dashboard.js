@@ -91,6 +91,36 @@ const Dashboard = () => {
         <p className="text-gray-600">Your comprehensive stock analysis platform</p>
       </div>
 
+      {/* Quick Stock Analysis */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center space-x-2 mb-4">
+          <Activity className="h-5 w-5 text-blue-600" />
+          <h2 className="text-lg font-semibold text-gray-900">Quick Stock Analysis</h2>
+        </div>
+        <form onSubmit={handleQuickAnalysis} className="flex gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <input
+              type="text"
+              value={quickAnalysisSymbol}
+              onChange={(e) => setQuickAnalysisSymbol(e.target.value.toUpperCase())}
+              placeholder="Enter stock symbol (e.g., AAPL, TSLA)..."
+              className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={!quickAnalysisSymbol.trim()}
+            className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Analyze Stock
+          </button>
+        </form>
+        <p className="text-sm text-gray-500 mt-2">
+          Get advanced technical analysis with PPO, DMI, RSI, MACD indicators and AI recommendations
+        </p>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
