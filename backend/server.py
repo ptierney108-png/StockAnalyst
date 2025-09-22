@@ -39,7 +39,7 @@ api_router = APIRouter(prefix="/api")
 # Models
 class StockAnalysisRequest(BaseModel):
     symbol: str
-    timeframe: Optional[str] = "daily"
+    timeframe: Optional[str] = "1D"
 
 class TechnicalIndicators(BaseModel):
     ppo: Optional[float] = None
