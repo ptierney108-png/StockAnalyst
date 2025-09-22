@@ -452,7 +452,7 @@ const StockAnalysis = () => {
     }
   };
 
-  // PPO Chart Series with Proper Histogram
+  // Enhanced PPO Chart Series with Improved Histogram
   const ppoChartSeries = [
     {
       name: 'PPO Line',
@@ -482,7 +482,8 @@ const StockAnalysis = () => {
         const histogram = ppo - signal;
         return {
           x: new Date(item.date).getTime(),
-          y: parseFloat(histogram.toFixed(4))
+          y: parseFloat(histogram.toFixed(4)),
+          fillColor: histogram >= 0 ? '#10b981' : '#ef4444'
         };
       }) || []
     }
