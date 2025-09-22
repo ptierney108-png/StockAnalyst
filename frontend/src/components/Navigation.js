@@ -7,7 +7,8 @@ const Navigation = () => {
   
   const navItems = [
     { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'Analysis', href: '/analysis', icon: Activity },
+    { name: 'Technical Analysis', href: '/analysis', icon: Activity },
+    { name: 'Point Based Decision', href: '/point-decision', icon: Target },
     { name: 'Market', href: '/market', icon: TrendingUp },
     { name: 'Portfolio', href: '/portfolio', icon: Briefcase },
     { name: 'Watchlist', href: '/watchlist', icon: Heart },
