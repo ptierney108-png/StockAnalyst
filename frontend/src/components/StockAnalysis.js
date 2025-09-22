@@ -59,13 +59,10 @@ const StockAnalysis = () => {
     }
   };
 
-  // Handle timeframe change with proper cache invalidation
-  const handleTimeframeChange = async (newTimeframe) => {
+  // Handle timeframe change with direct query key update
+  const handleTimeframeChange = (newTimeframe) => {
     setSelectedTimeframe(newTimeframe);
-    // Invalidate and refetch the query with new timeframe
-    await queryClient.invalidateQueries({
-      queryKey: ['stock-analysis', symbol]
-    });
+    // The queryKey dependency will automatically trigger a refetch
   };
 
   // Prepare sophisticated candlestick chart data
