@@ -744,7 +744,8 @@ const StockAnalysis = () => {
             </div>
 
             {/* PPO Components Analysis */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+            {analysisData && (
+              <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
               <div className="flex items-center space-x-2 mb-6">
                 <BarChart3 className="h-5 w-5 text-blue-600" />
                 <h3 className="text-2xl font-bold text-gray-900">Past 3 Days PPO Components</h3>
