@@ -454,7 +454,7 @@ const StockAnalysis = () => {
                       <Brain className="h-5 w-5 text-purple-600" />
                       <h3 className="font-semibold text-gray-900">AI Recommendation</h3>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-3">
                       <span className={`px-4 py-2 rounded-full text-sm font-bold border ${getRecommendationColor(analysisData.ai_recommendation)}`}>
                         {analysisData.ai_recommendation}
                       </span>
@@ -462,6 +462,26 @@ const StockAnalysis = () => {
                         Confidence: {(analysisData.ai_confidence * 100)?.toFixed(1)}%
                       </span>
                     </div>
+                    
+                    {/* Detailed AI Analysis */}
+                    {analysisData.ai_detailed_analysis && analysisData.ai_detailed_analysis.length > 0 && (
+                      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                        <div className="text-sm font-medium text-gray-900 mb-2">Technical Analysis:</div>
+                        <div className="space-y-1">
+                          {analysisData.ai_detailed_analysis.map((analysis, index) => (
+                            <div key={index} className="text-sm text-gray-700">
+                              {analysis}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {analysisData.ai_reasoning && (
+                      <div className="mt-2 text-sm text-gray-600 italic">
+                        {analysisData.ai_reasoning}
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-4 border rounded-lg">
