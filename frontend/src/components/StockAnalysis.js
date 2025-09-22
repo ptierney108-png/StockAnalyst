@@ -911,6 +911,7 @@ const StockAnalysis = () => {
                 ))}
               </div>
             </div>
+            )}
           </>
         )}
       </div>
