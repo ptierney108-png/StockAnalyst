@@ -795,6 +795,7 @@ const StockAnalysis = () => {
                 ))}
               </div>
             </div>
+            )}
 
             {/* PPO Slope Trend Analysis */}
             <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-8 border-2 border-green-200 shadow-lg">
