@@ -16,7 +16,7 @@ from alpha_vantage.techindicators import TechIndicators
 import json
 import math
 import numpy as np
-from emergentintegrations import EmergentOpenAI
+from emergentintegrations.openai import OpenAI as EmergentOpenAI
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
