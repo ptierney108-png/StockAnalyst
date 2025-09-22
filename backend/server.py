@@ -69,6 +69,8 @@ class StockAnalysis(BaseModel):
     dmi_history: List[Dict[str, Any]] = []
     ai_recommendation: Optional[str] = None
     ai_confidence: Optional[float] = None
+    ai_reasoning: Optional[str] = None
+    ai_detailed_analysis: List[str] = []
     sentiment_analysis: Optional[str] = None
     sentiment_score: Optional[float] = None
     chart_data: List[Dict[str, Any]] = []
