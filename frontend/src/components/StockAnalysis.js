@@ -58,9 +58,11 @@ const StockAnalysis = () => {
     }
   };
 
-  // Handle timeframe change
+  // Handle timeframe change with forced refresh
   const handleTimeframeChange = (newTimeframe) => {
     setSelectedTimeframe(newTimeframe);
+    // Force refetch when timeframe changes
+    refetch();
   };
 
   // Prepare sophisticated candlestick chart data
