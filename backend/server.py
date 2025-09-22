@@ -12,6 +12,8 @@ from datetime import datetime, timedelta
 import httpx
 from alpha_vantage.timeseries import TimeSeries
 from alpha_vantage.fundamentaldata import FundamentalData
+from polygon import RESTClient
+import requests
 from alpha_vantage.fundamentaldata import FundamentalData
 from alpha_vantage.techindicators import TechIndicators
 import json
