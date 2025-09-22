@@ -182,11 +182,11 @@ const StockAnalysis = () => {
     }]
   };
 
-  // PPO Indicator Chart (bottom chart)
+  // PPO Indicator Chart with Histogram (like MACD)
   const ppoChartOptions = {
     chart: {
       type: 'line',
-      height: 150,
+      height: 200,
       id: 'ppo-chart',
       toolbar: {
         show: false
@@ -194,7 +194,7 @@ const StockAnalysis = () => {
       background: '#ffffff'
     },
     title: {
-      text: 'PPO Indicator',
+      text: 'PPO Indicator with Histogram',
       align: 'left',
       style: {
         fontSize: '14px',
@@ -214,28 +214,50 @@ const StockAnalysis = () => {
         show: false
       }
     },
-    yaxis: {
-      labels: {
-        formatter: (value) => `${value?.toFixed(2)}%`,
-        style: {
-          colors: '#6b7280',
-          fontSize: '10px'
+    yaxis: [
+      {
+        seriesName: 'PPO',
+        labels: {
+          formatter: (value) => `${value?.toFixed(2)}%`,
+          style: {
+            colors: '#6b7280',
+            fontSize: '10px'
+          }
+        },
+        title: {
+          text: 'PPO (%)',
+          style: {
+            color: '#6b7280',
+            fontSize: '10px',
+            fontWeight: 600
+          }
         }
       },
-      title: {
-        text: 'PPO (%)',
-        style: {
-          color: '#6b7280',
-          fontSize: '10px',
-          fontWeight: 600
+      {
+        seriesName: 'Histogram',
+        opposite: true,
+        labels: {
+          formatter: (value) => `${value?.toFixed(3)}`,
+          style: {
+            colors: '#6b7280',
+            fontSize: '10px'
+          }
+        },
+        title: {
+          text: 'Histogram',
+          style: {
+            color: '#6b7280',
+            fontSize: '10px',
+            fontWeight: 600
+          }
         }
       }
-    },
+    ],
     stroke: {
       curve: 'smooth',
-      width: 2
+      width: [2, 2, 0] // PPO, Signal, Histogram (no stroke for bars)
     },
-    colors: ['#3b82f6'],
+    colors: ['#3b82f6', '#f59e0b', '#10b981'],
     grid: {
       show: true,
       borderColor: '#f3f4f6',
@@ -251,13 +273,56 @@ const StockAnalysis = () => {
     },
     tooltip: {
       y: {
-        formatter: (value) => `${value?.toFixed(3)}%`
+        formatter: (value, { seriesIndex }) => {
+          if (seriesIndex === 2) return `${value?.toFixed(3)}`;
+          return `${value?.toFixed(3)}%`;
+        }
       }
     },
     dataLabels: {
       enabled: false
+    },
+    legend: {
+      show: true,
+      position: 'top',
+      horizontalAlign: 'right',
+      fontSize: '12px'
+    },
+    plotOptions: {
+      bar: {
+        columnWidth: '50%'
+      }
     }
   };
+
+  // Prepare PPO chart series data
+  const ppoChartSeries = [
+    {
+      name: 'PPO Line',
+      type: 'line',
+      data: analysisData?.chart_data?.map(item => ({
+        x: new Date(item.date).getTime(),
+        y: item.ppo || 0
+      })) || []
+    },
+    {
+      name: 'PPO Signal',
+      type: 'line', 
+      data: analysisData?.chart_data?.map(item => ({
+        x: new Date(item.date).getTime(),
+        y: (item.ppo || 0) * 0.85 // Signal line approximation
+      })) || []
+    },
+    {
+      name: 'Histogram',
+      type: 'column',
+      yAxisIndex: 1,
+      data: analysisData?.chart_data?.map(item => ({
+        x: new Date(item.date).getTime(),
+        y: ((item.ppo || 0) - (item.ppo || 0) * 0.85) // Histogram = PPO - Signal
+      })) || []
+    }
+  ];
 
   const getRecommendationColor = (recommendation) => {
     switch (recommendation) {
