@@ -695,7 +695,27 @@ const StockAnalysis = () => {
 
             {/* Professional Charts Section */}
             <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">Technical Chart Analysis</h3>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">Technical Chart Analysis</h3>
+                
+                {/* Professional Timeframe Selector */}
+                <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+                  {timeframes.map((tf) => (
+                    <button
+                      key={tf.value}
+                      onClick={() => setSelectedTimeframe(tf.value)}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                        selectedTimeframe === tf.value
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                      }`}
+                      title={tf.description}
+                    >
+                      {tf.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               
               {/* Main Candlestick Chart */}
               <div className="mb-8">
@@ -713,7 +733,7 @@ const StockAnalysis = () => {
                   options={ppoChartOptions}
                   series={ppoChartSeries}
                   type="line"
-                  height={320}
+                  height={380}
                 />
               </div>
             </div>
