@@ -767,23 +767,13 @@ const StockAnalysis = () => {
                 />
               </div>
 
-              {/* Professional PPO Indicator Chart */}
-              <div className="mb-8">
+              {/* Enhanced PPO Indicator Chart */}
+              <div>
                 <Chart
                   options={ppoChartOptions}
                   series={ppoChartSeries}
                   type="line"
-                  height={280}
-                />
-              </div>
-
-              {/* DMI Indicator Chart */}
-              <div>
-                <Chart
-                  options={dmiChartOptions}
-                  series={dmiChartSeries}
-                  type="line"
-                  height={250}
+                  height={320}
                 />
               </div>
             </div>
