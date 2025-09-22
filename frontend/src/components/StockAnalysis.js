@@ -50,21 +50,15 @@ const StockAnalysis = () => {
     y: [item.open, item.high, item.low, item.close]
   })) || [];
 
-  // Prepare PPO data for the bottom chart  
-  const ppoData = analysisData?.chart_data?.map(item => ({
-    x: new Date(item.date).getTime(),
-    y: item.ppo || 0
-  })) || [];
-
   // Advanced Candlestick Chart Configuration
   const chartOptions = {
     chart: {
       type: 'candlestick',
-      height: 400,
+      height: 450,
       id: 'candlestick-chart',
       toolbar: {
         show: true,
-        autoSelected: 'pan',
+        autoSelected: 'zoom',
         tools: {
           download: true,
           selection: true,
@@ -76,15 +70,31 @@ const StockAnalysis = () => {
         }
       },
       background: '#ffffff',
-      foreColor: '#333'
+      foreColor: '#374151',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      animations: {
+        enabled: true,
+        easing: 'easeinout',
+        speed: 800
+      }
     },
     title: {
-      text: `${symbol} - Stock Analysis`,
+      text: `${symbol} - Professional Stock Analysis`,
+      align: 'left',
+      margin: 20,
+      style: {
+        fontSize: '20px',
+        fontWeight: '700',
+        color: '#111827'
+      }
+    },
+    subtitle: {
+      text: 'Advanced Technical Analysis with Real-time Data',
       align: 'left',
       style: {
-        fontSize: '18px',
-        fontWeight: 'bold',
-        color: '#1f2937'
+        fontSize: '14px',
+        fontWeight: '400',
+        color: '#6b7280'
       }
     },
     xaxis: {
@@ -93,12 +103,14 @@ const StockAnalysis = () => {
         format: 'MMM dd',
         style: {
           colors: '#6b7280',
-          fontSize: '12px'
+          fontSize: '12px',
+          fontWeight: '500'
         }
       },
       axisBorder: {
         show: true,
-        color: '#e5e7eb'
+        color: '#e5e7eb',
+        width: 1
       },
       axisTicks: {
         show: true,
@@ -113,15 +125,16 @@ const StockAnalysis = () => {
         formatter: (value) => `$${value?.toFixed(2)}`,
         style: {
           colors: '#6b7280',
-          fontSize: '12px'
+          fontSize: '12px',
+          fontWeight: '500'
         }
       },
       title: {
-        text: 'Price ($)',
+        text: 'Price (USD)',
         style: {
-          color: '#6b7280',
-          fontSize: '12px',
-          fontWeight: 600
+          color: '#374151',
+          fontSize: '14px',
+          fontWeight: '600'
         }
       }
     },
@@ -139,7 +152,7 @@ const StockAnalysis = () => {
     grid: {
       show: true,
       borderColor: '#f3f4f6',
-      strokeDashArray: 1,
+      strokeDashArray: 2,
       position: 'back',
       xaxis: {
         lines: {
@@ -159,14 +172,22 @@ const StockAnalysis = () => {
         const h = w.globals.seriesCandleH[seriesIndex][dataPointIndex];
         const l = w.globals.seriesCandleL[seriesIndex][dataPointIndex];
         const c = w.globals.seriesCandleC[seriesIndex][dataPointIndex];
+        const change = c - o;
+        const changePercent = ((change / o) * 100).toFixed(2);
+        
         return `
-          <div class="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-            <div class="font-semibold text-gray-900 mb-2">${symbol}</div>
-            <div class="space-y-1 text-sm">
-              <div>Open: <span class="font-medium">$${o?.toFixed(2)}</span></div>
-              <div>High: <span class="font-medium text-green-600">$${h?.toFixed(2)}</span></div>
-              <div>Low: <span class="font-medium text-red-600">$${l?.toFixed(2)}</span></div>
-              <div>Close: <span class="font-medium">$${c?.toFixed(2)}</span></div>
+          <div class="bg-white p-4 border border-gray-200 rounded-xl shadow-lg">
+            <div class="font-bold text-gray-900 mb-3 text-lg">${symbol}</div>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div>Open: <span class="font-semibold text-blue-600">$${o?.toFixed(2)}</span></div>
+              <div>High: <span class="font-semibold text-green-600">$${h?.toFixed(2)}</span></div>
+              <div>Low: <span class="font-semibold text-red-600">$${l?.toFixed(2)}</span></div>
+              <div>Close: <span class="font-semibold text-gray-900">$${c?.toFixed(2)}</span></div>
+            </div>
+            <div class="mt-2 pt-2 border-t border-gray-100">
+              <div class="text-sm ${change >= 0 ? 'text-green-600' : 'text-red-600'}">
+                Change: ${change >= 0 ? '+' : ''}$${change?.toFixed(2)} (${changePercent}%)
+              </div>
             </div>
           </div>
         `;
@@ -176,42 +197,71 @@ const StockAnalysis = () => {
       breakpoint: 768,
       options: {
         chart: {
-          height: 300
+          height: 350
         }
       }
     }]
   };
 
-  // PPO Indicator Chart with Histogram (like MACD)
+  // Professional PPO Indicator Chart with Proper Histogram
   const ppoChartOptions = {
     chart: {
       type: 'line',
-      height: 200,
+      height: 280,
       id: 'ppo-chart',
       toolbar: {
-        show: false
+        show: true,
+        autoSelected: 'pan',
+        tools: {
+          zoom: true,
+          pan: true,
+          reset: true
+        }
       },
-      background: '#ffffff'
+      background: '#ffffff',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      animations: {
+        enabled: true,
+        easing: 'easeinout',
+        speed: 800
+      }
     },
     title: {
-      text: 'PPO Indicator with Histogram',
+      text: 'PPO (Percentage Price Oscillator) with Signal & Histogram',
+      align: 'left',
+      margin: 20,
+      style: {
+        fontSize: '18px',
+        fontWeight: '700',
+        color: '#111827'
+      }
+    },
+    subtitle: {
+      text: 'Momentum indicator showing price momentum and trend changes',
       align: 'left',
       style: {
-        fontSize: '14px',
-        fontWeight: 'bold',
-        color: '#1f2937'
+        fontSize: '12px',
+        fontWeight: '400',
+        color: '#6b7280'
       }
     },
     xaxis: {
       type: 'datetime',
       labels: {
-        show: false
+        format: 'MMM dd',
+        style: {
+          colors: '#6b7280',
+          fontSize: '11px',
+          fontWeight: '500'
+        }
       },
       axisBorder: {
-        show: false
+        show: true,
+        color: '#e5e7eb'
       },
       axisTicks: {
-        show: false
+        show: true,
+        color: '#e5e7eb'
       }
     },
     yaxis: [
@@ -219,17 +269,22 @@ const StockAnalysis = () => {
         title: {
           text: 'PPO (%)',
           style: {
-            color: '#6b7280',
-            fontSize: '10px',
-            fontWeight: 600
+            color: '#374151',
+            fontSize: '12px',
+            fontWeight: '600'
           }
         },
         labels: {
           formatter: (value) => `${value?.toFixed(2)}%`,
           style: {
             colors: '#6b7280',
-            fontSize: '10px'
+            fontSize: '11px',
+            fontWeight: '500'
           }
+        },
+        axisBorder: {
+          show: true,
+          color: '#3b82f6'
         }
       },
       {
@@ -237,43 +292,61 @@ const StockAnalysis = () => {
         title: {
           text: 'Histogram',
           style: {
-            color: '#6b7280',
-            fontSize: '10px',
-            fontWeight: 600
+            color: '#374151',
+            fontSize: '12px',
+            fontWeight: '600'
           }
         },
         labels: {
           formatter: (value) => `${value?.toFixed(3)}`,
           style: {
             colors: '#6b7280',
-            fontSize: '10px'
+            fontSize: '11px',
+            fontWeight: '500'
           }
+        },
+        axisBorder: {
+          show: true,
+          color: '#10b981'
         }
       }
     ],
     stroke: {
       curve: 'smooth',
-      width: [2, 2, 0] // PPO, Signal, Histogram (no stroke for bars)
+      width: [3, 2, 0], // PPO, Signal, Histogram
+      dashArray: [0, 5, 0] // Solid, dashed, solid
     },
-    colors: ['#3b82f6', '#f59e0b', '#10b981'],
+    colors: ['#3b82f6', '#f59e0b', '#10b981'], // Blue, amber, green
+    fill: {
+      type: ['solid', 'solid', 'solid'],
+      opacity: [1, 0.8, 0.6]
+    },
     grid: {
       show: true,
       borderColor: '#f3f4f6',
-      strokeDashArray: 1,
+      strokeDashArray: 2,
       yaxis: {
         lines: {
           show: true
         }
+      },
+      xaxis: {
+        lines: {
+          show: false
+        }
       }
     },
     markers: {
-      size: 0
+      size: [0, 0, 0]
     },
     tooltip: {
+      shared: true,
+      intersect: false,
       y: {
         formatter: (value, { seriesIndex }) => {
-          if (seriesIndex === 2) return `${value?.toFixed(3)}`;
-          return `${value?.toFixed(3)}%`;
+          if (seriesIndex === 0) return `${value?.toFixed(3)}%`; // PPO
+          if (seriesIndex === 1) return `${value?.toFixed(3)}%`; // Signal
+          return `${value?.toFixed(4)}`; // Histogram
         }
       }
     },
@@ -284,16 +357,33 @@ const StockAnalysis = () => {
       show: true,
       position: 'top',
       horizontalAlign: 'right',
-      fontSize: '12px'
+      fontSize: '12px',
+      fontWeight: '500',
+      markers: {
+        width: 12,
+        height: 12,
+        radius: 6
+      }
     },
     plotOptions: {
       bar: {
-        columnWidth: '50%'
+        columnWidth: '60%',
+        colors: {
+          ranges: [{
+            from: -100,
+            to: 0,
+            color: '#ef4444'
+          }, {
+            from: 0,
+            to: 100,
+            color: '#10b981'
+          }]
+        }
       }
     }
   };
 
-  // Prepare PPO chart series data with proper structure
+  // PPO Chart Series with Proper Histogram
   const ppoChartSeries = [
     {
       name: 'PPO Line',
@@ -310,17 +400,169 @@ const StockAnalysis = () => {
       yAxisIndex: 0,
       data: analysisData?.chart_data?.map(item => ({
         x: new Date(item.date).getTime(),
-        y: parseFloat(((item.ppo || 0) * 0.85).toFixed(3)) // Signal line approximation
+        y: parseFloat(((item.ppo || 0) * 0.85).toFixed(3))
       })) || []
     },
     {
       name: 'Histogram',
       type: 'column',
       yAxisIndex: 1,
-      data: analysisData?.chart_data?.map(item => ({
-        x: new Date(item.date).getTime(),
-        y: parseFloat(((item.ppo || 0) - (item.ppo || 0) * 0.85).toFixed(3)) // Histogram = PPO - Signal
-      })) || []
+      data: analysisData?.chart_data?.map(item => {
+        const ppo = item.ppo || 0;
+        const signal = ppo * 0.85;
+        const histogram = ppo - signal;
+        return {
+          x: new Date(item.date).getTime(),
+          y: parseFloat(histogram.toFixed(4))
+        };
+      }) || []
+    }
+  ];
+
+  // DMI Indicator Chart Configuration
+  const dmiChartOptions = {
+    chart: {
+      type: 'line',
+      height: 250,
+      id: 'dmi-chart',
+      toolbar: {
+        show: true,
+        autoSelected: 'pan',
+        tools: {
+          zoom: true,
+          pan: true,
+          reset: true
+        }
+      },
+      background: '#ffffff',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      animations: {
+        enabled: true,
+        easing: 'easeinout',
+        speed: 800
+      }
+    },
+    title: {
+      text: 'DMI (Directional Movement Index) - Past 3 Days',
+      align: 'left',
+      margin: 20,
+      style: {
+        fontSize: '18px',
+        fontWeight: '700',
+        color: '#111827'
+      }
+    },
+    subtitle: {
+      text: 'Trend strength and directional movement analysis',
+      align: 'left',
+      style: {
+        fontSize: '12px',
+        fontWeight: '400',
+        color: '#6b7280'
+      }
+    },
+    xaxis: {
+      categories: analysisData?.dmi_history?.map(item => {
+        const date = new Date(item.date);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      }) || [],
+      labels: {
+        style: {
+          colors: '#6b7280',
+          fontSize: '12px',
+          fontWeight: '500'
+        }
+      },
+      axisBorder: {
+        show: true,
+        color: '#e5e7eb'
+      }
+    },
+    yaxis: {
+      title: {
+        text: 'DMI Values',
+        style: {
+          color: '#374151',
+          fontSize: '12px',
+          fontWeight: '600'
+        }
+      },
+      labels: {
+        formatter: (value) => `${value?.toFixed(1)}`,
+        style: {
+          colors: '#6b7280',
+          fontSize: '11px',
+          fontWeight: '500'
+        }
+      },
+      min: 0,
+      max: 60
+    },
+    stroke: {
+      curve: 'smooth',
+      width: [4, 4, 3],
+      dashArray: [0, 0, 8]
+    },
+    colors: ['#10b981', '#ef4444', '#6366f1'], // Green, Red, Indigo
+    fill: {
+      type: 'solid',
+      opacity: 0.8
+    },
+    grid: {
+      show: true,
+      borderColor: '#f3f4f6',
+      strokeDashArray: 2
+    },
+    markers: {
+      size: [6, 6, 5],
+      strokeWidth: [2, 2, 2],
+      strokeColors: ['#ffffff', '#ffffff', '#ffffff'],
+      hover: {
+        size: 8
+      }
+    },
+    tooltip: {
+      shared: true,
+      intersect: false,
+      y: {
+        formatter: (value) => `${value?.toFixed(1)}`
+      }
+    },
+    legend: {
+      show: true,
+      position: 'top',
+      horizontalAlign: 'right',
+      fontSize: '12px',
+      fontWeight: '500',
+      markers: {
+        width: 12,
+        height: 12,
+        radius: 6
+      }
+    },
+    dataLabels: {
+      enabled: true,
+      style: {
+        fontSize: '10px',
+        fontWeight: '600'
+      },
+      formatter: (value) => `${value?.toFixed(1)}`
+    }
+  };
+
+  // DMI Chart Series
+  const dmiChartSeries = [
+    {
+      name: 'DMI+ (Bullish)',
+      data: analysisData?.dmi_history?.map(item => item.dmi_plus) || []
+    },
+    {
+      name: 'DMI- (Bearish)', 
+      data: analysisData?.dmi_history?.map(item => item.dmi_minus) || []
+    },
+    {
+      name: 'ADX (Trend Strength)',
+      data: analysisData?.dmi_history?.map(item => item.adx) || []
     }
   ];
 
@@ -361,17 +603,19 @@ const StockAnalysis = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      {/* Professional Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Zap className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg">
+                <Zap className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">FinanceAI</h1>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  FinanceAI
+                </h1>
                 <p className="text-sm text-gray-600">AI-Powered Stock Trading Platform</p>
               </div>
             </div>
@@ -385,13 +629,13 @@ const StockAnalysis = () => {
                   onChange={(e) => setInputSymbol(e.target.value.toUpperCase())}
                   onKeyPress={handleKeyPress}
                   placeholder="Enter stock symbol..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64 shadow-sm"
                 />
               </div>
               <button
                 onClick={handleAnalyze}
                 disabled={!inputSymbol.trim() || isLoading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-lg"
               >
                 {isLoading ? 'Analyzing...' : 'Start Analyzing'}
               </button>
@@ -413,10 +657,10 @@ const StockAnalysis = () => {
         ) : analysisData && (
           <>
             {/* Market Overview Section */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Market Overview</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-6 bg-gray-50 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="p-6 bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl border border-gray-100">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-lg font-semibold text-gray-900">{analysisData.symbol}</h3>
                     <div className={`flex items-center space-x-1 ${analysisData.price_change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -447,29 +691,29 @@ const StockAnalysis = () => {
                   </div>
                 </div>
 
-                {/* AI Recommendations */}
+                {/* Enhanced AI Recommendations */}
                 <div className="space-y-4">
-                  <div className="p-4 border rounded-lg">
-                    <div className="flex items-center space-x-2 mb-3">
+                  <div className="p-6 border border-gray-200 rounded-xl bg-gradient-to-br from-white to-purple-50">
+                    <div className="flex items-center space-x-2 mb-4">
                       <Brain className="h-5 w-5 text-purple-600" />
                       <h3 className="font-semibold text-gray-900">AI Recommendation</h3>
                     </div>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className={`px-4 py-2 rounded-full text-sm font-bold border ${getRecommendationColor(analysisData.ai_recommendation)}`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className={`px-4 py-2 rounded-full text-sm font-bold border-2 ${getRecommendationColor(analysisData.ai_recommendation)}`}>
                         {analysisData.ai_recommendation}
                       </span>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-gray-600 font-medium">
                         Confidence: {(analysisData.ai_confidence * 100)?.toFixed(1)}%
                       </span>
                     </div>
                     
                     {/* Detailed AI Analysis */}
                     {analysisData.ai_detailed_analysis && analysisData.ai_detailed_analysis.length > 0 && (
-                      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                        <div className="text-sm font-medium text-gray-900 mb-2">Technical Analysis:</div>
-                        <div className="space-y-1">
+                      <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <div className="text-sm font-semibold text-gray-900 mb-3">Technical Analysis:</div>
+                        <div className="space-y-2">
                           {analysisData.ai_detailed_analysis.map((analysis, index) => (
-                            <div key={index} className="text-sm text-gray-700">
+                            <div key={index} className="text-sm text-gray-700 leading-relaxed">
                               {analysis}
                             </div>
                           ))}
@@ -478,22 +722,24 @@ const StockAnalysis = () => {
                     )}
                     
                     {analysisData.ai_reasoning && (
-                      <div className="mt-2 text-sm text-gray-600 italic">
-                        {analysisData.ai_reasoning}
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <div className="text-sm text-blue-700 italic font-medium">
+                          {analysisData.ai_reasoning}
+                        </div>
                       </div>
                     )}
                   </div>
 
-                  <div className="p-4 border rounded-lg">
+                  <div className="p-4 border border-gray-200 rounded-xl bg-gradient-to-br from-white to-orange-50">
                     <div className="flex items-center space-x-2 mb-3">
                       <Target className="h-5 w-5 text-orange-600" />
                       <h3 className="font-semibold text-gray-900">Market Sentiment</h3>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className={`px-4 py-2 rounded-full text-sm font-bold border ${getSentimentColor(analysisData.sentiment_analysis)}`}>
+                      <span className={`px-4 py-2 rounded-full text-sm font-bold border-2 ${getSentimentColor(analysisData.sentiment_analysis)}`}>
                         {analysisData.sentiment_analysis}
                       </span>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-gray-600 font-medium">
                         Score: {analysisData.sentiment_score?.toFixed(2)}
                       </span>
                     </div>
@@ -502,75 +748,85 @@ const StockAnalysis = () => {
               </div>
             </div>
 
-            {/* Advanced Charts Section */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Technical Chart Analysis</h3>
+            {/* Professional Charts Section */}
+            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Technical Chart Analysis</h3>
               
               {/* Main Candlestick Chart */}
-              <div className="mb-4">
+              <div className="mb-8">
                 <Chart
                   options={chartOptions}
                   series={[{ name: symbol, data: candlestickData }]}
                   type="candlestick"
-                  height={400}
+                  height={450}
                 />
               </div>
 
-              {/* PPO Indicator Chart with Histogram */}
-              <div>
+              {/* Professional PPO Indicator Chart */}
+              <div className="mb-8">
                 <Chart
                   options={ppoChartOptions}
                   series={ppoChartSeries}
                   type="line"
-                  height={200}
+                  height={280}
+                />
+              </div>
+
+              {/* DMI Indicator Chart */}
+              <div>
+                <Chart
+                  options={dmiChartOptions}
+                  series={dmiChartSeries}
+                  type="line"
+                  height={250}
                 />
               </div>
             </div>
 
             {/* PPO Components Analysis */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
               <div className="flex items-center space-x-2 mb-6">
                 <BarChart3 className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Past 3 Days PPO Components</h3>
+                <h3 className="text-2xl font-bold text-gray-900">Past 3 Days PPO Components</h3>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {analysisData.ppo_history?.map((item, index) => (
-                  <div key={index} className="p-6 bg-gray-50 rounded-lg">
+                  <div key={index} className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border border-blue-100">
                     <div className="text-center mb-4">
-                      <div className="text-sm text-gray-500 mb-2">{item.date}</div>
+                      <div className="text-sm font-medium text-gray-500 mb-2">{item.date}</div>
                     </div>
                     
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       <div className="flex justify-between items-center">
-                        <span className="text-blue-600 font-medium">PPO Line:</span>
-                        <span className="font-bold text-green-600">{item.ppo?.toFixed(2)}%</span>
+                        <span className="text-blue-600 font-semibold">PPO Line:</span>
+                        <span className="font-bold text-green-600 text-lg">{item.ppo?.toFixed(3)}%</span>
                       </div>
                       
                       <div className="flex justify-between items-center">
-                        <span className="text-orange-600 font-medium">Signal:</span>
-                        <span className="font-bold text-green-600">
-                          {(item.ppo * 0.9)?.toFixed(2)}%
+                        <span className="text-orange-600 font-semibold">Signal:</span>
+                        <span className="font-bold text-orange-600 text-lg">
+                          {(item.ppo * 0.85)?.toFixed(3)}%
                         </span>
                       </div>
                       
                       <div className="flex justify-between items-center">
-                        <span className="text-purple-600 font-medium">Histogram:</span>
-                        <span className={`font-bold ${item.ppo >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {(item.ppo * 0.1)?.toFixed(2)}%
+                        <span className="text-purple-600 font-semibold">Histogram:</span>
+                        <span className={`font-bold text-lg ${item.ppo >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {(item.ppo * 0.15)?.toFixed(3)}%
                         </span>
                       </div>
                       
                       <div className="mt-4">
-                        <div className="text-xs text-gray-500 mb-2">Histogram Bar</div>
-                        <div className="w-full h-2 bg-gray-200 rounded">
+                        <div className="text-xs text-gray-500 mb-2 font-medium">Momentum Bar</div>
+                        <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
                           <div 
-                            className={`h-2 rounded ${item.ppo >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
-                            style={{ width: `${Math.min(Math.abs(item.ppo) * 10, 100)}%` }}
+                            className={`h-3 rounded-full transition-all duration-500 ${item.ppo >= 0 ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-red-400 to-red-600'}`}
+                            style={{ width: `${Math.min(Math.abs(item.ppo) * 15, 100)}%` }}
                           ></div>
                         </div>
-                        <div className="text-xs text-center mt-1 font-medium">
-                          {item.ppo >= 0 ? 'Bullish' : 'Bearish'}
+                        <div className="text-xs text-center mt-2 font-semibold">
+                          {item.ppo >= 0 ? 'Bullish Momentum' : 'Bearish Momentum'}
                         </div>
                       </div>
                     </div>
@@ -580,10 +836,10 @@ const StockAnalysis = () => {
             </div>
 
             {/* PPO Slope Trend Analysis */}
-            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-200">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">PPO Slope Trend</h3>
-                <div className={`text-2xl font-bold ${analysisData.indicators?.ppo_slope_percentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-8 border-2 border-green-200 shadow-lg">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">PPO Slope Trend Analysis</h3>
+                <div className={`text-3xl font-bold ${analysisData.indicators?.ppo_slope_percentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {analysisData.indicators?.ppo_slope_percentage >= 0 ? '+' : ''}
                   {analysisData.indicators?.ppo_slope_percentage?.toFixed(2)}%
                 </div>
@@ -591,45 +847,27 @@ const StockAnalysis = () => {
               
               <div className="mb-4">
                 <div className="text-gray-700 mb-2">
-                  <span className="font-semibold">Trend Analysis:</span> 
+                  <span className="font-bold">Trend Analysis:</span> 
                   {analysisData.indicators?.ppo_slope_percentage > 5 ? 
-                    ' Bullish momentum accelerating - strong upward trend.' :
+                    ' 🚀 Bullish momentum accelerating - strong upward trend detected.' :
                     analysisData.indicators?.ppo_slope_percentage < -5 ?
-                    ' Bearish momentum accelerating - strong downward trend.' :
-                    ' Neutral momentum - watch for potential trend changes.'
+                    ' 📉 Bearish momentum accelerating - strong downward trend detected.' :
+                    ' 📊 Neutral momentum - monitoring for potential trend changes.'
                   }
                 </div>
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium">Formula:</span> 
+                <div className="text-sm text-gray-600 bg-white p-3 rounded-lg border border-gray-200">
+                  <span className="font-semibold">Calculation Formula:</span> 
                   {analysisData.indicators?.ppo > 0 ? 
-                    ' Positive PPO: (Yesterday - Today) / Yesterday × 100' :
-                    ' Negative PPO: (Today - Yesterday) / Yesterday × 100'
+                    ' When PPO > 0: (Yesterday - Today) / |Yesterday| × 100' :
+                    ' When PPO < 0: (Today - Yesterday) / |Yesterday| × 100'
                   }
-                </div>
-              </div>
-            </div>
-
-            {/* PPO Analysis Summary */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-              <div className="flex items-start space-x-3">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <Brain className="h-5 w-5 text-yellow-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">PPO Analysis:</h3>
-                  <p className="text-gray-700">
-                    {analysisData.indicators?.ppo > 0 ?
-                      `Positive momentum with PPO at ${analysisData.indicators?.ppo?.toFixed(2)}%. Watch histogram for potential trend changes.` :
-                      `Neutral momentum with PPO at ${analysisData.indicators?.ppo?.toFixed(2)}%. Watch histogram for potential trend changes.`
-                    }
-                  </p>
                 </div>
               </div>
             </div>
 
             {/* Technical Indicators Grid */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Technical Indicators</h3>
+            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Technical Indicators Dashboard</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {[
                   { label: 'PPO', value: analysisData.indicators?.ppo, suffix: '%', color: 'blue' },
@@ -642,9 +880,9 @@ const StockAnalysis = () => {
                   { label: 'SMA 50', value: analysisData.indicators?.sma_50, suffix: '', color: 'gray', prefix: '$' },
                   { label: 'SMA 200', value: analysisData.indicators?.sma_200, suffix: '', color: 'gray', prefix: '$' }
                 ].map((indicator, index) => (
-                  <div key={index} className="p-4 border border-gray-200 rounded-lg text-center">
-                    <div className="text-xs text-gray-500 mb-1">{indicator.label}</div>
-                    <div className={`font-bold text-${indicator.color}-600`}>
+                  <div key={index} className="p-4 border-2 border-gray-200 rounded-xl text-center bg-gradient-to-br from-white to-gray-50 hover:shadow-md transition-shadow">
+                    <div className="text-xs text-gray-500 mb-1 font-medium">{indicator.label}</div>
+                    <div className={`font-bold text-lg text-${indicator.color}-600`}>
                       {indicator.prefix || ''}{indicator.value?.toFixed(indicator.prefix ? 2 : 1)}{indicator.suffix}
                     </div>
                   </div>
