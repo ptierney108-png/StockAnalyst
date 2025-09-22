@@ -8,7 +8,7 @@ const StockCard = ({ stock }) => {
   
   return (
     <Link
-      to={`/stock/${stock.symbol}`}
+      to={`/analysis?symbol=${stock.symbol}`}
       className="block bg-white rounded-lg shadow hover:shadow-md transition-shadow duration-200 p-6"
     >
       <div className="flex items-start justify-between">
