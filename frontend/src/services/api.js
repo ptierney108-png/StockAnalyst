@@ -44,8 +44,8 @@ const api = {
   },
 
   // Advanced Stock Analysis - NEW
-  getStockAnalysis: async (symbol) => {
-    const response = await apiClient.get(`/analyze/${symbol}`);
+  getStockAnalysis: async (symbol, timeframe = '1D') => {
+    const response = await apiClient.get(`/analyze/${symbol}?timeframe=${timeframe}`);
     return response.data;
   },
 
