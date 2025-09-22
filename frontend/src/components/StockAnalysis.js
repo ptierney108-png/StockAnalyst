@@ -58,6 +58,11 @@ const StockAnalysis = () => {
     }
   };
 
+  // Handle timeframe change
+  const handleTimeframeChange = (newTimeframe) => {
+    setSelectedTimeframe(newTimeframe);
+  };
+
   // Prepare sophisticated candlestick chart data
   const candlestickData = analysisData?.chart_data?.map(item => ({
     x: new Date(item.date).getTime(),
