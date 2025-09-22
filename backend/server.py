@@ -457,6 +457,8 @@ async def get_advanced_stock_data(symbol: str) -> Dict[str, Any]:
             "dmi_history": dmi_history,
             "ai_recommendation": ai_result["recommendation"],
             "ai_confidence": ai_result["confidence"],
+            "ai_reasoning": ai_result.get("reasoning", ""),
+            "ai_detailed_analysis": ai_result.get("detailed_analysis", []),
             "sentiment_analysis": sentiment_result["sentiment"],
             "sentiment_score": sentiment_result["score"],
             "chart_data": chart_data
