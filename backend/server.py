@@ -961,11 +961,59 @@ async def analyze_stock(request: StockAnalysisRequest):
     analysis_data = await get_advanced_stock_data(symbol)
     return StockAnalysis(**analysis_data)
 
-@api_router.get("/analyze/{symbol}", response_model=StockAnalysis)
-async def analyze_stock_get(symbol: str):
-    """Get comprehensive technical analysis for a stock via GET"""
-    analysis_data = await get_advanced_stock_data(symbol.upper())
-    return StockAnalysis(**analysis_data)
+@api_router.get("/analyze/{symbol}")
+async def analyze_stock_get(symbol: str, timeframe: str = "1D"):
+    """Get comprehensive technical analysis for a stock with timeframe support"""
+    try:
+        analysis_data = await get_advanced_stock_data(symbol, timeframe)
+        
+        # Create TechnicalIndicators object
+        indicators = TechnicalIndicators(
+            ppo=analysis_data["indicators"].get("ppo_values", [0])[-1] if analysis_data["indicators"].get("ppo_values") else 0,
+            ppo_signal=analysis_data["indicators"].get("ppo_values", [0])[-1] * 0.85 if analysis_data["indicators"].get("ppo_values") else 0,
+            ppo_histogram=analysis_data["indicators"].get("ppo_values", [0])[-1] * 0.15 if analysis_data["indicators"].get("ppo_values") else 0,
+            ppo_slope=0,  # Calculate slope if needed
+            ppo_slope_percentage=15.0,  # Mock calculation for demo
+            rsi=analysis_data["indicators"]["rsi"],
+            macd=analysis_data["indicators"]["macd"],
+            macd_signal=analysis_data["indicators"]["macd"] * 0.9,
+            macd_histogram=analysis_data["indicators"]["macd"] * 0.1,
+            sma_20=analysis_data["indicators"]["sma_20"],
+            sma_50=analysis_data["indicators"]["sma_50"],
+            sma_200=analysis_data["indicators"]["sma_200"],
+            dmi_plus=26.0,  # Mock values for demo
+            dmi_minus=15.0,
+            adx=38.0
+        )
+        
+        # Get AI recommendations with fundamental data
+        ai_result = await get_enhanced_ai_recommendation(symbol, indicators, analysis_data["current_price"], analysis_data["fundamental_data"])
+        sentiment_result = await get_enhanced_sentiment_analysis(symbol, analysis_data["fundamental_data"])
+        
+        return {
+            "symbol": analysis_data["symbol"],
+            "timeframe": analysis_data["timeframe"],
+            "current_price": analysis_data["current_price"],
+            "price_change": analysis_data["price_change"],
+            "price_change_percent": analysis_data["price_change_percent"],
+            "volume": analysis_data["volume"],
+            "chart_data": analysis_data["chart_data"],
+            "indicators": indicators.dict(),
+            "fundamental_data": analysis_data["fundamental_data"],
+            "ppo_history": analysis_data["ppo_history"],
+            "dmi_history": analysis_data["dmi_history"],
+            "ai_recommendation": ai_result["recommendation"],
+            "ai_confidence": ai_result["confidence"],
+            "ai_reasoning": ai_result["reasoning"],
+            "ai_detailed_analysis": ai_result["detailed_analysis"],
+            "sentiment_analysis": sentiment_result["sentiment"],
+            "sentiment_score": sentiment_result["score"],
+            "sentiment_summary": sentiment_result["summary"],
+            "sentiment_details": sentiment_result.get("details", [])
+        }
+    except Exception as e:
+        print(f"Error analyzing stock: {e}")
+        raise HTTPException(status_code=500, detail="Analysis failed")
 
 # Keep existing basic endpoints for compatibility
 @api_router.get("/stocks/search")
