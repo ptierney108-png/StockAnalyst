@@ -7,6 +7,7 @@ const Navigation = () => {
   
   const navItems = [
     { name: 'Dashboard', href: '/', icon: Home },
+    { name: 'Analysis', href: '/analysis', icon: Activity },
     { name: 'Market', href: '/market', icon: TrendingUp },
     { name: 'Portfolio', href: '/portfolio', icon: Briefcase },
     { name: 'Watchlist', href: '/watchlist', icon: Heart },
