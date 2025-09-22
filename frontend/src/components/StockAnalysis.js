@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import Chart from 'react-apexcharts';
 import { Search, TrendingUp, TrendingDown, Brain, BarChart3, Activity, Target, Zap, AlertCircle } from 'lucide-react';
