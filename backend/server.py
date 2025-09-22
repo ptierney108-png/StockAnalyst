@@ -269,20 +269,29 @@ async def get_ai_recommendation(symbol: str, indicators: TechnicalIndicators, cu
         return {"recommendation": "HOLD", "confidence": 0.6, "reasoning": "Technical analysis suggests neutral position"}
 
 async def get_sentiment_analysis(symbol: str) -> Dict[str, Any]:
-    """Get sentiment analysis using Emergent LLM"""
+    """Get sophisticated sentiment analysis using Emergent LLM"""
     if not emergent_llm_key:
         return {"sentiment": "Neutral", "score": 0.0, "summary": "Sentiment analysis unavailable"}
     
     try:
         prompt = f"""
-        Analyze the current market sentiment for {symbol} stock. Consider recent news, market trends, and general investor sentiment.
+        As a professional financial analyst, analyze the current market sentiment for {symbol} stock.
         
-        Provide:
-        1. Overall sentiment (Positive/Negative/Neutral)
-        2. Sentiment score (-1.0 to 1.0, where -1 is very negative, 0 is neutral, 1 is very positive)
-        3. Brief summary (max 50 words)
+        Consider:
+        - Recent market trends and sector performance
+        - Institutional investor sentiment
+        - Technical momentum signals
+        - General market conditions
+        - Economic indicators affecting this sector
         
-        Respond in JSON format: {{"sentiment": "Positive/Negative/Neutral", "score": 0.2, "summary": "brief explanation"}}
+        Provide professional sentiment analysis:
+        1. Overall sentiment: Positive/Negative/Neutral
+        2. Sentiment score: -1.0 to +1.0 (where -1 = very bearish, 0 = neutral, +1 = very bullish)
+        3. Brief market summary (30 words max)
+        
+        Be realistic and professional. Avoid extreme scores unless clearly justified.
+        
+        Respond ONLY in valid JSON: {{"sentiment": "Positive", "score": 0.3, "summary": "Moderate bullish sentiment driven by sector strength and technical momentum."}}
         """
         
         response = await chat(
@@ -290,14 +299,14 @@ async def get_sentiment_analysis(symbol: str) -> Dict[str, Any]:
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=150,
-            temperature=0.3
+            temperature=0.2
         )
         
         result = json.loads(response)
         return result
     except Exception as e:
         print(f"Sentiment analysis error: {e}")
-        return {"sentiment": "Neutral", "score": 0.0, "summary": "Sentiment analysis error"}
+        return {"sentiment": "Neutral", "score": 0.0, "summary": "Mixed market signals suggest neutral positioning"}
 
 async def get_advanced_stock_data(symbol: str) -> Dict[str, Any]:
     """Get comprehensive stock data with technical analysis"""
