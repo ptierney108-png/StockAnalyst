@@ -203,11 +203,11 @@ const StockAnalysis = () => {
     }]
   };
 
-  // Enhanced PPO Indicator Chart with Improved Histogram
+  // Enhanced PPO Indicator Chart with Professional Histogram and Timeframe Selection
   const ppoChartOptions = {
     chart: {
       type: 'line',
-      height: 320,
+      height: 380,
       id: 'ppo-chart',
       toolbar: {
         show: true,
@@ -216,7 +216,10 @@ const StockAnalysis = () => {
           zoom: true,
           pan: true,
           reset: true,
-          download: true
+          download: true,
+          selection: true,
+          zoomin: true,
+          zoomout: true
         }
       },
       background: '#ffffff',
@@ -239,20 +242,20 @@ const StockAnalysis = () => {
       }
     },
     title: {
-      text: 'PPO (Percentage Price Oscillator) - Enhanced Analysis',
+      text: 'PPO (Percentage Price Oscillator) - Professional Analysis',
       align: 'left',
       margin: 25,
       style: {
-        fontSize: '20px',
+        fontSize: '18px',
         fontWeight: '700',
         color: '#111827'
       }
     },
     subtitle: {
-      text: 'Momentum indicator with enhanced histogram visualization',
+      text: 'Momentum indicator with professional histogram visualization | Multiple timeframes available',
       align: 'left',
       style: {
-        fontSize: '14px',
+        fontSize: '13px',
         fontWeight: '400',
         color: '#6b7280'
       }
@@ -263,7 +266,7 @@ const StockAnalysis = () => {
         format: 'MMM dd',
         style: {
           colors: '#6b7280',
-          fontSize: '12px',
+          fontSize: '11px',
           fontWeight: '500'
         }
       },
@@ -283,7 +286,7 @@ const StockAnalysis = () => {
           text: 'PPO (%)',
           style: {
             color: '#374151',
-            fontSize: '14px',
+            fontSize: '12px',
             fontWeight: '600'
           }
         },
@@ -291,7 +294,7 @@ const StockAnalysis = () => {
           formatter: (value) => `${value?.toFixed(2)}%`,
           style: {
             colors: '#6b7280',
-            fontSize: '12px',
+            fontSize: '11px',
             fontWeight: '500'
           }
         },
@@ -315,7 +318,7 @@ const StockAnalysis = () => {
           text: 'Histogram',
           style: {
             color: '#374151',
-            fontSize: '14px',
+            fontSize: '12px',
             fontWeight: '600'
           }
         },
@@ -323,7 +326,7 @@ const StockAnalysis = () => {
           formatter: (value) => `${value?.toFixed(3)}`,
           style: {
             colors: '#6b7280',
-            fontSize: '12px',
+            fontSize: '11px',
             fontWeight: '500'
           }
         },
@@ -336,17 +339,17 @@ const StockAnalysis = () => {
     ],
     stroke: {
       curve: 'smooth',
-      width: [4, 3, 0], // PPO, Signal, Histogram
+      width: [3, 2, 0], // PPO, Signal, Histogram
       dashArray: [0, 8, 0] // Solid, dashed, solid
     },
     colors: ['#3b82f6', '#f59e0b', '#10b981'], // Blue, amber, green
     fill: {
-      type: ['gradient', 'gradient', 'gradient'],
+      type: ['gradient', 'gradient', 'solid'],
       gradient: {
         shade: 'light',
         type: 'vertical',
         shadeIntensity: 0.25,
-        gradientToColors: ['#60a5fa', '#fbbf24', '#34d399'],
+        gradientToColors: ['#60a5fa', '#fbbf24', undefined],
         inverseColors: false,
         opacityFrom: 0.8,
         opacityTo: 0.3,
@@ -380,7 +383,7 @@ const StockAnalysis = () => {
       intersect: false,
       theme: 'light',
       style: {
-        fontSize: '13px',
+        fontSize: '12px',
         fontFamily: 'Inter, system-ui, sans-serif'
       },
       y: {
@@ -398,24 +401,24 @@ const StockAnalysis = () => {
       show: true,
       position: 'top',
       horizontalAlign: 'right',
-      fontSize: '13px',
+      fontSize: '12px',
       fontWeight: '600',
       itemMargin: {
         horizontal: 15,
         vertical: 5
       },
       markers: {
-        width: 14,
-        height: 14,
-        radius: 7,
+        width: 12,
+        height: 12,
+        radius: 6,
         strokeWidth: 2,
         strokeColor: '#ffffff'
       }
     },
     plotOptions: {
       bar: {
-        columnWidth: '75%',
-        borderRadius: 4,
+        columnWidth: '80%',
+        borderRadius: 2,
         colors: {
           ranges: [{
             from: -100,
@@ -434,8 +437,8 @@ const StockAnalysis = () => {
       yaxis: [{
         y: 0,
         borderColor: '#374151',
-        borderWidth: 2,
-        strokeDashArray: 0,
+        borderWidth: 1,
+        strokeDashArray: 3,
         opacity: 0.8,
         label: {
           text: 'Zero Line',
@@ -444,8 +447,8 @@ const StockAnalysis = () => {
           style: {
             color: '#374151',
             background: '#f9fafb',
-            fontSize: '11px',
-            fontWeight: '600'
+            fontSize: '10px',
+            fontWeight: '500'
           }
         }
       }]
