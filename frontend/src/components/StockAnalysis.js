@@ -828,7 +828,8 @@ const StockAnalysis = () => {
             </div>
 
             {/* DMI Components Analysis */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+            {analysisData && (
+              <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
               <div className="flex items-center space-x-2 mb-6">
                 <Activity className="h-5 w-5 text-green-600" />
                 <h3 className="text-2xl font-bold text-gray-900">Past 3 Days DMI Components</h3>
