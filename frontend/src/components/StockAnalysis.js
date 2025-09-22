@@ -708,7 +708,7 @@ const StockAnalysis = () => {
                   {timeframes.map((tf) => (
                     <button
                       key={tf.value}
-                      onClick={() => setSelectedTimeframe(tf.value)}
+                      onClick={() => handleTimeframeChange(tf.value)}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
                         selectedTimeframe === tf.value
                           ? 'bg-blue-600 text-white shadow-sm'
