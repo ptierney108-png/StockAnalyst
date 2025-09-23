@@ -524,7 +524,7 @@ const StockScreener = () => {
                       Volume Today
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Volume 3M
+                      Volume Avg 3M
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Volume Year
