@@ -892,91 +892,94 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
     start_time = time.time()
     data_source = "mock"
     
-    # First try Alpha Vantage
-    try:
-        ts = TimeSeries(key=alpha_vantage_key, output_format='pandas')
-        
-        # Map timeframe to Alpha Vantage parameters
-        timeframe_mapping = {
-            "1D": ("TIME_SERIES_INTRADAY", {"interval": "60min"}),
-            "5D": ("TIME_SERIES_DAILY", {}),
-            "1M": ("TIME_SERIES_DAILY", {}),
-            "3M": ("TIME_SERIES_DAILY", {}),
-            "6M": ("TIME_SERIES_DAILY", {}),
-            "YTD": ("TIME_SERIES_DAILY", {}),
-            "1Y": ("TIME_SERIES_DAILY", {}),
-            "5Y": ("TIME_SERIES_WEEKLY", {}),
-            "All": ("TIME_SERIES_MONTHLY", {})
-        }
-        
-        api_function, params = timeframe_mapping.get(timeframe, ("TIME_SERIES_DAILY", {}))
-        
-        if api_function == "TIME_SERIES_INTRADAY":
-            data, meta_data = ts.get_intraday(symbol=symbol, **params)
-        elif api_function == "TIME_SERIES_DAILY":
-            data, meta_data = ts.get_daily(symbol=symbol)
-        elif api_function == "TIME_SERIES_WEEKLY":
-            data, meta_data = ts.get_weekly(symbol=symbol)
-        else:  # Monthly
-            data, meta_data = ts.get_monthly(symbol=symbol)
-        
-        # Limit data points based on timeframe
-        timeframe_limits = {
-            "1D": 24, "5D": 5, "1M": 30, "3M": 90, "6M": 180,
-            "YTD": 250, "1Y": 252, "5Y": 260, "All": 120
-        }
-        
-        limit = timeframe_limits.get(timeframe, 30)
-        data = data.head(limit) if timeframe != "All" else data.head(120)
-        
-        if data.empty:
-            raise ValueError("No data received from Alpha Vantage")
-        
-        # Process Alpha Vantage data
-        data = data.sort_index()
-        prices = data.iloc[:, 3].values
-        volumes = data.iloc[:, 4].values if len(data.columns) > 4 else np.zeros(len(prices))
-        
-        indicators = calculate_technical_indicators(prices, timeframe)
-        
-        chart_data = []
-        for i, (date, row) in enumerate(data.iterrows()):
-            chart_data.append({
-                "date": date.strftime('%Y-%m-%d'),
-                "open": float(row.iloc[0]),
-                "high": float(row.iloc[1]),
-                "low": float(row.iloc[2]),
-                "close": float(row.iloc[3]),
-                "volume": int(volumes[i]) if i < len(volumes) else 0,
-                "ppo": indicators["ppo_values"][i] if i < len(indicators["ppo_values"]) else 0
-            })
-        
-        fundamental_data = await get_fundamental_data(symbol)
-        data_source = "alpha_vantage"
-        
-        result = {
-            "symbol": symbol,
-            "timeframe": timeframe,
-            "current_price": float(prices[-1]),
-            "price_change": float(prices[-1] - prices[-2]) if len(prices) > 1 else 0,
-            "price_change_percent": float(((prices[-1] - prices[-2]) / prices[-2]) * 100) if len(prices) > 1 else 0,
-            "volume": int(volumes[-1]) if len(volumes) > 0 else 0,
-            "chart_data": chart_data,
-            "indicators": indicators,
-            "fundamental_data": fundamental_data,
-            "ppo_history": generate_ppo_history(indicators["ppo_values"], chart_data),
-            "dmi_history": generate_dmi_history(indicators, chart_data),
-            "data_source": data_source,
-            "response_time": round(time.time() - start_time, 2)
-        }
-        
-        # Cache the result
-        set_cached_data(cache_key, result)
-        print(f"✅ Alpha Vantage success: {len(chart_data)} data points for {symbol} in {result['response_time']}s")
-        return result
-        
-    except Exception as alpha_error:
-        print(f"Alpha Vantage API error: {alpha_error}")
+    # First try Alpha Vantage (only if under rate limit)
+    if track_api_call('alpha_vantage'):
+        try:
+            ts = TimeSeries(key=alpha_vantage_key, output_format='pandas')
+            
+            # Map timeframe to Alpha Vantage parameters
+            timeframe_mapping = {
+                "1D": ("TIME_SERIES_INTRADAY", {"interval": "60min"}),
+                "5D": ("TIME_SERIES_DAILY", {}),
+                "1M": ("TIME_SERIES_DAILY", {}),
+                "3M": ("TIME_SERIES_DAILY", {}),
+                "6M": ("TIME_SERIES_DAILY", {}),
+                "YTD": ("TIME_SERIES_DAILY", {}),
+                "1Y": ("TIME_SERIES_DAILY", {}),
+                "5Y": ("TIME_SERIES_WEEKLY", {}),
+                "All": ("TIME_SERIES_MONTHLY", {})
+            }
+            
+            api_function, params = timeframe_mapping.get(timeframe, ("TIME_SERIES_DAILY", {}))
+            
+            if api_function == "TIME_SERIES_INTRADAY":
+                data, meta_data = ts.get_intraday(symbol=symbol, **params)
+            elif api_function == "TIME_SERIES_DAILY":
+                data, meta_data = ts.get_daily(symbol=symbol)
+            elif api_function == "TIME_SERIES_WEEKLY":
+                data, meta_data = ts.get_weekly(symbol=symbol)
+            else:  # Monthly
+                data, meta_data = ts.get_monthly(symbol=symbol)
+            
+            # Limit data points based on timeframe
+            timeframe_limits = {
+                "1D": 24, "5D": 5, "1M": 30, "3M": 90, "6M": 180,
+                "YTD": 250, "1Y": 252, "5Y": 260, "All": 120
+            }
+            
+            limit = timeframe_limits.get(timeframe, 30)
+            data = data.head(limit) if timeframe != "All" else data.head(120)
+            
+            if data.empty:
+                raise ValueError("No data received from Alpha Vantage")
+            
+            # Process Alpha Vantage data
+            data = data.sort_index()
+            prices = data.iloc[:, 3].values
+            volumes = data.iloc[:, 4].values if len(data.columns) > 4 else np.zeros(len(prices))
+            
+            indicators = calculate_technical_indicators(prices, timeframe)
+            
+            chart_data = []
+            for i, (date, row) in enumerate(data.iterrows()):
+                chart_data.append({
+                    "date": date.strftime('%Y-%m-%d'),
+                    "open": float(row.iloc[0]),
+                    "high": float(row.iloc[1]),
+                    "low": float(row.iloc[2]),
+                    "close": float(row.iloc[3]),
+                    "volume": int(volumes[i]) if i < len(volumes) else 0,
+                    "ppo": indicators["ppo_values"][i] if i < len(indicators["ppo_values"]) else 0
+                })
+            
+            fundamental_data = await get_fundamental_data(symbol)
+            data_source = "alpha_vantage"
+            
+            result = {
+                "symbol": symbol,
+                "timeframe": timeframe,
+                "current_price": float(prices[-1]),
+                "price_change": float(prices[-1] - prices[-2]) if len(prices) > 1 else 0,
+                "price_change_percent": float(((prices[-1] - prices[-2]) / prices[-2]) * 100) if len(prices) > 1 else 0,
+                "volume": int(volumes[-1]) if len(volumes) > 0 else 0,
+                "chart_data": chart_data,
+                "indicators": indicators,
+                "fundamental_data": fundamental_data,
+                "ppo_history": generate_ppo_history(indicators["ppo_values"], chart_data),
+                "dmi_history": generate_dmi_history(indicators, chart_data),
+                "data_source": data_source,
+                "response_time": round(time.time() - start_time, 2)
+            }
+            
+            # Cache the result
+            set_cached_data(cache_key, result)
+            print(f"✅ Alpha Vantage success: {len(chart_data)} data points for {symbol} in {result['response_time']}s")
+            return result
+            
+        except Exception as alpha_error:
+            print(f"Alpha Vantage API error: {alpha_error}")
+    else:
+        print(f"⚠️ Alpha Vantage API limit reached, skipping to fallback APIs")
         
         # Try Polygon.io as fallback (only if enabled)
         if polygon_client:
