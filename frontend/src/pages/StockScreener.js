@@ -743,7 +743,7 @@ const StockScreener = () => {
             <h4 className="font-semibold text-blue-800 mb-3">Advanced Filtering Strategies</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-blue-700">
               <div>
-                <span className="font-medium">For Momentum Trading:</span> Use DMI > 30 with PPO slope > 5% and recent earnings data.
+                <span className="font-medium">For Momentum Trading:</span> Use DMI &gt; 30 with PPO slope &gt; 5% and recent earnings data.
               </div>
               <div>
                 <span className="font-medium">For Options Strategy:</span> Filter by optionable stocks with tight bid-ask spreads and upcoming earnings.
