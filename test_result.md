@@ -274,6 +274,21 @@ test_plan:
           agent: "main"
           comment: "PPO HOOK FILTERING IMPLEMENTED SUCCESSFULLY ✅ Added new filter control with 4 options: (1) All Stocks (no filter), (2) Positive Hook (+HOOK) Only - TODAY > YESTERDAY AND YESTERDAY < PRIOR DAY, (3) Negative Hook (-HOOK) Only - TODAY < YESTERDAY AND YESTERDAY > PRIOR DAY, (4) Both Hooks (+HOOK or -HOOK). Implemented filtering logic in StockDataGenerator.applyPPOHookFilter() method. Added educational tooltip explaining hook detection patterns. UI shows professional dropdown with clear labeling. Filter integrates seamlessly with existing price, DMI, and PPO slope filters."
 
+  - task: "Polygon API PPO data availability bug fix"
+    implemented: false
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "User reported critical bug: When Polygon is used as data source for stock screener, PPO fields/columns may not be available since Polygon only provides OHLCV data, not calculated technical indicators. This could cause missing PPO data in screener results, incorrect filtering, and inconsistent hook detection."
+        - working: false
+          agent: "main"
+          comment: "INVESTIGATION COMPLETE: Confirmed bug - Polygon API only provides raw OHLCV data, PPO is calculated locally using calculate_technical_indicators(). Issue occurs when insufficient data points (<26) are available for EMA calculations required for PPO. Need to implement robust fallback handling when PPO calculation fails with Polygon data."
+
 agent_communication:
     - agent: "main"
       message: "📊 PPO HOOK PATTERN FILTERING ADDED SUCCESSFULLY! ✅ Enhanced Stock Screener with sophisticated PPO hook pattern detection: (1) New 'PPO Hook Pattern' filter with 4 options including +HOOK and -HOOK filtering, (2) Implemented mathematical detection logic matching UI requirements (Today > Yesterday AND Yesterday < Prior Day for positive hooks, reverse for negative hooks), (3) Added educational tooltip explaining hook patterns, (4) Seamless integration with existing filtering system, (5) Professional UI design with clear option labels. Users can now specifically screen for stocks showing PPO momentum reversal patterns, providing advanced technical analysis capabilities for identifying potential trading opportunities."
