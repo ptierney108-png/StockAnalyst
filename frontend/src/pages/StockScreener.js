@@ -545,20 +545,7 @@ const StockScreener = () => {
             <TableSkeleton rows={8} cols={6} />
           </div>
         ) : results.length > 0 && (
-          <>
-            {/* Use virtualized table for large datasets (>50 results) */}
-            {results.length > 50 ? (
-              <VirtualizedStockTable
-                stocks={results}
-                sortBy={sortConfig.key}
-                sortDirection={sortConfig.direction}
-                onSort={handleSort}
-                detectPPOHook={detectPPOHook}
-                onExport={exportResults}
-              />
-            ) : (
-              /* Regular table for smaller datasets */
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
