@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from 'react';
-import { FixedSizeList as List } from 'react-window';
+import { FixedSizeList } from 'react-window';
 import { Target, TrendingUp, TrendingDown } from 'lucide-react';
 
 const VirtualizedStockTable = memo(({ 
