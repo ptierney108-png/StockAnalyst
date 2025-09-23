@@ -1352,6 +1352,235 @@ async def get_watchlists():
     ]
     return watchlists
 
+# Stock Screener Endpoints
+class ScreenerFilters(BaseModel):
+    price_filter: Optional[Dict[str, Any]] = None
+    dmi_filter: Optional[Dict[str, Any]] = None
+    ppo_slope_filter: Optional[Dict[str, Any]] = None
+    sector_filter: Optional[str] = "all"
+    optionable_filter: Optional[str] = "all"
+    earnings_filter: Optional[str] = "all"
+
+def generate_comprehensive_stock_data(symbol: str, base_price: float, volatility: float = 0.025) -> Dict[str, Any]:
+    """Generate comprehensive stock data with all required fields for screener"""
+    
+    # Generate realistic price history (60 days)
+    prices = []
+    current_price = base_price
+    for i in range(60):
+        # Add realistic price movement
+        daily_change = np.random.normal(0, volatility * current_price)
+        current_price = max(1.0, current_price + daily_change)
+        prices.append(current_price)
+    
+    # Generate OHLC data
+    highs = [price * (1 + abs(np.random.normal(0, 0.01))) for price in prices]
+    lows = [price * (1 - abs(np.random.normal(0, 0.01))) for price in prices]
+    opens = [prices[i-1] if i > 0 else prices[i] for i in range(len(prices))]
+    
+    # Calculate technical indicators
+    dmi_data = calculate_dmi(highs, lows, prices)
+    ppo_data = calculate_ppo(prices)
+    
+    # Calculate PPO slope using last 3 values
+    ppo_values = []
+    for i in range(max(0, len(prices) - 3), len(prices)):
+        if i >= 26:  # Need at least 26 periods for PPO
+            subset_prices = prices[:i+1]
+            ppo_result = calculate_ppo(subset_prices)
+            ppo_values.append(ppo_result["ppo"])
+        else:
+            ppo_values.append(0)
+    
+    # Calculate PPO slope percentage
+    if len(ppo_values) >= 3:
+        ppo_today = ppo_values[-1]
+        ppo_yesterday = ppo_values[-2]
+        ppo_day_before = ppo_values[-3]
+        slope_data = calculate_ppo_slope(ppo_today, ppo_yesterday, ppo_day_before)
+        ppo_slope_percentage = slope_data["slope_percentage"]
+    else:
+        ppo_slope_percentage = 0
+    
+    # Generate returns
+    current_price = prices[-1]
+    returns = {
+        "1d": ((prices[-1] / prices[-2]) - 1) * 100 if len(prices) > 1 else 0,
+        "5d": ((prices[-1] / prices[-6]) - 1) * 100 if len(prices) > 5 else 0,
+        "2w": ((prices[-1] / prices[-15]) - 1) * 100 if len(prices) > 14 else 0,
+        "1m": ((prices[-1] / prices[-31]) - 1) * 100 if len(prices) > 30 else 0,
+        "1y": ((prices[-1] / prices[0]) - 1) * 100
+    }
+    
+    # Generate volume data
+    base_volume = hash(symbol) % 5000000 + 1000000
+    volume_today = base_volume + (hash(f"{symbol}_today") % 2000000)
+    volume_3m = base_volume * 0.8 + (hash(f"{symbol}_3m") % 1000000)
+    volume_year = base_volume * 1.2 + (hash(f"{symbol}_year") % 1500000)
+    
+    # Generate options data
+    call_bid = current_price * 0.02 + (hash(f"{symbol}_call_bid") % 100) / 100
+    call_ask = call_bid + 0.05 + (hash(f"{symbol}_call_ask") % 50) / 100
+    put_bid = current_price * 0.015 + (hash(f"{symbol}_put_bid") % 80) / 100
+    put_ask = put_bid + 0.04 + (hash(f"{symbol}_put_ask") % 40) / 100
+    
+    # Generate earnings data
+    from datetime import datetime, timedelta
+    last_earnings = datetime.now() - timedelta(days=hash(symbol) % 90 + 30)
+    next_earnings = datetime.now() + timedelta(days=hash(f"{symbol}_next") % 90 + 10)
+    days_to_earnings = (next_earnings - datetime.now()).days
+    
+    return {
+        "symbol": symbol,
+        "price": current_price,
+        "dmi": dmi_data["adx"],
+        "adx": dmi_data["adx"],
+        "di_plus": dmi_data["dmi_plus"],
+        "di_minus": dmi_data["dmi_minus"],
+        "ppo_values": ppo_values,
+        "ppo_slope_percentage": ppo_slope_percentage,
+        "returns": returns,
+        "volume_today": int(volume_today),
+        "volume_3m": int(volume_3m),
+        "volume_year": int(volume_year),
+        "optionable": True,
+        "call_bid": call_bid,
+        "call_ask": call_ask,
+        "put_bid": put_bid,
+        "put_ask": put_ask,
+        "last_earnings": last_earnings.isoformat(),
+        "next_earnings": next_earnings.isoformat(),
+        "days_to_earnings": days_to_earnings
+    }
+
+@api_router.post("/screener/scan")
+async def screen_stocks(filters: ScreenerFilters):
+    """Screen stocks based on technical and fundamental criteria"""
+    try:
+        # Stock database with realistic data
+        stock_database = [
+            {"symbol": "AAPL", "name": "Apple Inc.", "sector": "Technology", "industry": "Consumer Electronics", "base_price": 175, "volatility": 0.025},
+            {"symbol": "MSFT", "name": "Microsoft Corporation", "sector": "Technology", "industry": "Software", "base_price": 380, "volatility": 0.022},
+            {"symbol": "GOOGL", "name": "Alphabet Inc.", "sector": "Technology", "industry": "Internet Services", "base_price": 138, "volatility": 0.028},
+            {"symbol": "NVDA", "name": "NVIDIA Corporation", "sector": "Technology", "industry": "Semiconductors", "base_price": 450, "volatility": 0.035},
+            {"symbol": "TSLA", "name": "Tesla, Inc.", "sector": "Technology", "industry": "Electric Vehicles", "base_price": 250, "volatility": 0.045},
+            {"symbol": "META", "name": "Meta Platforms, Inc.", "sector": "Technology", "industry": "Social Media", "base_price": 298, "volatility": 0.032},
+            {"symbol": "NFLX", "name": "Netflix, Inc.", "sector": "Technology", "industry": "Streaming Services", "base_price": 425, "volatility": 0.030},
+            {"symbol": "JNJ", "name": "Johnson & Johnson", "sector": "Healthcare", "industry": "Pharmaceuticals", "base_price": 165, "volatility": 0.018},
+            {"symbol": "UNH", "name": "UnitedHealth Group Inc.", "sector": "Healthcare", "industry": "Health Insurance", "base_price": 520, "volatility": 0.020},
+            {"symbol": "JPM", "name": "JPMorgan Chase & Co.", "sector": "Finance", "industry": "Banking", "base_price": 145, "volatility": 0.025},
+            {"symbol": "BAC", "name": "Bank of America Corporation", "sector": "Finance", "industry": "Banking", "base_price": 32, "volatility": 0.027},
+            {"symbol": "XOM", "name": "Exxon Mobil Corporation", "sector": "Energy", "industry": "Oil & Gas", "base_price": 115, "volatility": 0.032},
+            {"symbol": "CVX", "name": "Chevron Corporation", "sector": "Energy", "industry": "Oil & Gas", "base_price": 158, "volatility": 0.030},
+            {"symbol": "PG", "name": "The Procter & Gamble Company", "sector": "Consumer Goods", "industry": "Consumer Products", "base_price": 155, "volatility": 0.016},
+            {"symbol": "KO", "name": "The Coca-Cola Company", "sector": "Consumer Goods", "industry": "Beverages", "base_price": 58, "volatility": 0.015},
+            {"symbol": "WMT", "name": "Walmart Inc.", "sector": "Consumer Goods", "industry": "Retail", "base_price": 158, "volatility": 0.019},
+            {"symbol": "HD", "name": "The Home Depot, Inc.", "sector": "Consumer Goods", "industry": "Home Improvement", "base_price": 345, "volatility": 0.021},
+            {"symbol": "ROKU", "name": "Roku, Inc.", "sector": "Technology", "industry": "Streaming Devices", "base_price": 45, "volatility": 0.055},
+            {"symbol": "ZM", "name": "Zoom Video Communications, Inc.", "sector": "Technology", "industry": "Video Conferencing", "base_price": 68, "volatility": 0.042},
+            {"symbol": "SNAP", "name": "Snap Inc.", "sector": "Technology", "industry": "Social Media", "base_price": 12, "volatility": 0.048}
+        ]
+        
+        # Generate comprehensive data for all stocks
+        all_stocks = []
+        for stock_info in stock_database:
+            stock_data = generate_comprehensive_stock_data(
+                stock_info["symbol"], 
+                stock_info["base_price"], 
+                stock_info["volatility"]
+            )
+            stock_data.update({
+                "name": stock_info["name"],
+                "sector": stock_info["sector"],
+                "industry": stock_info["industry"]
+            })
+            all_stocks.append(stock_data)
+        
+        # Apply filters
+        filtered_stocks = []
+        
+        for stock in all_stocks:
+            # Price filter
+            if filters.price_filter:
+                price_filter = filters.price_filter
+                if price_filter.get("type") == "under":
+                    if stock["price"] > price_filter.get("under", 50):
+                        continue
+                elif price_filter.get("type") == "range":
+                    if not (price_filter.get("min", 0) <= stock["price"] <= price_filter.get("max", 1000)):
+                        continue
+            
+            # DMI filter (20-60 range as specified)
+            if filters.dmi_filter:
+                dmi_min = filters.dmi_filter.get("min", 20)
+                dmi_max = filters.dmi_filter.get("max", 60)
+                if not (dmi_min <= stock["adx"] <= dmi_max):
+                    continue
+            
+            # PPO slope filter (minimum 5% as specified)
+            if filters.ppo_slope_filter:
+                threshold = filters.ppo_slope_filter.get("threshold", 5)
+                if abs(stock["ppo_slope_percentage"]) < threshold:
+                    continue
+            
+            # Sector filter
+            if filters.sector_filter and filters.sector_filter != "all":
+                if stock["sector"].lower() != filters.sector_filter.lower():
+                    continue
+            
+            # Add to filtered results
+            filtered_stocks.append(stock)
+        
+        return {
+            "success": True,
+            "total_scanned": len(all_stocks),
+            "results_found": len(filtered_stocks),
+            "stocks": filtered_stocks,
+            "scan_time": datetime.utcnow().isoformat(),
+            "filters_applied": filters.dict()
+        }
+        
+    except Exception as e:
+        print(f"Stock screening error: {e}")
+        raise HTTPException(status_code=500, detail=f"Stock screening failed: {str(e)}")
+
+@api_router.get("/screener/presets")
+async def get_screener_presets():
+    """Get predefined screening presets"""
+    presets = [
+        {
+            "id": "momentum_breakout",
+            "name": "Momentum Breakout",
+            "description": "Stocks with strong momentum and directional movement",
+            "filters": {
+                "price_filter": {"type": "under", "under": 100},
+                "dmi_filter": {"min": 25, "max": 60},
+                "ppo_slope_filter": {"threshold": 8}
+            }
+        },
+        {
+            "id": "value_momentum",
+            "name": "Value with Momentum",
+            "description": "Undervalued stocks showing momentum signs",
+            "filters": {
+                "price_filter": {"type": "under", "under": 50},
+                "dmi_filter": {"min": 20, "max": 45},
+                "ppo_slope_filter": {"threshold": 5}
+            }
+        },
+        {
+            "id": "high_conviction",
+            "name": "High Conviction Plays",
+            "description": "Strong technical signals across all indicators",
+            "filters": {
+                "price_filter": {"type": "range", "min": 20, "max": 200},
+                "dmi_filter": {"min": 30, "max": 60},
+                "ppo_slope_filter": {"threshold": 10}
+            }
+        }
+    ]
+    return {"presets": presets}
+
 # Include the router in the main app
 app.include_router(api_router)
 
