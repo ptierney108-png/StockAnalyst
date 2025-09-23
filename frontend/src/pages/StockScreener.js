@@ -46,6 +46,8 @@ const StockScreener = () => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [validationErrors, setValidationErrors] = useState([]);
   const [showTooltip, setShowTooltip] = useState(null);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [lastScanTime, setLastScanTime] = useState(null);
 
   // Export functionality
   const exportResults = () => {
