@@ -1,8 +1,9 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Navigation from './components/Navigation';
 import { AnalysisSkeleton, StockCardSkeleton, TableSkeleton } from './components/LoadingSkeleton';
+import { initPerformanceMonitoring } from './components/PerformanceMonitor';
 import './App.css';
 
 // Lazy load all major pages for better performance
