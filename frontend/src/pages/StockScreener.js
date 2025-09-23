@@ -273,10 +273,20 @@ const StockScreener = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Advanced Stock Screener</h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mb-3">
             Filter stocks using technical indicators including DMI and PPO slope analysis. 
             Discover opportunities with precise momentum and directional movement criteria.
           </p>
+          
+          {/* Data Source Indicator */}
+          <div className="flex items-center space-x-4 text-sm text-gray-500">
+            <span className="flex items-center space-x-1">
+              <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+              <span>Data Source: Simulated Market Data</span>
+            </span>
+            <span>•</span>
+            <span>Realistic technical indicators and market behavior</span>
+          </div>
         </div>
 
         {/* Filtering Panel */}
