@@ -812,7 +812,7 @@ const StockScreener = () => {
                 </tbody>
               </table>
             </div>
-          </StockScreenerErrorBoundary>
+          </div>
         )}
 
         {/* Enhanced Educational Panel */}
