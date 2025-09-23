@@ -80,11 +80,11 @@ const StockScreener = () => {
     // Create CSV content
     const headers = [
       'Symbol', 'Company Name', 'Sector', 'Industry', 'Price', 
-      'Volume Today', 'Volume 3M', 'Volume Year',
+      'Volume Today', 'Volume Avg 3M', 'Volume Year',
       '1D Return %', '5D Return %', '2W Return %', '1M Return %', '1Y Return %',
       'DMI', 'ADX', 'DI+', 'DI-', 
-      'PPO Day 1', 'PPO Day 2', 'PPO Day 3', 'PPO Slope %',
-      'Optionable', 'Call Bid', 'Call Ask', 'Put Bid', 'Put Ask',
+      'PPO Day 1', 'PPO Day 2', 'PPO Day 3', 'PPO Slope %', 'PPO Hook',
+      'Optionable', 'Call Bid', 'Call Ask', 'Put Bid', 'Put Ask', 'Options Expiration',
       'Last Earnings', 'Next Earnings', 'Days to Earnings'
     ];
 
