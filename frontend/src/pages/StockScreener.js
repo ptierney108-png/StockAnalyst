@@ -363,26 +363,39 @@ const StockScreener = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Sector</label>
-                  <select className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    <option value="">All Sectors</option>
+                  <select 
+                    value={sectorFilter}
+                    onChange={(e) => setSectorFilter(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Sectors</option>
                     <option value="technology">Technology</option>
                     <option value="healthcare">Healthcare</option>
                     <option value="finance">Finance</option>
                     <option value="energy">Energy</option>
+                    <option value="consumer goods">Consumer Goods</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Optionable</label>
-                  <select className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    <option value="">All Stocks</option>
+                  <select 
+                    value={optionableFilter}
+                    onChange={(e) => setOptionableFilter(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Stocks</option>
                     <option value="yes">Optionable Only</option>
                     <option value="no">Non-Optionable Only</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Earnings</label>
-                  <select className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    <option value="">All Stocks</option>
+                  <select 
+                    value={earningsFilter}
+                    onChange={(e) => setEarningsFilter(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Stocks</option>
                     <option value="within7">Within 7 Days</option>
                     <option value="after7">After 7 Days</option>
                   </select>
