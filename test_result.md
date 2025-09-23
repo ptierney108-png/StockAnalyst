@@ -194,7 +194,7 @@ test_plan:
   test_all: false
   test_priority: "high_first"
 
-  - task: "Stock Screener Phase 3 implementation"
+  - task: "Stock Screener Phase 3 implementation with tweaks"
     implemented: true
     working: true
     file: "/app/backend/server.py"
