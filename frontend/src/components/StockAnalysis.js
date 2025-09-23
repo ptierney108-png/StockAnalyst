@@ -603,15 +603,9 @@ const StockAnalysis = () => {
 
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         {isLoading ? (
-          <div className="space-y-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
-                <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
-                <div className="h-64 bg-gray-200 rounded"></div>
-              </div>
-            ))}
-          </div>
+          <AnalysisSkeleton />
         ) : analysisData && (
+          <StockAnalysisErrorBoundary>
           <>
             {/* Professional Header Section */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-lg p-8 border border-blue-100 mb-8">
