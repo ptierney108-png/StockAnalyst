@@ -27,6 +27,11 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  // Initialize performance monitoring
+  useEffect(() => {
+    initPerformanceMonitoring();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
