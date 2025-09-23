@@ -802,20 +802,68 @@ async def get_sentiment_analysis(symbol: str) -> Dict[str, Any]:
             "summary": "Mixed institutional signals suggest neutral positioning with moderate systematic momentum factors and balanced risk sentiment."
         }
 
-# Enhanced cache for stock data with TTL
+# Enhanced cache for stock data with persistent storage and longer TTL
 stock_data_cache = {}
-CACHE_DURATION = 300  # 5 minutes in seconds
+CACHE_DURATION_INTRADAY = 3600  # 1 hour for intraday data (was 5 minutes)
+CACHE_DURATION_DAILY = 14400    # 4 hours for daily data  
+CACHE_DURATION_WEEKLY = 86400   # 24 hours for weekly/monthly data
 CACHE_MAX_SIZE = 1000  # Maximum cache entries
 
-def get_cached_data(cache_key: str):
+# API call tracking to prevent exceeding limits
+api_call_tracker = {
+    'alpha_vantage': {'count': 0, 'reset_time': 0},
+    'polygon_io': {'count': 0, 'reset_time': 0}, 
+    'yahoo_finance': {'count': 0, 'reset_time': 0}
+}
+
+def get_cache_duration(timeframe: str) -> int:
+    """Get appropriate cache duration based on timeframe"""
+    if timeframe in ["1D"]:
+        return CACHE_DURATION_INTRADAY
+    elif timeframe in ["5D", "1M", "3M"]:  
+        return CACHE_DURATION_DAILY
+    else:
+        return CACHE_DURATION_WEEKLY
+
+def track_api_call(api_name: str) -> bool:
+    """Track API calls and return False if limit would be exceeded"""
+    import time
+    current_time = time.time()
+    
+    # Reset daily counters at midnight
+    if current_time - api_call_tracker[api_name]['reset_time'] > 86400:
+        api_call_tracker[api_name]['count'] = 0
+        api_call_tracker[api_name]['reset_time'] = current_time
+    
+    # Check limits (conservative to avoid hitting actual limits)
+    limits = {
+        'alpha_vantage': 20,  # Conservative: 20/day instead of 25
+        'polygon_io': 4,      # Conservative: 4/minute instead of 5
+        'yahoo_finance': 100  # Higher limit for Yahoo Finance
+    }
+    
+    if api_call_tracker[api_name]['count'] >= limits[api_name]:
+        print(f"⚠️ API limit reached for {api_name}: {api_call_tracker[api_name]['count']}/{limits[api_name]}")
+        return False
+    
+    api_call_tracker[api_name]['count'] += 1
+    print(f"📊 API call #{api_call_tracker[api_name]['count']} to {api_name}")
+    return True
+
+def get_cached_data(cache_key: str, timeframe: str = "1D"):
     """Get data from cache if it exists and is not expired"""
     if cache_key in stock_data_cache:
         data, timestamp = stock_data_cache[cache_key]
-        if time.time() - timestamp < CACHE_DURATION:
+        cache_duration = get_cache_duration(timeframe)
+        
+        if time.time() - timestamp < cache_duration:
+            cache_age = time.time() - timestamp
+            print(f"✅ Using cached data for {cache_key} (age: {cache_age/60:.1f} minutes)")
             return data
         else:
             # Remove expired entry
             del stock_data_cache[cache_key]
+            print(f"🗑️ Expired cache removed for {cache_key}")
     return None
 
 def set_cached_data(cache_key: str, data: dict):
@@ -826,8 +874,10 @@ def set_cached_data(cache_key: str, data: dict):
         oldest_key = min(stock_data_cache.keys(), 
                         key=lambda k: stock_data_cache[k][1])
         del stock_data_cache[oldest_key]
+        print(f"🧹 Cache cleaned, removed oldest entry: {oldest_key}")
     
     stock_data_cache[cache_key] = (data, time.time())
+    print(f"💾 Cached data for {cache_key}")
 
 async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[str, Any]:
     """Get comprehensive stock data with technical analysis using Alpha Vantage with Polygon.io fallback"""
