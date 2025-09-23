@@ -381,107 +381,167 @@ const StockScreener = () => {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSort('symbol')}>
                       Symbol
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Company
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSort('price')}>
                       Price
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Volume Today
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Volume 3M
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Volume Year
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSort('return1d')}>
-                      1D Return
+                      1D
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSort('return5d')}>
-                      5D Return
+                      5D
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        onClick={() => handleSort('return2w')}>
+                      2W
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSort('return1m')}>
-                      1M Return
+                      1M
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        onClick={() => handleSort('return1y')}>
+                      1Y
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSort('dmi')}>
                       DMI/ADX
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      PPO Values
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      PPO (3 Days)
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSort('ppoSlope')}>
-                      PPO Slope %
+                      PPO Slope
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Options
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Earnings
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {results.map((stock, index) => (
-                    <tr key={stock.symbol} className="hover:bg-gray-50">
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="font-bold text-blue-600">{stock.symbol}</div>
+                    <tr key={stock.symbol} className={`hover:bg-gray-50 ${
+                      stock.daysToEarnings <= 7 ? 'bg-yellow-50' : ''
+                    }`}>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="font-bold text-blue-600 text-sm">{stock.symbol}</div>
                         <div className="text-xs text-gray-500">{stock.sector}</div>
                       </td>
-                      <td className="px-4 py-4">
-                        <div className="text-sm font-medium text-gray-900">{stock.name}</div>
+                      <td className="px-3 py-3 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 truncate">{stock.name}</div>
                         <div className="text-xs text-gray-500">{stock.industry}</div>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                      <td className="px-3 py-3 whitespace-nowrap text-right">
                         <div className="text-sm font-bold text-gray-900">${stock.price.toFixed(2)}</div>
-                        <div className="text-xs text-gray-500">Vol: {(stock.volume / 1000000).toFixed(1)}M</div>
+                        <div className="text-xs text-gray-500">
+                          {stock.optionable ? (
+                            <span className="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              OPT
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">N/A</span>
+                          )}
+                        </div>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                      <td className="px-3 py-3 whitespace-nowrap text-right">
+                        <div className="text-sm font-semibold text-gray-900">
+                          {(stock.volume / 1000000).toFixed(1)}M
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-right">
+                        <div className="text-sm text-gray-700">
+                          {(stock.volume3m / 1000000).toFixed(1)}M
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-right">
+                        <div className="text-sm text-gray-700">
+                          {(stock.volumeYear / 1000000).toFixed(1)}M
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-right">
                         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
                           stock.return1d >= 0 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {stock.return1d >= 0 ? '+' : ''}{stock.return1d.toFixed(2)}%
+                          {stock.return1d >= 0 ? '+' : ''}{stock.return1d.toFixed(1)}%
                         </span>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                      <td className="px-3 py-3 whitespace-nowrap text-right">
                         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
                           stock.return5d >= 0 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {stock.return5d >= 0 ? '+' : ''}{stock.return5d.toFixed(2)}%
+                          {stock.return5d >= 0 ? '+' : ''}{stock.return5d.toFixed(1)}%
                         </span>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                      <td className="px-3 py-3 whitespace-nowrap text-right">
+                        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
+                          stock.return2w >= 0 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {stock.return2w >= 0 ? '+' : ''}{stock.return2w.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-right">
                         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
                           stock.return1m >= 0 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {stock.return1m >= 0 ? '+' : ''}{stock.return1m.toFixed(2)}%
+                          {stock.return1m >= 0 ? '+' : ''}{stock.return1m.toFixed(1)}%
                         </span>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                      <td className="px-3 py-3 whitespace-nowrap text-right">
+                        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
+                          stock.return1y >= 0 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {stock.return1y >= 0 ? '+' : ''}{stock.return1y.toFixed(0)}%
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-right">
                         <div className="text-sm font-semibold text-gray-900">
                           {stock.dmi.toFixed(1)}
                         </div>
                         <div className="text-xs text-gray-500">
                           ADX: {stock.adx?.toFixed(1) || 'N/A'}
                         </div>
-                        <div className="text-xs">
+                        <div className="text-xs space-x-1">
                           <span className="text-green-600">+{stock.diPlus?.toFixed(1) || 'N/A'}</span>
-                          {' / '}
                           <span className="text-red-600">-{stock.diMinus?.toFixed(1) || 'N/A'}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                      <td className="px-3 py-3 whitespace-nowrap text-center">
                         <div className="space-y-1">
                           {stock.ppoValues?.map((ppo, idx) => (
-                            <div key={idx} className={`text-xs px-1 py-0.5 rounded ${
+                            <div key={idx} className={`text-xs px-1 py-0.5 rounded font-medium ${
                               ppo >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                             }`}>
                               {ppo >= 0 ? '+' : ''}{ppo.toFixed(3)}
@@ -489,7 +549,7 @@ const StockScreener = () => {
                           )) || 'N/A'}
                         </div>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                      <td className="px-3 py-3 whitespace-nowrap text-right">
                         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
                           stock.ppoSlope >= 0 
                             ? 'bg-blue-100 text-blue-800' 
@@ -498,15 +558,15 @@ const StockScreener = () => {
                           {stock.ppoSlope >= 0 ? '+' : ''}{stock.ppoSlope.toFixed(2)}%
                         </span>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                      <td className="px-3 py-3 whitespace-nowrap text-center">
                         <div className="space-y-1">
                           {stock.optionable ? (
                             <>
                               <div className="text-xs">
-                                <span className="text-green-600">C: {stock.callBid?.toFixed(2)}-{stock.callAsk?.toFixed(2)}</span>
+                                <span className="text-green-600 font-medium">C: {stock.callBid?.toFixed(2)}-{stock.callAsk?.toFixed(2)}</span>
                               </div>
                               <div className="text-xs">
-                                <span className="text-red-600">P: {stock.putBid?.toFixed(2)}-{stock.putAsk?.toFixed(2)}</span>
+                                <span className="text-red-600 font-medium">P: {stock.putBid?.toFixed(2)}-{stock.putAsk?.toFixed(2)}</span>
                               </div>
                             </>
                           ) : (
@@ -514,7 +574,7 @@ const StockScreener = () => {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                      <td className="px-3 py-3 whitespace-nowrap text-center">
                         <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
                           stock.daysToEarnings <= 7 
                             ? 'bg-yellow-100 text-yellow-800' 
@@ -527,6 +587,9 @@ const StockScreener = () => {
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
                           {stock.nextEarnings?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          Last: {stock.lastEarnings?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </div>
                       </td>
                     </tr>
