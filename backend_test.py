@@ -633,6 +633,10 @@ class StockAnalysisAPITester:
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
         
+        # Test Stock Screener Phase 3 endpoints (Priority)
+        print(f"\n📊 Testing Stock Screener Phase 3 Implementation")
+        self.test_stock_screener_endpoints()
+        
         # Test main functionality with valid symbols
         for symbol in TEST_SYMBOLS:
             print(f"\n📊 Testing with symbol: {symbol}")
