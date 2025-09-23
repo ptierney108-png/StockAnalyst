@@ -1318,6 +1318,66 @@ def create_demo_analysis_data(symbol: str) -> Dict[str, Any]:
 @api_router.get("/")
 async def root():
     return {"message": "StockWise API - Advanced Technical Analysis Platform"}
+@api_router.get("/api-status")
+async def get_api_status():
+    """Get current API usage status and limits"""
+    return {
+        "api_usage": {
+            "alpha_vantage": {
+                "calls_made": api_call_tracker['alpha_vantage']['count'],
+                "limit": 20,
+                "remaining": max(0, 20 - api_call_tracker['alpha_vantage']['count']),
+                "reset_time": api_call_tracker['alpha_vantage']['reset_time']
+            },
+            "polygon_io": {
+                "calls_made": api_call_tracker['polygon_io']['count'], 
+                "limit": 4,
+                "remaining": max(0, 4 - api_call_tracker['polygon_io']['count']),
+                "reset_time": api_call_tracker['polygon_io']['reset_time']
+            },
+            "yahoo_finance": {
+                "calls_made": api_call_tracker['yahoo_finance']['count'],
+                "limit": 100, 
+                "remaining": max(0, 100 - api_call_tracker['yahoo_finance']['count']),
+                "reset_time": api_call_tracker['yahoo_finance']['reset_time']
+            }
+        },
+        "cache_status": {
+            "total_entries": len(stock_data_cache),
+            "max_entries": CACHE_MAX_SIZE,
+            "cache_duration": {
+                "intraday": f"{CACHE_DURATION_INTRADAY/3600:.1f} hours",
+                "daily": f"{CACHE_DURATION_DAILY/3600:.1f} hours", 
+                "weekly": f"{CACHE_DURATION_WEEKLY/3600:.1f} hours"
+            }
+        },
+        "recommendations": get_api_recommendations()
+    }
+
+def get_api_recommendations() -> list:
+    """Provide recommendations based on current API usage"""
+    recommendations = []
+    
+    # Check Alpha Vantage usage
+    av_usage = api_call_tracker['alpha_vantage']['count']
+    if av_usage >= 18:  # 90% of limit
+        recommendations.append("⚠️ Alpha Vantage near limit - consider using cached data or switching to other sources")
+    elif av_usage >= 15:  # 75% of limit
+        recommendations.append("📊 Alpha Vantage usage high - monitor carefully")
+        
+    # Check Polygon.io usage  
+    polygon_usage = api_call_tracker['polygon_io']['count']
+    if polygon_usage >= 3:  # 75% of limit
+        recommendations.append("⚠️ Polygon.io near limit - API calls will be throttled")
+        
+    # General recommendations
+    if len(stock_data_cache) < 50:
+        recommendations.append("💡 Cache underutilized - consider pre-loading popular symbols")
+        
+    if not recommendations:
+        recommendations.append("✅ API usage is healthy - continue normal operation")
+        
+    return recommendations
 
 @api_router.post("/analyze")
 async def analyze_stock_post(request: StockAnalysisRequest):
