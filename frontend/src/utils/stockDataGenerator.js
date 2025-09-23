@@ -134,6 +134,7 @@ export class StockDataGenerator {
     stocks = this.applyPriceFilter(stocks, priceFilter);
     stocks = this.applyDMIFilter(stocks, dmiFilter);
     stocks = this.applyPPOSlopeFilter(stocks, ppoSlopeFilter);
+    stocks = this.applyPPOHookFilter(stocks, ppoHookFilter); // NEW: PPO hook filtering
     stocks = this.applySectorFilter(stocks, sectorFilter);
     stocks = this.applyOptionableFilter(stocks, optionableFilter);
     stocks = this.applyEarningsFilter(stocks, earningsFilter);
