@@ -86,9 +86,19 @@ const Dashboard = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="text-center">
+      <div className="text-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to StockWise</h1>
-        <p className="text-gray-600">Your comprehensive stock analysis platform</p>
+        <p className="text-gray-600 mb-3">Your comprehensive stock analysis platform</p>
+        
+        {/* Data Source Indicator */}
+        <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
+          <span className="flex items-center space-x-1">
+            <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+            <span>Market Data: Simulated for Demo</span>
+          </span>
+          <span>•</span>
+          <span>Real-time behavior with demo portfolio data</span>
+        </div>
       </div>
 
       {/* Quick Stock Analysis */}
