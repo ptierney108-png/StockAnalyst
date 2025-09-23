@@ -1,16 +1,19 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Navigation from './components/Navigation';
-import Dashboard from './pages/Dashboard';
-import StockDetail from './pages/StockDetail';
-import Portfolio from './pages/Portfolio';
-import Watchlist from './pages/Watchlist';
-import Market from './pages/Market';
-import StockAnalysis from './components/StockAnalysis';
-import StockScreener from './pages/StockScreener';
-import PointBasedDecision from './pages/PointBasedDecision';
+import { AnalysisSkeleton, StockCardSkeleton, TableSkeleton } from './components/LoadingSkeleton';
 import './App.css';
+
+// Lazy load all major pages for better performance
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const StockDetail = lazy(() => import('./pages/StockDetail'));
+const Portfolio = lazy(() => import('./pages/Portfolio'));
+const Watchlist = lazy(() => import('./pages/Watchlist'));
+const Market = lazy(() => import('./pages/Market'));
+const StockAnalysis = lazy(() => import('./components/StockAnalysis'));
+const StockScreener = lazy(() => import('./pages/StockScreener'));
+const PointBasedDecision = lazy(() => import('./pages/PointBasedDecision'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
