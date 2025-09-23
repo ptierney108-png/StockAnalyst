@@ -606,7 +606,6 @@ const StockAnalysis = () => {
           <AnalysisSkeleton />
         ) : analysisData && (
           <>
-          <>
             {/* Professional Header Section */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-lg p-8 border border-blue-100 mb-8">
               <div className="mb-6">
