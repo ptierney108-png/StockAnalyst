@@ -798,6 +798,22 @@ async def get_sentiment_analysis(symbol: str) -> Dict[str, Any]:
             "summary": "Mixed institutional signals suggest neutral positioning with moderate systematic momentum factors and balanced risk sentiment."
         }
 
+# Cache for stock data (simple in-memory cache)
+stock_data_cache = {}
+CACHE_DURATION = 300  # 5 minutes in seconds
+
+def get_cached_data(cache_key: str):
+    """Get data from cache if it exists and is not expired"""
+    if cache_key in stock_data_cache:
+        data, timestamp = stock_data_cache[cache_key]
+        if time.time() - timestamp < CACHE_DURATION:
+            return data
+    return None
+
+def set_cached_data(cache_key: str, data: dict):
+    """Store data in cache with timestamp"""
+    stock_data_cache[cache_key] = (data, time.time())
+
 async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[str, Any]:
     """Get comprehensive stock data with technical analysis using Alpha Vantage with Polygon.io fallback"""
     
