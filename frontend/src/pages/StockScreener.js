@@ -146,6 +146,15 @@ const StockScreener = () => {
     document.body.removeChild(link);
   };
 
+  // Sorting functionality for virtualized table
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
   // Tooltip component
   const Tooltip = ({ id, title, content }) => (
     <div className="relative inline-block">
