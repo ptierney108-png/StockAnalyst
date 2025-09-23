@@ -45,6 +45,92 @@ const StockScreener = () => {
   const [results, setResults] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [validationErrors, setValidationErrors] = useState([]);
+  const [showTooltip, setShowTooltip] = useState(null);
+
+  // Export functionality
+  const exportResults = () => {
+    if (results.length === 0) {
+      alert('No results to export. Please run a scan first.');
+      return;
+    }
+
+    // Create CSV content
+    const headers = [
+      'Symbol', 'Company Name', 'Sector', 'Industry', 'Price', 
+      'Volume Today', 'Volume 3M', 'Volume Year',
+      '1D Return %', '5D Return %', '2W Return %', '1M Return %', '1Y Return %',
+      'DMI', 'ADX', 'DI+', 'DI-', 
+      'PPO Day 1', 'PPO Day 2', 'PPO Day 3', 'PPO Slope %',
+      'Optionable', 'Call Bid', 'Call Ask', 'Put Bid', 'Put Ask',
+      'Last Earnings', 'Next Earnings', 'Days to Earnings'
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      ...results.map(stock => [
+        stock.symbol,
+        `"${stock.name}"`,
+        stock.sector,
+        stock.industry,
+        stock.price.toFixed(2),
+        stock.volume,
+        stock.volume3m,
+        stock.volumeYear,
+        stock.return1d.toFixed(2),
+        stock.return5d.toFixed(2),
+        stock.return2w.toFixed(2),
+        stock.return1m.toFixed(2),
+        stock.return1y.toFixed(2),
+        stock.dmi.toFixed(2),
+        stock.adx?.toFixed(2) || 'N/A',
+        stock.diPlus?.toFixed(2) || 'N/A',
+        stock.diMinus?.toFixed(2) || 'N/A',
+        stock.ppoValues?.[0]?.toFixed(4) || 'N/A',
+        stock.ppoValues?.[1]?.toFixed(4) || 'N/A',
+        stock.ppoValues?.[2]?.toFixed(4) || 'N/A',
+        stock.ppoSlope.toFixed(2),
+        stock.optionable ? 'Yes' : 'No',
+        stock.callBid?.toFixed(2) || 'N/A',
+        stock.callAsk?.toFixed(2) || 'N/A',
+        stock.putBid?.toFixed(2) || 'N/A',
+        stock.putAsk?.toFixed(2) || 'N/A',
+        stock.lastEarnings?.toLocaleDateString() || 'N/A',
+        stock.nextEarnings?.toLocaleDateString() || 'N/A',
+        stock.daysToEarnings
+      ].join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `stock_screener_results_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Tooltip component
+  const Tooltip = ({ id, title, content }) => (
+    <div className="relative inline-block">
+      <button
+        className="ml-1 text-gray-400 hover:text-gray-600"
+        onMouseEnter={() => setShowTooltip(id)}
+        onMouseLeave={() => setShowTooltip(null)}
+      >
+        <Info className="h-3 w-3" />
+      </button>
+      {showTooltip === id && (
+        <div className="absolute z-10 w-64 p-3 text-sm bg-gray-900 text-white rounded-lg shadow-lg -top-2 left-6">
+          <div className="font-semibold mb-1">{title}</div>
+          <div className="text-gray-300">{content}</div>
+          <div className="absolute top-2 -left-1 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+        </div>
+      )}
+    </div>
+  );
 
   // Enhanced screening function with real technical analysis
   const handleScan = async () => {
