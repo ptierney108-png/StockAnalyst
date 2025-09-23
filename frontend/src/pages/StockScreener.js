@@ -34,11 +34,17 @@ const StockScreener = () => {
   // PPO slope filter
   const [ppoSlopeThreshold, setPpoSlopeThreshold] = useState(5);
   
+  // Advanced filters
+  const [sectorFilter, setSectorFilter] = useState('all');
+  const [optionableFilter, setOptionableFilter] = useState('all');
+  const [earningsFilter, setEarningsFilter] = useState('all');
+  
   // UI states
   const [isLoading, setIsLoading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [results, setResults] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [validationErrors, setValidationErrors] = useState([]);
 
   // Mock screening function (will be replaced with real API calls)
   const handleScan = async () => {
