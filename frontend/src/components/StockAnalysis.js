@@ -1162,7 +1162,7 @@ const StockAnalysis = () => {
                 💡 <em>Join 10,000+ investors who rely on our professional market research and analysis</em>
               </div>
             </div>
-          </StockAnalysisErrorBoundary>
+          </>
         )}
       </div>
     </div>
