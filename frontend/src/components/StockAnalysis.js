@@ -490,8 +490,24 @@ const StockAnalysis = () => {
     }
   }), [analysisData]); // Memoize based on data changes
 
-  // Enhanced PPO Chart Series with Professional Histogram (Similar to Reference Chart)
-  const ppoChartSeries = [
+  // Memoized chart series for better performance
+  const chartSeries = useMemo(() => {
+    if (!analysisData?.chart_data) return [];
+    
+    return [{
+      name: 'Price',
+      data: analysisData.chart_data.map(item => ({
+        x: new Date(item.date).getTime(),
+        y: [item.open, item.high, item.low, item.close]
+      }))
+    }];
+  }, [analysisData?.chart_data]);
+
+  // Enhanced PPO Chart Series with Professional Histogram (Memoized)
+  const ppoChartSeries = useMemo(() => {
+    if (!analysisData?.chart_data) return [];
+    
+    return [
     {
       name: 'PPO Line',
       type: 'line',
