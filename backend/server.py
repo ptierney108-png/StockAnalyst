@@ -1388,22 +1388,42 @@ async def analyze_stock_post(request: StockAnalysisRequest):
 async def analyze_stock_get(symbol: str, timeframe: str = "1D"):
     """Get comprehensive technical analysis for a stock with timeframe support"""
     try:
+        print(f"🔍 Starting analysis for {symbol} ({timeframe})")
         analysis_data = await get_advanced_stock_data(symbol, timeframe)
         
+        if not analysis_data:
+            print(f"❌ No analysis data returned for {symbol}")
+            raise HTTPException(status_code=500, detail="Failed to get stock data")
+        
+        print(f"✅ Got analysis data for {symbol}, data_source: {analysis_data.get('data_source', 'unknown')}")
+        
         # Ensure fundamental_data is not None
-        if analysis_data["fundamental_data"] is None:
+        if analysis_data.get("fundamental_data") is None:
+            print(f"⚠️ Fundamental data is None for {symbol}, using fallback")
             analysis_data["fundamental_data"] = {
                 "market_cap": "N/A",
                 "pe_ratio": 25.0,
                 "profit_margin": 15.0,
-                "eps": "N/A",
+                "eps": "N/A", 
                 "dividend_yield": 2.0,
                 "revenue": "N/A",
                 "debt_to_equity": "N/A",
                 "description": f"Analysis for {symbol} using fallback data"
             }
         
-        # Create TechnicalIndicators object
+        # Ensure indicators exist
+        if not analysis_data.get("indicators"):
+            print(f"⚠️ Indicators missing for {symbol}, using fallback")
+            analysis_data["indicators"] = {
+                "ppo_values": [0.0],
+                "rsi": 50.0,
+                "macd": 0.0,
+                "sma_20": analysis_data.get("current_price", 100.0),
+                "sma_50": analysis_data.get("current_price", 100.0),
+                "sma_200": analysis_data.get("current_price", 100.0)
+            }
+        
+        # Create TechnicalIndicators object with safe access
         indicators = TechnicalIndicators(
             ppo=analysis_data["indicators"].get("ppo_values", [0])[-1] if analysis_data["indicators"].get("ppo_values") else 0,
             ppo_signal=analysis_data["indicators"].get("ppo_values", [0])[-1] * 0.85 if analysis_data["indicators"].get("ppo_values") else 0,
