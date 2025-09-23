@@ -693,23 +693,67 @@ const StockScreener = () => {
           </div>
         )}
 
-        {/* Educational Panel */}
-        <div className="mt-6 bg-blue-50 rounded-2xl p-6 border border-blue-100">
-          <h3 className="text-lg font-bold text-blue-900 mb-3">Technical Indicator Guide</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        {/* Enhanced Educational Panel */}
+        <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
+          <h3 className="text-lg font-bold text-blue-900 mb-4 flex items-center">
+            <Info className="h-5 w-5 mr-2" />
+            Technical Analysis Guide & Performance Tips
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
             <div>
               <h4 className="font-semibold text-blue-800 mb-2">DMI (Directional Movement Index)</h4>
-              <p className="text-blue-700">
-                Measures trend strength using DI+ and DI- values. Higher DMI values (above 25) indicate stronger trends, 
-                while lower values suggest sideways movement.
+              <p className="text-blue-700 mb-2">
+                Measures trend strength using DI+ (bullish) and DI- (bearish) values with ADX for overall trend strength.
               </p>
+              <ul className="text-blue-600 text-xs space-y-1">
+                <li>• ADX > 25: Strong trend</li>
+                <li>• ADX 20-25: Moderate trend</li>
+                <li>• ADX < 20: Weak/sideways</li>
+                <li>• DI+ > DI-: Bullish bias</li>
+              </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-blue-800 mb-2">PPO Slope</h4>
-              <p className="text-blue-700">
-                Calculates the 3-day slope of the PPO oscillator. Positive slopes suggest increasing momentum, 
-                while negative slopes indicate weakening momentum.
+              <h4 className="font-semibold text-blue-800 mb-2">PPO Slope Analysis</h4>
+              <p className="text-blue-700 mb-2">
+                Calculates momentum acceleration using 3-day PPO slope with conditional logic based on oscillator position.
               </p>
+              <ul className="text-blue-600 text-xs space-y-1">
+                <li>• Positive slope: Increasing momentum</li>
+                <li>• Negative slope: Decreasing momentum</li>
+                <li>• Higher threshold: More selective</li>
+                <li>• Use with price confirmation</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-blue-800 mb-2">Screening Best Practices</h4>
+              <p className="text-blue-700 mb-2">
+                Optimize your screening strategy for better results and faster processing.
+              </p>
+              <ul className="text-blue-600 text-xs space-y-1">
+                <li>• Start with broad criteria</li>
+                <li>• Narrow down gradually</li>
+                <li>• Consider earnings dates</li>
+                <li>• Verify options availability</li>
+              </ul>
+            </div>
+          </div>
+          
+          {/* Advanced Tips */}
+          <div className="mt-6 pt-4 border-t border-blue-200">
+            <h4 className="font-semibold text-blue-800 mb-3">Advanced Filtering Strategies</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-blue-700">
+              <div>
+                <span className="font-medium">For Momentum Trading:</span> Use DMI > 30 with PPO slope > 5% and recent earnings data.
+              </div>
+              <div>
+                <span className="font-medium">For Options Strategy:</span> Filter by optionable stocks with tight bid-ask spreads and upcoming earnings.
+              </div>
+              <div>
+                <span className="font-medium">For Value Screening:</span> Combine price ranges with sector filtering for systematic opportunities.
+              </div>
+              <div>
+                <span className="font-medium">For Risk Management:</span> Check volume patterns and recent return volatility across timeframes.
+              </div>
             </div>
           </div>
         </div>
