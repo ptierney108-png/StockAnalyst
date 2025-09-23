@@ -737,6 +737,9 @@ const StockScreener = () => {
                               <div className="text-xs">
                                 <span className="text-red-600 font-medium">P: {stock.putBid?.toFixed(2)}-{stock.putAsk?.toFixed(2)}</span>
                               </div>
+                              <div className="text-xs text-gray-500 font-medium">
+                                Exp: {stock.optionsExpiration || 'N/A'}
+                              </div>
                             </>
                           ) : (
                             <span className="text-xs text-gray-500">N/A</span>
