@@ -21,6 +21,27 @@ import StockDataGenerator from '../utils/stockDataGenerator';
 import { TechnicalAnalysisEngine } from '../utils/technicalAnalysis';
 
 const StockScreener = () => {
+  // Helper function to detect PPO hooks
+  const detectPPOHook = (ppoValues) => {
+    if (!ppoValues || ppoValues.length < 3) return null;
+    
+    const today = ppoValues[0];      // Today (index 0)
+    const yesterday = ppoValues[1];   // Yesterday (index 1) 
+    const dayBefore = ppoValues[2];   // Day before yesterday (index 2)
+    
+    // Positive hook: TODAY > YESTERDAY AND YESTERDAY < PRIOR DAY
+    if (today > yesterday && yesterday < dayBefore) {
+      return 'positive';
+    }
+    
+    // Negative hook: TODAY < YESTERDAY AND YESTERDAY > PRIOR DAY  
+    if (today < yesterday && yesterday > dayBefore) {
+      return 'negative';
+    }
+    
+    return null;
+  };
+
   // State for filtering criteria
   const [priceFilterType, setPriceFilterType] = useState('under'); // 'under' or 'range'
   const [priceUnder, setPriceUnder] = useState(50);
