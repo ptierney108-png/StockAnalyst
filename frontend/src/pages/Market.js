@@ -83,7 +83,14 @@ const Market = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">Market Overview</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Market Overview</h1>
+          {/* Data Source Indicator */}
+          <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
+            <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+            <span>Market Data: Simulated Demo Environment</span>
+          </div>
+        </div>
         
         {/* Search */}
         <div className="relative w-full sm:w-96">
