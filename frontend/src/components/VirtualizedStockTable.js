@@ -228,7 +228,7 @@ const VirtualizedStockTable = memo(({
       
       {/* Virtualized List */}
       <div style={{ height: Math.min(MAX_HEIGHT, sortedStocks.length * ROW_HEIGHT + HEADER_HEIGHT) }}>
-        <List
+        <FixedSizeList
           height={Math.min(MAX_HEIGHT, sortedStocks.length * ROW_HEIGHT)}
           itemCount={sortedStocks.length}
           itemSize={ROW_HEIGHT}
@@ -236,7 +236,7 @@ const VirtualizedStockTable = memo(({
           itemData={sortedStocks}
         >
           {StockRow}
-        </List>
+        </FixedSizeList>
       </div>
       
       {/* Footer with performance info */}
