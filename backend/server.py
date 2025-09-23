@@ -981,8 +981,8 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
     else:
         print(f"⚠️ Alpha Vantage API limit reached, skipping to fallback APIs")
         
-        # Try Polygon.io as fallback (only if enabled)
-        if polygon_client:
+        # Try Polygon.io as fallback (only if enabled and under rate limit)
+        if polygon_client and track_api_call('polygon_io'):
             try:
                 print(f"Trying Polygon.io fallback for {symbol} ({timeframe})")
                 
