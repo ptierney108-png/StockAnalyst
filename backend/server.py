@@ -817,6 +817,16 @@ def set_cached_data(cache_key: str, data: dict):
 async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[str, Any]:
     """Get comprehensive stock data with technical analysis using Alpha Vantage with Polygon.io fallback"""
     
+    # Check cache first for performance
+    cache_key = f"{symbol}_{timeframe}"
+    cached_data = get_cached_data(cache_key)
+    if cached_data:
+        print(f"✅ Using cached data for {symbol} ({timeframe})")
+        return cached_data
+    
+    start_time = time.time()
+    data_source = "mock"
+    
     # First try Alpha Vantage
     try:
         ts = TimeSeries(key=alpha_vantage_key, output_format='pandas')
@@ -877,8 +887,9 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
             })
         
         fundamental_data = await get_fundamental_data(symbol)
+        data_source = "alpha_vantage"
         
-        return {
+        result = {
             "symbol": symbol,
             "timeframe": timeframe,
             "current_price": float(prices[-1]),
@@ -890,12 +901,19 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
             "fundamental_data": fundamental_data,
             "ppo_history": generate_ppo_history(indicators["ppo_values"], chart_data),
             "dmi_history": generate_dmi_history(indicators, chart_data),
+            "data_source": data_source,
+            "response_time": round(time.time() - start_time, 2)
         }
-    
+        
+        # Cache the result
+        set_cached_data(cache_key, result)
+        print(f"✅ Alpha Vantage success: {len(chart_data)} data points for {symbol} in {result['response_time']}s")
+        return result
+        
     except Exception as alpha_error:
         print(f"Alpha Vantage API error: {alpha_error}")
         
-        # Try Polygon.io as fallback
+        # Try Polygon.io as fallback (only if enabled)
         if polygon_client:
             try:
                 print(f"Trying Polygon.io fallback for {symbol} ({timeframe})")
@@ -967,10 +985,9 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
                 fundamental_data = await get_fundamental_data(symbol)
                 current_price = prices[-1]
                 price_change = prices[-1] - prices[-2] if len(prices) > 1 else 0
+                data_source = "polygon_io"
                 
-                print(f"✅ Polygon.io success: {len(chart_data)} data points for {symbol}")
-                
-                return {
+                result = {
                     "symbol": symbol,
                     "timeframe": timeframe,
                     "current_price": current_price,
@@ -982,7 +999,14 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
                     "fundamental_data": fundamental_data,
                     "ppo_history": generate_ppo_history(indicators["ppo_values"], chart_data),
                     "dmi_history": generate_dmi_history(indicators, chart_data),
+                    "data_source": data_source,
+                    "response_time": round(time.time() - start_time, 2)
                 }
+                
+                # Cache the result
+                set_cached_data(cache_key, result)
+                print(f"✅ Polygon.io success: {len(chart_data)} data points for {symbol} in {result['response_time']}s")
+                return result
                 
             except Exception as polygon_error:
                 print(f"Polygon API error: {polygon_error}")
@@ -1056,10 +1080,9 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
             
             current_price = prices[-1]
             price_change = prices[-1] - prices[-2] if len(prices) > 1 else 0
+            data_source = "yahoo_finance"
             
-            print(f"✅ Yahoo Finance success: {len(chart_data)} data points for {symbol}")
-            
-            return {
+            result = {
                 "symbol": symbol,
                 "timeframe": timeframe,
                 "current_price": current_price,
@@ -1071,14 +1094,28 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
                 "fundamental_data": fundamental_data,
                 "ppo_history": generate_ppo_history(indicators["ppo_values"], chart_data),
                 "dmi_history": generate_dmi_history(indicators, chart_data),
+                "data_source": data_source,
+                "response_time": round(time.time() - start_time, 2)
             }
+            
+            # Cache the result
+            set_cached_data(cache_key, result)
+            print(f"✅ Yahoo Finance success: {len(chart_data)} data points for {symbol} in {result['response_time']}s")
+            return result
                 
         except Exception as yahoo_error:
             print(f"Yahoo Finance API error: {yahoo_error}")
         
         # Final fallback to enhanced mock data
         print(f"All APIs failed, using enhanced mock data for {symbol} ({timeframe})")
-        return generate_mock_stock_data(symbol, timeframe)
+        mock_data = generate_mock_stock_data(symbol, timeframe)
+        mock_data["data_source"] = "mock"
+        mock_data["response_time"] = round(time.time() - start_time, 2)
+        
+        # Cache mock data for shorter duration (1 minute)
+        stock_data_cache[cache_key] = (mock_data, time.time() - CACHE_DURATION + 60)
+        
+        return mock_data
 
 def create_demo_analysis_data(symbol: str) -> Dict[str, Any]:
     """Create sophisticated demo technical analysis data with realistic values"""
