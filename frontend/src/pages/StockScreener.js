@@ -428,6 +428,29 @@ const StockScreener = () => {
               </div>
             </div>
 
+            {/* PPO Hook Filter - NEW */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <Target className="h-4 w-4 inline mr-1" />
+                PPO Hook Pattern
+                <Tooltip 
+                  id="hook-tooltip"
+                  title="PPO Hook Detection"
+                  content="Positive Hook (+): TODAY > YESTERDAY AND YESTERDAY < PRIOR DAY indicates upward momentum reversal. Negative Hook (-): TODAY < YESTERDAY AND YESTERDAY > PRIOR DAY indicates downward momentum reversal."
+                />
+              </label>
+              <select
+                value={ppoHookFilter}
+                onChange={(e) => setPpoHookFilter(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="all">All Stocks</option>
+                <option value="positive">Positive Hook (+HOOK) Only</option>
+                <option value="negative">Negative Hook (-HOOK) Only</option>
+                <option value="both">Both Hooks (+HOOK or -HOOK)</option>
+              </select>
+            </div>
+
             {/* Scan Button */}
             <div className="flex items-end">
               <button
