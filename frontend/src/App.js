@@ -32,16 +32,38 @@ function App() {
         <div className="min-h-screen bg-gray-50">
           <Navigation />
           <main className="container mx-auto px-4 py-8">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/analysis" element={<StockAnalysis />} />
-              <Route path="/screener" element={<StockScreener />} />
-              <Route path="/point-decision" element={<PointBasedDecision />} />
-              <Route path="/stock/:symbol" element={<StockDetail />} />
-              <Route path="/portfolio" element={<Portfolio />} />
-              <Route path="/watchlist" element={<Watchlist />} />
-              <Route path="/market" element={<Market />} />
-            </Routes>
+            <Suspense fallback={
+              <div className="max-w-7xl mx-auto px-6 py-8">
+                <AnalysisSkeleton />
+              </div>
+            }>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/analysis" element={
+                  <Suspense fallback={
+                    <div className="max-w-7xl mx-auto px-6 py-8">
+                      <AnalysisSkeleton />
+                    </div>
+                  }>
+                    <StockAnalysis />
+                  </Suspense>
+                } />
+                <Route path="/screener" element={
+                  <Suspense fallback={
+                    <div className="max-w-7xl mx-auto px-6 py-8">
+                      <TableSkeleton rows={10} cols={8} />
+                    </div>
+                  }>
+                    <StockScreener />
+                  </Suspense>
+                } />
+                <Route path="/point-decision" element={<PointBasedDecision />} />
+                <Route path="/stock/:symbol" element={<StockDetail />} />
+                <Route path="/portfolio" element={<Portfolio />} />
+                <Route path="/watchlist" element={<Watchlist />} />
+                <Route path="/market" element={<Market />} />
+              </Routes>
+            </Suspense>
           </main>
         </div>
       </Router>
