@@ -162,10 +162,23 @@ const StockScreener = () => {
 
     setValidationErrors([]);
     setIsLoading(true);
+    setScanProgress(0);
+    const startTime = Date.now();
     
     try {
-      // Simulate API delay for realistic experience
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Simulate progressive loading with realistic feedback
+      const progressSteps = [
+        { progress: 20, message: 'Validating criteria...' },
+        { progress: 40, message: 'Fetching market data...' },
+        { progress: 60, message: 'Calculating technical indicators...' },
+        { progress: 80, message: 'Applying filters...' },
+        { progress: 95, message: 'Finalizing results...' },
+      ];
+
+      for (const step of progressSteps) {
+        setScanProgress(step.progress);
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
       
       // Create filter criteria object
       const filterCriteria = {
@@ -189,13 +202,19 @@ const StockScreener = () => {
 
       // Generate filtered stocks using sophisticated data generator
       const filteredStocks = StockDataGenerator.generateFilteredStocks(filterCriteria);
+      
+      setScanProgress(100);
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
       setResults(filteredStocks);
+      setLastScanTime(Date.now() - startTime);
       
     } catch (error) {
       console.error('Screening error:', error);
       setValidationErrors(['An error occurred during screening. Please try again.']);
     } finally {
       setIsLoading(false);
+      setScanProgress(0);
     }
   };
 
