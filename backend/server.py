@@ -884,7 +884,7 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
     
     # Check cache first for performance
     cache_key = f"{symbol}_{timeframe}"
-    cached_data = get_cached_data(cache_key)
+    cached_data = get_cached_data(cache_key, timeframe)
     if cached_data:
         print(f"✅ Using cached data for {symbol} ({timeframe})")
         return cached_data
