@@ -4,6 +4,8 @@ import { useSearchParams } from 'react-router-dom';
 import Chart from 'react-apexcharts';
 import { Search, TrendingUp, TrendingDown, Brain, BarChart3, Activity, Target, Zap, AlertCircle, DollarSign } from 'lucide-react';
 import api from '../services/api';
+import { AnalysisSkeleton, ChartSkeleton } from './LoadingSkeleton';
+import { StockAnalysisErrorBoundary } from './ErrorBoundary';
 
 const StockAnalysis = () => {
   const [searchParams] = useSearchParams();
