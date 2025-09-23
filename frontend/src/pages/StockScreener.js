@@ -703,13 +703,29 @@ const StockScreener = () => {
                         </div>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-right">
-                        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
-                          stock.ppoSlope >= 0 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : 'bg-orange-100 text-orange-800'
-                        }`}>
-                          {stock.ppoSlope >= 0 ? '+' : ''}{stock.ppoSlope.toFixed(2)}%
-                        </span>
+                        {(() => {
+                          const hook = detectPPOHook(stock.ppoValues);
+                          return (
+                            <div className="space-y-1">
+                              <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
+                                stock.ppoSlope >= 0 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-orange-100 text-orange-800'
+                              }`}>
+                                {hook === 'positive' && <span className="mr-1">⭐</span>}
+                                {hook === 'negative' && <span className="mr-1">⚠️</span>}
+                                {stock.ppoSlope >= 0 ? '+' : ''}{stock.ppoSlope.toFixed(2)}%
+                              </span>
+                              {hook && (
+                                <div className={`text-xs font-medium ${
+                                  hook === 'positive' ? 'text-green-700' : 'text-red-700'
+                                }`}>
+                                  {hook === 'positive' ? '+ Hook' : '- Hook'}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-center">
                         <div className="space-y-1">
