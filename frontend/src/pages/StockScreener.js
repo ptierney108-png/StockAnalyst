@@ -489,6 +489,11 @@ const StockScreener = () => {
                   <h2 className="text-xl font-bold text-gray-900">
                     Screening Results ({results.length} stocks found)
                   </h2>
+                  {lastScanTime && (
+                    <div className="text-sm text-gray-500">
+                      Scan completed in {(lastScanTime / 1000).toFixed(1)}s
+                    </div>
+                  )}
                 </div>
                 <button 
                   onClick={exportResults}
