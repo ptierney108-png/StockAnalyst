@@ -55,6 +55,9 @@ const StockScreener = () => {
   // PPO slope filter
   const [ppoSlopeThreshold, setPpoSlopeThreshold] = useState(5);
   
+  // PPO Hook filter - NEW
+  const [ppoHookFilter, setPpoHookFilter] = useState('all'); // 'all', 'positive', 'negative', 'both'
+  
   // Advanced filters
   const [sectorFilter, setSectorFilter] = useState('all');
   const [optionableFilter, setOptionableFilter] = useState('all');
