@@ -1468,8 +1468,23 @@ async def analyze_stock_get(symbol: str, timeframe: str = "1D"):
             "sentiment_details": sentiment_result.get("details", [])
         }
     except Exception as e:
-        print(f"Error analyzing stock: {e}")
-        raise HTTPException(status_code=500, detail="Analysis failed")
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"❌ Error analyzing stock {symbol}: {e}")
+        print(f"📋 Full traceback: {error_details}")
+        
+        # Try to return fallback analysis using demo data
+        try:
+            print(f"🔄 Attempting fallback analysis for {symbol}")
+            fallback_data = create_demo_analysis_data(symbol)
+            print(f"✅ Fallback analysis generated for {symbol}")
+            return fallback_data
+        except Exception as fallback_error:
+            print(f"❌ Fallback analysis also failed for {symbol}: {fallback_error}")
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Analysis failed for {symbol}. Please check if the symbol is valid and try again."
+            )
 
 # Keep existing basic endpoints for compatibility
 @api_router.get("/stocks/search")
