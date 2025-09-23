@@ -535,7 +535,16 @@ const StockScreener = () => {
         </div>
 
         {/* Results Section */}
-        {results.length > 0 && (
+        {scanProgress > 0 && scanProgress < 100 ? (
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="flex items-center space-x-2 mb-4">
+              <Target className="h-5 w-5 text-blue-600" />
+              <h2 className="text-xl font-bold text-gray-900">Scanning Stocks...</h2>
+            </div>
+            <TableSkeleton rows={8} cols={6} />
+          </div>
+        ) : results.length > 0 && (
+          <StockScreenerErrorBoundary>
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
