@@ -706,10 +706,10 @@ const StockScreener = () => {
                 Measures trend strength using DI+ (bullish) and DI- (bearish) values with ADX for overall trend strength.
               </p>
               <ul className="text-blue-600 text-xs space-y-1">
-                <li>• ADX > 25: Strong trend</li>
+                <li>• ADX &gt; 25: Strong trend</li>
                 <li>• ADX 20-25: Moderate trend</li>
-                <li>• ADX < 20: Weak/sideways</li>
-                <li>• DI+ > DI-: Bullish bias</li>
+                <li>• ADX &lt; 20: Weak/sideways</li>
+                <li>• DI+ &gt; DI-: Bullish bias</li>
               </ul>
             </div>
             <div>
