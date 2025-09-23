@@ -230,7 +230,7 @@ const StockAnalysis = () => {
         }
       }
     }]
-  };
+  }), [symbol]); // Memoize based on symbol changes
 
   // Enhanced PPO Indicator Chart with Professional Histogram and Timeframe Selection
   const ppoChartOptions = {
