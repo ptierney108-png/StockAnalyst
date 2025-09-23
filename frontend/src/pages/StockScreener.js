@@ -689,13 +689,17 @@ const StockScreener = () => {
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-center">
                         <div className="space-y-1">
-                          {stock.ppoValues?.map((ppo, idx) => (
-                            <div key={idx} className={`text-xs px-1 py-0.5 rounded font-medium ${
-                              ppo >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}>
-                              {ppo >= 0 ? '+' : ''}{ppo.toFixed(3)}
-                            </div>
-                          )) || 'N/A'}
+                          {stock.ppoValues?.map((ppo, idx) => {
+                            const dayLabels = ['Today', 'Yesterday', '2 Days Ago'];
+                            return (
+                              <div key={idx} className={`text-xs px-1 py-0.5 rounded font-medium ${
+                                ppo >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                <div className="text-xs text-gray-500">{dayLabels[idx]}({idx})</div>
+                                {ppo >= 0 ? '+' : ''}{ppo.toFixed(3)}
+                              </div>
+                            );
+                          }) || 'N/A'}
                         </div>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-right">
