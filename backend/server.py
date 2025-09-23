@@ -1424,8 +1424,13 @@ def generate_comprehensive_stock_data(symbol: str, base_price: float, volatility
     put_bid = current_price * 0.015 + (hash(f"{symbol}_put_bid") % 80) / 100
     put_ask = put_bid + 0.04 + (hash(f"{symbol}_put_ask") % 40) / 100
     
-    # Generate earnings data
+    # Generate options expiration (typically monthly, next expiration 15-45 days out)
     from datetime import datetime, timedelta
+    next_expiration = datetime.now() + timedelta(days=hash(f"{symbol}_exp") % 30 + 15)
+    # Format as "Dec 15" or similar
+    expiration_str = next_expiration.strftime("%b %d")
+    
+    # Generate earnings data
     last_earnings = datetime.now() - timedelta(days=hash(symbol) % 90 + 30)
     next_earnings = datetime.now() + timedelta(days=hash(f"{symbol}_next") % 90 + 10)
     days_to_earnings = (next_earnings - datetime.now()).days
