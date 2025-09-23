@@ -1128,7 +1128,7 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
         mock_data["response_time"] = round(time.time() - start_time, 2)
         
         # Cache mock data for shorter duration (1 minute)
-        stock_data_cache[cache_key] = (mock_data, time.time() - CACHE_DURATION + 60)
+        stock_data_cache[cache_key] = (mock_data, time.time() - 3600 + 60)
         
         return mock_data
 
