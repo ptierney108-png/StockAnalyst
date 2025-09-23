@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import StockDataGenerator from '../utils/stockDataGenerator';
 import { TechnicalAnalysisEngine } from '../utils/technicalAnalysis';
+import { TableSkeleton } from '../components/LoadingSkeleton';
+import { StockScreenerErrorBoundary } from '../components/ErrorBoundary';
 
 const StockScreener = () => {
   // Helper function to detect PPO hooks
