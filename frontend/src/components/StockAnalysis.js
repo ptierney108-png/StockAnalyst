@@ -541,7 +541,7 @@ const StockAnalysis = () => {
         };
       }) || []
     }
-  ], [analysisData?.chart_data, analysisData?.ppo_history]); // Memoize based on data
+  ]; }, [analysisData?.chart_data, analysisData?.ppo_history]); // Memoize based on data
 
   const getRecommendationColor = (recommendation) => {
     switch (recommendation) {
