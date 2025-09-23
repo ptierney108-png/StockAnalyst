@@ -544,7 +544,7 @@ const StockScreener = () => {
             <TableSkeleton rows={8} cols={6} />
           </div>
         ) : results.length > 0 && (
-          <StockScreenerErrorBoundary>
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
