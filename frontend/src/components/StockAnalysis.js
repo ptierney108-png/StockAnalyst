@@ -974,7 +974,7 @@ const StockAnalysis = () => {
               <div className="mb-8">
                 <Chart
                   options={chartOptions}
-                  series={[{ name: symbol, data: candlestickData }]}
+                  series={chartSeries}
                   type="candlestick"
                   height={450}
                 />
