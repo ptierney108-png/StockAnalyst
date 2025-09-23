@@ -99,7 +99,14 @@ const Portfolio = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Portfolio Management</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Portfolio Management</h1>
+          {/* Data Source Indicator */}
+          <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
+            <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+            <span>Portfolio Data: Demo Environment</span>
+          </div>
+        </div>
         <button
           onClick={() => setShowCreateForm(true)}
           className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
