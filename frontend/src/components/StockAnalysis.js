@@ -232,12 +232,18 @@ const StockAnalysis = () => {
     }]
   }), [symbol]); // Memoize based on symbol changes
 
-  // Enhanced PPO Indicator Chart with Professional Histogram and Timeframe Selection
-  const ppoChartOptions = {
+  // Enhanced PPO Indicator Chart with Performance Optimization
+  const ppoChartOptions = useMemo(() => ({
     chart: {
       type: 'line',
       height: 380,
       id: 'ppo-chart',
+      animations: {
+        enabled: false, // Disabled for better performance
+        dynamicAnimation: {
+          enabled: false
+        }
+      },
       toolbar: {
         show: true,
         autoSelected: 'pan',
