@@ -407,10 +407,19 @@ const StockScreener = () => {
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
               >
                 {isLoading ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    <span>Scanning...</span>
-                  </>
+                  <div className="flex flex-col items-center space-y-1 w-full">
+                    <div className="flex items-center space-x-2">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span>Scanning...</span>
+                    </div>
+                    <div className="w-full bg-blue-300 rounded-full h-1">
+                      <div 
+                        className="bg-white h-1 rounded-full transition-all duration-300"
+                        style={{ width: `${scanProgress}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-xs">{scanProgress}%</span>
+                  </div>
                 ) : (
                   <>
                     <Search className="h-4 w-4" />
