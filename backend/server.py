@@ -1079,100 +1079,101 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
             except Exception as polygon_error:
                 print(f"Polygon API error: {polygon_error}")
         
-        # Try Yahoo Finance as third fallback
-        try:
-            print(f"Trying Yahoo Finance fallback for {symbol} ({timeframe})")
-            
-            # Map timeframe to Yahoo Finance periods
-            timeframe_mapping = {
-                "1D": {"period": "1d", "interval": "1h"},
-                "5D": {"period": "5d", "interval": "1d"},
-                "1M": {"period": "1mo", "interval": "1d"},
-                "3M": {"period": "3mo", "interval": "1d"},
-                "6M": {"period": "6mo", "interval": "1d"},
-                "YTD": {"period": "ytd", "interval": "1d"},
-                "1Y": {"period": "1y", "interval": "1d"},
-                "5Y": {"period": "5y", "interval": "1wk"},
-                "All": {"period": "max", "interval": "1mo"}
-            }
-            
-            params = timeframe_mapping.get(timeframe, timeframe_mapping["1M"])
-            
-            # Get data from Yahoo Finance
-            ticker = yf.Ticker(symbol)
-            hist = ticker.history(period=params["period"], interval=params["interval"])
-            
-            if hist.empty:
-                raise ValueError("No data received from Yahoo Finance")
-            
-            # Convert Yahoo Finance data to our format
-            chart_data = []
-            prices = []
-            
-            for date, row in hist.iterrows():
-                date_str = date.strftime('%Y-%m-%d %H:%M' if params["interval"] == "1h" else '%Y-%m-%d')
-                chart_data.append({
-                    "date": date_str,
-                    "open": float(row['Open']),
-                    "high": float(row['High']),
-                    "low": float(row['Low']),
-                    "close": float(row['Close']),
-                    "volume": int(row['Volume']),
-                    "ppo": 0  # Will be calculated
-                })
-                prices.append(float(row['Close']))
-            
-            if len(prices) < 2:
-                raise ValueError("Insufficient data points from Yahoo Finance")
-            
-            # Calculate technical indicators
-            indicators = calculate_technical_indicators(prices, timeframe)
-            
-            # Update PPO values in chart data
-            for i, item in enumerate(chart_data):
-                if i < len(indicators["ppo_values"]):
-                    item["ppo"] = indicators["ppo_values"][i]
-            
-            # Get ticker info for fundamental data
-            info = ticker.info
-            fundamental_data = {
-                "market_cap": info.get('marketCap', 'N/A'),
-                "pe_ratio": info.get('trailingPE', 28.5),
-                "profit_margin": info.get('profitMargins', 0.182) * 100 if info.get('profitMargins') else 18.2,
-                "eps": info.get('trailingEps', 'N/A'),
-                "dividend_yield": info.get('dividendYield', 0) * 100 if info.get('dividendYield') else 0,
-                "revenue": info.get('totalRevenue', 'N/A'),
-                "debt_to_equity": info.get('debtToEquity', 'N/A'),
-                "description": f"Real-time analysis for {symbol} using Yahoo Finance data"
-            }
-            
-            current_price = prices[-1]
-            price_change = prices[-1] - prices[-2] if len(prices) > 1 else 0
-            data_source = "yahoo_finance"
-            
-            result = {
-                "symbol": symbol,
-                "timeframe": timeframe,
-                "current_price": current_price,
-                "price_change": price_change,
-                "price_change_percent": (price_change / prices[-2]) * 100 if len(prices) > 1 and prices[-2] != 0 else 0,
-                "volume": int(hist.iloc[-1]['Volume']) if not hist.empty else 0,
-                "chart_data": chart_data,
-                "indicators": indicators,
-                "fundamental_data": fundamental_data,
-                "ppo_history": generate_ppo_history(indicators["ppo_values"], chart_data),
-                "dmi_history": generate_dmi_history(indicators, chart_data),
-                "data_source": data_source,
-                "response_time": round(time.time() - start_time, 2)
-            }
-            
-            # Cache the result
-            set_cached_data(cache_key, result)
-            print(f"✅ Yahoo Finance success: {len(chart_data)} data points for {symbol} in {result['response_time']}s")
-            return result
+        # Try Yahoo Finance as third fallback (only if under rate limit)
+        if track_api_call('yahoo_finance'):
+            try:
+                print(f"Trying Yahoo Finance fallback for {symbol} ({timeframe})")
                 
-        except Exception as yahoo_error:
-            print(f"Yahoo Finance API error: {yahoo_error}")
+                # Map timeframe to Yahoo Finance periods
+                timeframe_mapping = {
+                    "1D": {"period": "1d", "interval": "1h"},
+                    "5D": {"period": "5d", "interval": "1d"},
+                    "1M": {"period": "1mo", "interval": "1d"},
+                    "3M": {"period": "3mo", "interval": "1d"},
+                    "6M": {"period": "6mo", "interval": "1d"},
+                    "YTD": {"period": "ytd", "interval": "1d"},
+                    "1Y": {"period": "1y", "interval": "1d"},
+                    "5Y": {"period": "5y", "interval": "1wk"},
+                    "All": {"period": "max", "interval": "1mo"}
+                }
+                
+                params = timeframe_mapping.get(timeframe, timeframe_mapping["1M"])
+                
+                # Get data from Yahoo Finance
+                ticker = yf.Ticker(symbol)
+                hist = ticker.history(period=params["period"], interval=params["interval"])
+                
+                if hist.empty:
+                    raise ValueError("No data received from Yahoo Finance")
+                
+                # Convert Yahoo Finance data to our format
+                chart_data = []
+                prices = []
+                
+                for date, row in hist.iterrows():
+                    date_str = date.strftime('%Y-%m-%d %H:%M' if params["interval"] == "1h" else '%Y-%m-%d')
+                    chart_data.append({
+                        "date": date_str,
+                        "open": float(row['Open']),
+                        "high": float(row['High']),
+                        "low": float(row['Low']),
+                        "close": float(row['Close']),
+                        "volume": int(row['Volume']),
+                        "ppo": 0  # Will be calculated
+                    })
+                    prices.append(float(row['Close']))
+                
+                if len(prices) < 2:
+                    raise ValueError("Insufficient data points from Yahoo Finance")
+                
+                # Calculate technical indicators
+                indicators = calculate_technical_indicators(prices, timeframe)
+                
+                # Update PPO values in chart data
+                for i, item in enumerate(chart_data):
+                    if i < len(indicators["ppo_values"]):
+                        item["ppo"] = indicators["ppo_values"][i]
+                
+                # Get ticker info for fundamental data
+                info = ticker.info
+                fundamental_data = {
+                    "market_cap": info.get('marketCap', 'N/A'),
+                    "pe_ratio": info.get('trailingPE', 28.5),
+                    "profit_margin": info.get('profitMargins', 0.182) * 100 if info.get('profitMargins') else 18.2,
+                    "eps": info.get('trailingEps', 'N/A'),
+                    "dividend_yield": info.get('dividendYield', 0) * 100 if info.get('dividendYield') else 0,
+                    "revenue": info.get('totalRevenue', 'N/A'),
+                    "debt_to_equity": info.get('debtToEquity', 'N/A'),
+                    "description": f"Real-time analysis for {symbol} using Yahoo Finance data"
+                }
+                
+                current_price = prices[-1]
+                price_change = prices[-1] - prices[-2] if len(prices) > 1 else 0
+                data_source = "yahoo_finance"
+                
+                result = {
+                    "symbol": symbol,
+                    "timeframe": timeframe,
+                    "current_price": current_price,
+                    "price_change": price_change,
+                    "price_change_percent": (price_change / prices[-2]) * 100 if len(prices) > 1 and prices[-2] != 0 else 0,
+                    "volume": int(hist.iloc[-1]['Volume']) if not hist.empty else 0,
+                    "chart_data": chart_data,
+                    "indicators": indicators,
+                    "fundamental_data": fundamental_data,
+                    "ppo_history": generate_ppo_history(indicators["ppo_values"], chart_data),
+                    "dmi_history": generate_dmi_history(indicators, chart_data),
+                    "data_source": data_source,
+                    "response_time": round(time.time() - start_time, 2)
+                }
+                
+                # Cache the result
+                set_cached_data(cache_key, result)
+                print(f"✅ Yahoo Finance success: {len(chart_data)} data points for {symbol} in {result['response_time']}s")
+                return result
+                    
+            except Exception as yahoo_error:
+                print(f"Yahoo Finance API error: {yahoo_error}")
         
         # Final fallback to enhanced mock data
         print(f"All APIs failed, using enhanced mock data for {symbol} ({timeframe})")
