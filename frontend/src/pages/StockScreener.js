@@ -90,37 +90,42 @@ const StockScreener = () => {
 
     const csvContent = [
       headers.join(','),
-      ...results.map(stock => [
-        stock.symbol,
-        `"${stock.name}"`,
-        stock.sector,
-        stock.industry,
-        stock.price.toFixed(2),
-        stock.volume,
-        stock.volume3m,
-        stock.volumeYear,
-        stock.return1d.toFixed(2),
-        stock.return5d.toFixed(2),
-        stock.return2w.toFixed(2),
-        stock.return1m.toFixed(2),
-        stock.return1y.toFixed(2),
-        stock.dmi.toFixed(2),
-        stock.adx?.toFixed(2) || 'N/A',
-        stock.diPlus?.toFixed(2) || 'N/A',
-        stock.diMinus?.toFixed(2) || 'N/A',
-        stock.ppoValues?.[0]?.toFixed(4) || 'N/A',
-        stock.ppoValues?.[1]?.toFixed(4) || 'N/A',
-        stock.ppoValues?.[2]?.toFixed(4) || 'N/A',
-        stock.ppoSlope.toFixed(2),
-        stock.optionable ? 'Yes' : 'No',
-        stock.callBid?.toFixed(2) || 'N/A',
-        stock.callAsk?.toFixed(2) || 'N/A',
-        stock.putBid?.toFixed(2) || 'N/A',
-        stock.putAsk?.toFixed(2) || 'N/A',
-        stock.lastEarnings?.toLocaleDateString() || 'N/A',
-        stock.nextEarnings?.toLocaleDateString() || 'N/A',
-        stock.daysToEarnings
-      ].join(','))
+      ...results.map(stock => {
+        const hook = detectPPOHook(stock.ppoValues);
+        return [
+          stock.symbol,
+          `"${stock.name}"`,
+          stock.sector,
+          stock.industry,
+          stock.price.toFixed(2),
+          stock.volume,
+          stock.volume3m,
+          stock.volumeYear,
+          stock.return1d.toFixed(2),
+          stock.return5d.toFixed(2),
+          stock.return2w.toFixed(2),
+          stock.return1m.toFixed(2),
+          stock.return1y.toFixed(2),
+          stock.dmi.toFixed(2),
+          stock.adx?.toFixed(2) || 'N/A',
+          stock.diPlus?.toFixed(2) || 'N/A',
+          stock.diMinus?.toFixed(2) || 'N/A',
+          stock.ppoValues?.[0]?.toFixed(4) || 'N/A',
+          stock.ppoValues?.[1]?.toFixed(4) || 'N/A',
+          stock.ppoValues?.[2]?.toFixed(4) || 'N/A',
+          stock.ppoSlope.toFixed(2),
+          hook || 'None',
+          stock.optionable ? 'Yes' : 'No',
+          stock.callBid?.toFixed(2) || 'N/A',
+          stock.callAsk?.toFixed(2) || 'N/A',
+          stock.putBid?.toFixed(2) || 'N/A',
+          stock.putAsk?.toFixed(2) || 'N/A',
+          stock.optionsExpiration || 'N/A',
+          stock.lastEarnings?.toLocaleDateString() || 'N/A',
+          stock.nextEarnings?.toLocaleDateString() || 'N/A',
+          stock.daysToEarnings || 'N/A'
+        ].join(',');
+      })
     ].join('\n');
 
     // Create and download file
