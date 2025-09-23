@@ -275,6 +275,11 @@ const PointBasedDecision = () => {
                   Point-Based Decision System
                 </h1>
                 <p className="text-sm text-gray-600">Quantitative Stock Analysis with Transparent Scoring</p>
+                {/* Data Source Indicator */}
+                <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1">
+                  <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+                  <span>Analysis Data: Deterministic Demo Simulation</span>
+                </div>
               </div>
             </div>
             <div className="flex items-center space-x-2 text-sm text-gray-500">
