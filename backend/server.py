@@ -44,6 +44,9 @@ polygon_client = RESTClient(polygon_api_key) if polygon_api_key else None
 # Create the main app without a prefix
 app = FastAPI(title="StockWise API", description="Advanced Stock Technical Analysis Platform")
 
+# Add GZip compression middleware for better performance
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
