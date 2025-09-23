@@ -224,6 +224,7 @@ const StockScreener = () => {
         ppoSlopeFilter: {
           threshold: Math.abs(ppoSlopeThreshold)
         },
+        ppoHookFilter: ppoHookFilter, // NEW: PPO hook filtering
         sectorFilter,
         optionableFilter,
         earningsFilter
