@@ -503,7 +503,37 @@ const StockScreener = () => {
                         </span>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-right">
-                        <div className="text-sm font-semibold text-gray-900">{stock.dmi.toFixed(1)}</div>
+                        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
+                          stock.return1m >= 0 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {stock.return1m >= 0 ? '+' : ''}{stock.return1m.toFixed(2)}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                        <div className="text-sm font-semibold text-gray-900">
+                          {stock.dmi.toFixed(1)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          ADX: {stock.adx?.toFixed(1) || 'N/A'}
+                        </div>
+                        <div className="text-xs">
+                          <span className="text-green-600">+{stock.diPlus?.toFixed(1) || 'N/A'}</span>
+                          {' / '}
+                          <span className="text-red-600">-{stock.diMinus?.toFixed(1) || 'N/A'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                        <div className="space-y-1">
+                          {stock.ppoValues?.map((ppo, idx) => (
+                            <div key={idx} className={`text-xs px-1 py-0.5 rounded ${
+                              ppo >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {ppo >= 0 ? '+' : ''}{ppo.toFixed(3)}
+                            </div>
+                          )) || 'N/A'}
+                        </div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-right">
                         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
@@ -515,6 +545,22 @@ const StockScreener = () => {
                         </span>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-center">
+                        <div className="space-y-1">
+                          {stock.optionable ? (
+                            <>
+                              <div className="text-xs">
+                                <span className="text-green-600">C: {stock.callBid?.toFixed(2)}-{stock.callAsk?.toFixed(2)}</span>
+                              </div>
+                              <div className="text-xs">
+                                <span className="text-red-600">P: {stock.putBid?.toFixed(2)}-{stock.putAsk?.toFixed(2)}</span>
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-xs text-gray-500">N/A</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
                         <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
                           stock.daysToEarnings <= 7 
                             ? 'bg-yellow-100 text-yellow-800' 
@@ -524,6 +570,9 @@ const StockScreener = () => {
                             <AlertCircle className="h-3 w-3 mr-1" />
                           )}
                           {stock.daysToEarnings}d
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {stock.nextEarnings?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </div>
                       </td>
                     </tr>
