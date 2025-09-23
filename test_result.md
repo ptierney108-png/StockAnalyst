@@ -241,9 +241,27 @@ test_plan:
   test_all: false
   test_priority: "high_first"
 
+  - task: "Performance optimization for stock symbol and timeframe changes"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py, /app/frontend/src/components/StockAnalysis.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "User reported slow response times when entering new stock symbols or changing chart timeframes. Also needed clarity on data source (real vs mocked)."
+        - working: true
+          agent: "main"
+          comment: "PERFORMANCE FIXES IMPLEMENTED: 1) Backend caching system (5min real data, 1min mock data) ✅ 2) React Query optimization (5min staleTime, 10min cacheTime, disabled auto-refetch) ✅ 3) Data source transparency with visual indicators (Alpha Vantage/Polygon.io/Yahoo Finance/Demo Data) ✅ 4) Response time tracking and display ✅ 5) Comprehensive fallback chain optimization ✅"
+        - working: true
+          agent: "troubleshoot"
+          comment: "PERFORMANCE VALIDATION COMPLETE ✅ Backend caching working correctly with 5-minute cache duration. React Query properly configured preventing unnecessary API calls. Data source transparency implemented with visual indicators. Performance targets: Cached responses <0.5s (✅ achieved), UI changes <2s (✅ achieved), First API calls 7-10s (acceptable for comprehensive financial data). All optimizations functioning as designed."
+
 agent_communication:
     - agent: "main"
-      message: "🎉 STOCK SCREENER PHASE 3 WITH TWEAKS COMPLETED SUCCESSFULLY! ✅ All 5 requested tweaks implemented: (1) Volume header updated to 'Volume Avg 3M', (2) PPO 3-day labels showing Today(0)/Yesterday(1)/2 Days Ago(2), (3) PPO positive hook detection with ⭐ when TODAY > YESTERDAY AND YESTERDAY < PRIOR DAY, (4) PPO negative hook detection with ⚠️ when TODAY < YESTERDAY AND YESTERDAY > PRIOR DAY, (5) Options expiration period added to display. Backend enhanced with options_expiration field, frontend PPO hook logic implemented, CSV export includes hook detection. All features working correctly in visual testing."
+      message: "🚀 PERFORMANCE OPTIMIZATION COMPLETED SUCCESSFULLY! ✅ Implemented comprehensive performance improvements for Technical Analysis: (1) Backend caching system reduces repeat calls from ~10s to <0.5s, (2) React Query optimization prevents unnecessary API calls during symbol/timeframe changes, (3) Data source transparency shows real-time indicators (Alpha Vantage/Polygon.io/Yahoo Finance = real, Demo Data = simulated), (4) Response time tracking and display, (5) Robust fallback chain ensures reliable data delivery. User experience significantly enhanced with faster responses and clear data source identification."
     - agent: "testing"
       message: "STOCK SCREENER PHASE 3 BACKEND TESTING COMPLETE ✅ Comprehensive backend testing passed with 85.7% success rate (42/49 tests). CRITICAL FINDINGS: (1) Stock Screener endpoints fully implemented and working perfectly - POST /api/screener/scan filters stocks by price range, DMI (20-60), PPO slope (5%+) with 0.04s response time ✅ (2) Data generation comprehensive with realistic technical indicators, returns, options data, earnings ✅ (3) Filtering logic mathematically accurate and validated ✅ (4) Screener presets endpoint working with 3 strategies ✅ MINOR ISSUES: PPO history returns 24 entries instead of expected 3 (non-critical), some API timeouts on invalid symbols, performance issues with stock analysis endpoints (10-16s response times). Stock Screener Phase 3 backend implementation is production-ready and fully functional."
     - agent: "testing"
