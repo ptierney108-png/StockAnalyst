@@ -318,9 +318,11 @@ const StockScreener = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <Activity className="h-4 w-4 inline mr-1" />
                 DMI Range
-                <button className="ml-1 text-gray-400 hover:text-gray-600">
-                  <Info className="h-3 w-3" title="Directional Movement Index (14-period)" />
-                </button>
+                <Tooltip 
+                  id="dmi-tooltip"
+                  title="Directional Movement Index (DMI)"
+                  content="DMI measures trend strength using 14-period calculations. Values above 25 indicate strong trends, while values below 20 suggest sideways movement. ADX shows overall trend strength."
+                />
               </label>
               <div className="space-y-2">
                 <div>
