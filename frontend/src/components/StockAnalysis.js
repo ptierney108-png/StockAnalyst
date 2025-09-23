@@ -77,7 +77,7 @@ const StockAnalysis = () => {
   })) || [];
 
   // Advanced Candlestick Chart Configuration
-  const chartOptions = {
+  const chartOptions = useMemo(() => ({
     chart: {
       type: 'candlestick',
       height: 450,
@@ -99,10 +99,13 @@ const StockAnalysis = () => {
       foreColor: '#374151',
       fontFamily: 'Inter, system-ui, sans-serif',
       animations: {
-        enabled: true,
-        easing: 'easeinout',
-        speed: 800
-      }
+        enabled: false, // Disabled for better performance
+        dynamicAnimation: {
+          enabled: false
+        }
+      },
+      redrawOnWindowResize: true,
+      redrawOnParentResize: false // Reduce unnecessary redraws
     },
     title: {
       text: `${symbol} - Professional Stock Analysis`,
