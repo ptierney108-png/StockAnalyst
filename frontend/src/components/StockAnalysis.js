@@ -488,7 +488,7 @@ const StockAnalysis = () => {
         }
       }]
     }
-  };
+  }), [analysisData]); // Memoize based on data changes
 
   // Enhanced PPO Chart Series with Professional Histogram (Similar to Reference Chart)
   const ppoChartSeries = [
