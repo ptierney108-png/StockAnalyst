@@ -456,7 +456,10 @@ const StockScreener = () => {
                     Screening Results ({results.length} stocks found)
                   </h2>
                 </div>
-                <button className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium">
+                <button 
+                  onClick={exportResults}
+                  className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                >
                   <Download className="h-4 w-4" />
                   <span>Export Results</span>
                 </button>
