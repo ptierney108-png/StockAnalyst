@@ -1453,6 +1453,7 @@ def generate_comprehensive_stock_data(symbol: str, base_price: float, volatility
         "call_ask": call_ask,
         "put_bid": put_bid,
         "put_ask": put_ask,
+        "options_expiration": expiration_str,
         "last_earnings": last_earnings.isoformat(),
         "next_earnings": next_earnings.isoformat(),
         "days_to_earnings": days_to_earnings
