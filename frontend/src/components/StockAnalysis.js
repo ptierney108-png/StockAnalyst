@@ -628,7 +628,26 @@ const StockAnalysis = () => {
                     <span>Data last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                   </span>
                   <span>•</span>
-                  <span>Sources: Alpha Vantage, SEC Filings, Market Data</span>
+                  <span className="flex items-center space-x-1">
+                    <span className={`w-2 h-2 rounded-full ${
+                      analysisData.data_source === 'alpha_vantage' ? 'bg-blue-500' :
+                      analysisData.data_source === 'polygon_io' ? 'bg-purple-500' :
+                      analysisData.data_source === 'yahoo_finance' ? 'bg-green-500' :
+                      'bg-gray-500'
+                    }`}></span>
+                    <span>Source: {
+                      analysisData.data_source === 'alpha_vantage' ? 'Alpha Vantage (Real-time)' :
+                      analysisData.data_source === 'polygon_io' ? 'Polygon.io (Real-time)' :
+                      analysisData.data_source === 'yahoo_finance' ? 'Yahoo Finance (Real-time)' :
+                      'Demo Data (Simulated)'
+                    }</span>
+                  </span>
+                  {analysisData.response_time && (
+                    <>
+                      <span>•</span>
+                      <span>Response: {analysisData.response_time}s</span>
+                    </>
+                  )}
                 </div>
               </div>
 
