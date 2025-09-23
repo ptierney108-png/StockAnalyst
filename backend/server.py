@@ -802,9 +802,10 @@ async def get_sentiment_analysis(symbol: str) -> Dict[str, Any]:
             "summary": "Mixed institutional signals suggest neutral positioning with moderate systematic momentum factors and balanced risk sentiment."
         }
 
-# Cache for stock data (simple in-memory cache)
+# Enhanced cache for stock data with TTL
 stock_data_cache = {}
 CACHE_DURATION = 300  # 5 minutes in seconds
+CACHE_MAX_SIZE = 1000  # Maximum cache entries
 
 def get_cached_data(cache_key: str):
     """Get data from cache if it exists and is not expired"""
@@ -812,10 +813,20 @@ def get_cached_data(cache_key: str):
         data, timestamp = stock_data_cache[cache_key]
         if time.time() - timestamp < CACHE_DURATION:
             return data
+        else:
+            # Remove expired entry
+            del stock_data_cache[cache_key]
     return None
 
 def set_cached_data(cache_key: str, data: dict):
-    """Store data in cache with timestamp"""
+    """Store data in cache with timestamp and size management"""
+    # Clean cache if it gets too large
+    if len(stock_data_cache) >= CACHE_MAX_SIZE:
+        # Remove oldest entries (simple LRU-like behavior)
+        oldest_key = min(stock_data_cache.keys(), 
+                        key=lambda k: stock_data_cache[k][1])
+        del stock_data_cache[oldest_key]
+    
     stock_data_cache[cache_key] = (data, time.time())
 
 async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[str, Any]:
