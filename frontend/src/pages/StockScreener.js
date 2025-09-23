@@ -357,9 +357,11 @@ const StockScreener = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <BarChart3 className="h-4 w-4 inline mr-1" />
                 PPO Slope %
-                <button className="ml-1 text-gray-400 hover:text-gray-600">
-                  <Info className="h-3 w-3" title="3-day PPO slope threshold percentage" />
-                </button>
+                <Tooltip 
+                  id="ppo-tooltip"
+                  title="PPO Slope Calculation"
+                  content="Calculates the 3-day slope of the PPO oscillator using conditional logic. When PPO < 0: (today - yesterday)/yesterday. When PPO > 0: (yesterday - today)/yesterday. Higher values indicate stronger momentum changes."
+                />
               </label>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Minimum Slope %</label>
