@@ -356,6 +356,273 @@ class StockAnalysisAPITester:
                         f"Average response time: {avg_time:.2f}s")
             return True
     
+    def test_stock_screener_endpoints(self) -> bool:
+        """Test Stock Screener Phase 3 endpoints"""
+        all_passed = True
+        
+        # Test screener presets endpoint
+        try:
+            response = requests.get(f"{BACKEND_URL}/screener/presets", timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if "presets" in data and isinstance(data["presets"], list):
+                    self.log_test("Screener Presets", True, 
+                                f"Retrieved {len(data['presets'])} presets")
+                else:
+                    self.log_test("Screener Presets", False, 
+                                "Invalid presets response structure", True)
+                    all_passed = False
+            else:
+                self.log_test("Screener Presets", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+        except Exception as e:
+            self.log_test("Screener Presets", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        # Test stock screening with default filters
+        try:
+            default_filters = {
+                "price_filter": {"type": "under", "under": 50},
+                "dmi_filter": {"min": 20, "max": 60},
+                "ppo_slope_filter": {"threshold": 5},
+                "sector_filter": "all",
+                "optionable_filter": "all",
+                "earnings_filter": "all"
+            }
+            
+            start_time = time.time()
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=default_filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            response_time = time.time() - start_time
+            
+            self.results["performance_metrics"]["screener_scan_default"] = response_time
+            
+            if response.status_code == 200:
+                data = response.json()
+                if self.validate_screener_response(data, "Default Filters"):
+                    self.log_test("Stock Screener (Default)", True, 
+                                f"Found {data.get('results_found', 0)} stocks in {response_time:.2f}s")
+                else:
+                    all_passed = False
+            else:
+                self.log_test("Stock Screener (Default)", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Stock Screener (Default)", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        # Test stock screening with custom filters
+        try:
+            custom_filters = {
+                "price_filter": {"type": "range", "min": 100, "max": 500},
+                "dmi_filter": {"min": 25, "max": 55},
+                "ppo_slope_filter": {"threshold": 8},
+                "sector_filter": "Technology"
+            }
+            
+            start_time = time.time()
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=custom_filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            response_time = time.time() - start_time
+            
+            self.results["performance_metrics"]["screener_scan_custom"] = response_time
+            
+            if response.status_code == 200:
+                data = response.json()
+                if self.validate_screener_response(data, "Custom Filters"):
+                    self.log_test("Stock Screener (Custom)", True, 
+                                f"Found {data.get('results_found', 0)} stocks in {response_time:.2f}s")
+                else:
+                    all_passed = False
+            else:
+                self.log_test("Stock Screener (Custom)", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Stock Screener (Custom)", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        # Test edge case: very restrictive filters
+        try:
+            restrictive_filters = {
+                "price_filter": {"type": "range", "min": 1000, "max": 2000},
+                "dmi_filter": {"min": 55, "max": 60},
+                "ppo_slope_filter": {"threshold": 20}
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=restrictive_filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                # Should return few or no results with restrictive filters
+                self.log_test("Stock Screener (Restrictive)", True, 
+                            f"Restrictive filters returned {data.get('results_found', 0)} stocks")
+            else:
+                self.log_test("Stock Screener (Restrictive)", False, 
+                            f"HTTP {response.status_code}: {response.text}")
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Stock Screener (Restrictive)", False, f"Error: {str(e)}")
+            all_passed = False
+        
+        return all_passed
+    
+    def validate_screener_response(self, data: Dict[str, Any], test_name: str) -> bool:
+        """Validate stock screener response structure and data quality"""
+        required_fields = ["success", "total_scanned", "results_found", "stocks", "scan_time", "filters_applied"]
+        
+        # Check required fields
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            self.log_test(f"Screener Response Structure ({test_name})", False, 
+                        f"Missing fields: {missing_fields}", True)
+            return False
+        
+        # Validate success flag
+        if not data.get("success"):
+            self.log_test(f"Screener Response ({test_name})", False, 
+                        "Success flag is false", True)
+            return False
+        
+        # Validate stocks array
+        stocks = data.get("stocks", [])
+        if not isinstance(stocks, list):
+            self.log_test(f"Screener Stocks ({test_name})", False, 
+                        "Stocks field is not a list", True)
+            return False
+        
+        # Validate individual stock data
+        if len(stocks) > 0:
+            stock_issues = self.validate_stock_screener_data(stocks[0], test_name)
+            if stock_issues:
+                self.log_test(f"Stock Data Quality ({test_name})", False, 
+                            f"Issues: {stock_issues}", True)
+                return False
+        
+        # Validate filtering logic
+        if not self.validate_filtering_logic(data, test_name):
+            return False
+        
+        self.log_test(f"Screener Response ({test_name})", True, 
+                    "All validation checks passed")
+        return True
+    
+    def validate_stock_screener_data(self, stock: Dict[str, Any], test_name: str) -> List[str]:
+        """Validate individual stock data from screener"""
+        issues = []
+        
+        required_stock_fields = [
+            "symbol", "name", "sector", "industry", "price", 
+            "dmi", "adx", "di_plus", "di_minus", "ppo_values", "ppo_slope_percentage",
+            "returns", "volume_today", "volume_3m", "volume_year",
+            "optionable", "call_bid", "call_ask", "put_bid", "put_ask",
+            "last_earnings", "next_earnings", "days_to_earnings"
+        ]
+        
+        # Check required fields
+        for field in required_stock_fields:
+            if field not in stock:
+                issues.append(f"Missing {field}")
+        
+        # Validate data ranges and types
+        if "price" in stock:
+            if not isinstance(stock["price"], (int, float)) or stock["price"] <= 0:
+                issues.append("Invalid price value")
+        
+        if "adx" in stock:
+            if not isinstance(stock["adx"], (int, float)) or stock["adx"] < 0:
+                issues.append("Invalid ADX value")
+        
+        if "ppo_slope_percentage" in stock:
+            if not isinstance(stock["ppo_slope_percentage"], (int, float)):
+                issues.append("Invalid PPO slope percentage")
+        
+        if "returns" in stock:
+            returns = stock["returns"]
+            if not isinstance(returns, dict):
+                issues.append("Returns should be a dictionary")
+            else:
+                required_return_periods = ["1d", "5d", "2w", "1m", "1y"]
+                for period in required_return_periods:
+                    if period not in returns:
+                        issues.append(f"Missing {period} return")
+        
+        if "ppo_values" in stock:
+            ppo_values = stock["ppo_values"]
+            if not isinstance(ppo_values, list):
+                issues.append("PPO values should be a list")
+            elif len(ppo_values) != 3:
+                issues.append("PPO values should contain 3 values")
+        
+        return issues
+    
+    def validate_filtering_logic(self, data: Dict[str, Any], test_name: str) -> bool:
+        """Validate that filtering logic is working correctly"""
+        filters_applied = data.get("filters_applied", {})
+        stocks = data.get("stocks", [])
+        
+        # Check price filtering
+        if "price_filter" in filters_applied and filters_applied["price_filter"]:
+            price_filter = filters_applied["price_filter"]
+            for stock in stocks:
+                price = stock.get("price", 0)
+                
+                if price_filter.get("type") == "under":
+                    max_price = price_filter.get("under", 50)
+                    if price > max_price:
+                        self.log_test(f"Price Filter Logic ({test_name})", False, 
+                                    f"Stock {stock.get('symbol')} price ${price:.2f} exceeds filter ${max_price}", True)
+                        return False
+                
+                elif price_filter.get("type") == "range":
+                    min_price = price_filter.get("min", 0)
+                    max_price = price_filter.get("max", 1000)
+                    if not (min_price <= price <= max_price):
+                        self.log_test(f"Price Filter Logic ({test_name})", False, 
+                                    f"Stock {stock.get('symbol')} price ${price:.2f} outside range ${min_price}-${max_price}", True)
+                        return False
+        
+        # Check DMI filtering
+        if "dmi_filter" in filters_applied and filters_applied["dmi_filter"]:
+            dmi_filter = filters_applied["dmi_filter"]
+            dmi_min = dmi_filter.get("min", 20)
+            dmi_max = dmi_filter.get("max", 60)
+            
+            for stock in stocks:
+                adx = stock.get("adx", 0)
+                if not (dmi_min <= adx <= dmi_max):
+                    self.log_test(f"DMI Filter Logic ({test_name})", False, 
+                                f"Stock {stock.get('symbol')} ADX {adx:.2f} outside range {dmi_min}-{dmi_max}", True)
+                    return False
+        
+        # Check PPO slope filtering
+        if "ppo_slope_filter" in filters_applied and filters_applied["ppo_slope_filter"]:
+            ppo_filter = filters_applied["ppo_slope_filter"]
+            threshold = ppo_filter.get("threshold", 5)
+            
+            for stock in stocks:
+                ppo_slope = stock.get("ppo_slope_percentage", 0)
+                if abs(ppo_slope) < threshold:
+                    self.log_test(f"PPO Slope Filter Logic ({test_name})", False, 
+                                f"Stock {stock.get('symbol')} PPO slope {ppo_slope:.2f}% below threshold {threshold}%", True)
+                    return False
+        
+        self.log_test(f"Filter Logic ({test_name})", True, 
+                    "All filtering logic validated successfully")
+        return True
+    
     def run_comprehensive_tests(self):
         """Run all tests"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
