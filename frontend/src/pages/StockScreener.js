@@ -21,6 +21,7 @@ import StockDataGenerator from '../utils/stockDataGenerator';
 import { TechnicalAnalysisEngine } from '../utils/technicalAnalysis';
 import { TableSkeleton } from '../components/LoadingSkeleton';
 import { StockScreenerErrorBoundary } from '../components/ErrorBoundary';
+import VirtualizedStockTable from '../components/VirtualizedStockTable';
 
 const StockScreener = () => {
   // Helper function to detect PPO hooks
