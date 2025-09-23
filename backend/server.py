@@ -8,7 +8,9 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 import uuid
+from functools import lru_cache
 from datetime import datetime, timedelta
+import time
 import httpx
 from alpha_vantage.timeseries import TimeSeries
 from alpha_vantage.fundamentaldata import FundamentalData
