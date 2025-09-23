@@ -826,6 +826,8 @@ const StockScreener = () => {
               </table>
             </div>
           </div>
+            )}
+          </>
         )}
 
         {/* Enhanced Educational Panel */}
