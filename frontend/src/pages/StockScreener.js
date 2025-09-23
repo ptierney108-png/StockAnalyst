@@ -111,52 +111,6 @@ const StockScreener = () => {
     }
   };
 
-  // Generate mock results for demonstration
-  const generateMockResults = () => {
-    const sectors = ['Technology', 'Healthcare', 'Finance', 'Energy', 'Consumer Goods'];
-    const companies = [
-      { symbol: 'AAPL', name: 'Apple Inc.', sector: 'Technology' },
-      { symbol: 'MSFT', name: 'Microsoft Corporation', sector: 'Technology' },
-      { symbol: 'GOOGL', name: 'Alphabet Inc.', sector: 'Technology' },
-      { symbol: 'JNJ', name: 'Johnson & Johnson', sector: 'Healthcare' },
-      { symbol: 'JPM', name: 'JPMorgan Chase & Co.', sector: 'Finance' },
-      { symbol: 'XOM', name: 'Exxon Mobil Corporation', sector: 'Energy' },
-      { symbol: 'PG', name: 'Procter & Gamble Co.', sector: 'Consumer Goods' },
-      { symbol: 'NVDA', name: 'NVIDIA Corporation', sector: 'Technology' },
-      { symbol: 'UNH', name: 'UnitedHealth Group Inc.', sector: 'Healthcare' },
-      { symbol: 'HD', name: 'The Home Depot Inc.', sector: 'Consumer Goods' }
-    ];
-
-    return companies.map(company => ({
-      ...company,
-      price: Math.random() * (priceMax - priceMin) + priceMin,
-      volume: Math.floor(Math.random() * 50000000) + 1000000,
-      volume3m: Math.floor(Math.random() * 45000000) + 2000000,
-      volumeYear: Math.floor(Math.random() * 40000000) + 3000000,
-      return1d: (Math.random() - 0.5) * 10,
-      return5d: (Math.random() - 0.5) * 20,
-      return2w: (Math.random() - 0.5) * 30,
-      return1m: (Math.random() - 0.5) * 40,
-      return1y: (Math.random() - 0.5) * 100,
-      dmi: Math.random() * (dmiMax - dmiMin) + dmiMin,
-      ppoValues: [
-        Math.random() * 4 - 2,
-        Math.random() * 4 - 2,
-        Math.random() * 4 - 2
-      ],
-      ppoSlope: (Math.random() - 0.5) * 20,
-      industry: 'Software',
-      optionable: Math.random() > 0.3,
-      callBid: Math.random() * 5 + 0.5,
-      callAsk: Math.random() * 5 + 1,
-      putBid: Math.random() * 5 + 0.5,
-      putAsk: Math.random() * 5 + 1,
-      lastEarnings: new Date(Date.now() - Math.random() * 120 * 24 * 60 * 60 * 1000),
-      nextEarnings: new Date(Date.now() + Math.random() * 120 * 24 * 60 * 60 * 1000),
-      daysToEarnings: Math.floor(Math.random() * 120)
-    }));
-  };
-
   // Sorting function
   const handleSort = (key) => {
     let direction = 'asc';
