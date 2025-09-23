@@ -58,7 +58,7 @@ export class StockDataGenerator {
    * @returns {Array} Array of stock objects with technical data
    */
   static generateFilteredStocks(filterCriteria) {
-    const { priceFilter, dmiFilter, ppoSlopeFilter, sectorFilter, optionableFilter, earningsFilter } = filterCriteria;
+    const { priceFilter, dmiFilter, ppoSlopeFilter, ppoHookFilter, sectorFilter, optionableFilter, earningsFilter } = filterCriteria;
     
     let stocks = this.stockDatabase.map(stock => {
       // Generate price data for technical analysis
