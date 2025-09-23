@@ -559,6 +559,16 @@ const StockScreener = () => {
                     </div>
                   )}
                 </div>
+                
+                {/* Data Source Indicator for Screener */}
+                <div className="flex items-center space-x-4 text-sm text-gray-600 mt-2">
+                  <span className="flex items-center space-x-1">
+                    <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+                    <span>Source: Demo Data (Simulated)</span>
+                  </span>
+                  <span>•</span>
+                  <span>Enhanced with realistic market indicators</span>
+                </div>
                 <button 
                   onClick={exportResults}
                   className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
