@@ -13,8 +13,12 @@ import {
   Info,
   Download,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  CheckCircle,
+  X
 } from 'lucide-react';
+import StockDataGenerator from '../utils/stockDataGenerator';
+import { TechnicalAnalysisEngine } from '../utils/technicalAnalysis';
 
 const StockScreener = () => {
   // State for filtering criteria
