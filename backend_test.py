@@ -622,6 +622,266 @@ class StockAnalysisAPITester:
         self.log_test(f"Filter Logic ({test_name})", True, 
                     "All filtering logic validated successfully")
         return True
+
+    def test_polygon_api_ppo_data_availability(self) -> bool:
+        """
+        CRITICAL BUG INVESTIGATION: Test Polygon API PPO data availability issue
+        
+        Tests the specific issue where Polygon API may not provide sufficient data
+        for PPO calculations, causing missing or zero PPO values in screener results.
+        """
+        print(f"\n🔍 CRITICAL BUG INVESTIGATION: Polygon API PPO Data Availability")
+        print("=" * 70)
+        
+        all_passed = True
+        polygon_issues = []
+        
+        # Test symbols that might have limited data from Polygon
+        test_symbols = ["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA", "AMZN"]
+        
+        for symbol in test_symbols:
+            print(f"\n📊 Testing PPO data availability for {symbol}")
+            
+            # Test /api/analyze endpoint with various timeframes
+            timeframes = ["1D", "5D", "1M", "3M"]
+            
+            for timeframe in timeframes:
+                try:
+                    # Force API usage by making multiple calls to potentially trigger Polygon fallback
+                    payload = {"symbol": symbol, "timeframe": timeframe}
+                    start_time = time.time()
+                    
+                    response = requests.post(f"{BACKEND_URL}/analyze", 
+                                           json=payload,
+                                           headers={"Content-Type": "application/json"},
+                                           timeout=30)
+                    response_time = time.time() - start_time
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        data_source = data.get("data_source", "unknown")
+                        
+                        # Check PPO data availability
+                        ppo_issues = self.validate_ppo_data_availability(data, symbol, timeframe, data_source)
+                        
+                        if ppo_issues:
+                            polygon_issues.extend(ppo_issues)
+                            all_passed = False
+                            self.log_test(f"PPO Data Availability ({symbol} {timeframe})", False, 
+                                        f"Data source: {data_source}, Issues: {ppo_issues}", True)
+                        else:
+                            self.log_test(f"PPO Data Availability ({symbol} {timeframe})", True, 
+                                        f"Data source: {data_source}, PPO data complete")
+                        
+                        # Log data source for analysis
+                        print(f"  📡 Data source for {symbol} ({timeframe}): {data_source}")
+                        
+                    else:
+                        self.log_test(f"PPO API Test ({symbol} {timeframe})", False, 
+                                    f"HTTP {response.status_code}: {response.text}", True)
+                        all_passed = False
+                        
+                except Exception as e:
+                    self.log_test(f"PPO API Test ({symbol} {timeframe})", False, 
+                                f"Error: {str(e)}", True)
+                    all_passed = False
+        
+        # Test screener endpoint with focus on PPO data
+        print(f"\n📊 Testing Stock Screener PPO Data Consistency")
+        try:
+            # Test screener with PPO-focused filters
+            ppo_filters = {
+                "price_filter": {"type": "under", "under": 300},
+                "dmi_filter": {"min": 20, "max": 60},
+                "ppo_slope_filter": {"threshold": 1},  # Low threshold to catch more stocks
+                "sector_filter": "all"
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=ppo_filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                screener_ppo_issues = self.validate_screener_ppo_data(data)
+                
+                if screener_ppo_issues:
+                    polygon_issues.extend(screener_ppo_issues)
+                    all_passed = False
+                    self.log_test("Screener PPO Data", False, 
+                                f"PPO issues in screener: {screener_ppo_issues}", True)
+                else:
+                    self.log_test("Screener PPO Data", True, 
+                                "All screener stocks have valid PPO data")
+            else:
+                self.log_test("Screener PPO Test", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Screener PPO Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        # Test edge case: insufficient data points for PPO calculation
+        print(f"\n🔬 Testing Edge Case: Insufficient Data Points for PPO")
+        try:
+            # Test with very short timeframe that might not have enough data
+            edge_payload = {"symbol": "AAPL", "timeframe": "1D"}
+            response = requests.post(f"{BACKEND_URL}/analyze", 
+                                   json=edge_payload,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                chart_data = data.get("chart_data", [])
+                
+                if len(chart_data) < 26:
+                    # Test how system handles insufficient data for PPO calculation
+                    ppo_handling = self.validate_insufficient_data_handling(data, len(chart_data))
+                    if not ppo_handling:
+                        all_passed = False
+                        self.log_test("Insufficient Data Handling", False, 
+                                    f"Poor handling of {len(chart_data)} data points for PPO", True)
+                    else:
+                        self.log_test("Insufficient Data Handling", True, 
+                                    f"Graceful handling of {len(chart_data)} data points")
+                else:
+                    self.log_test("Edge Case Data Points", True, 
+                                f"Sufficient data points: {len(chart_data)}")
+            else:
+                self.log_test("Edge Case Test", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Edge Case Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        # Summary of Polygon API PPO investigation
+        if polygon_issues:
+            print(f"\n🚨 POLYGON API PPO ISSUES FOUND ({len(polygon_issues)}):")
+            for issue in polygon_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ No Polygon API PPO issues detected")
+        
+        return all_passed
+
+    def validate_ppo_data_availability(self, data: Dict[str, Any], symbol: str, timeframe: str, data_source: str) -> List[str]:
+        """Validate PPO data availability and quality"""
+        issues = []
+        
+        # Check main PPO indicators
+        indicators = data.get("indicators", {})
+        if not indicators:
+            issues.append("Missing indicators object")
+            return issues
+        
+        # Check PPO values
+        ppo = indicators.get("ppo")
+        ppo_signal = indicators.get("ppo_signal")
+        ppo_histogram = indicators.get("ppo_histogram")
+        ppo_slope_percentage = indicators.get("ppo_slope_percentage")
+        
+        if ppo is None:
+            issues.append("PPO value is null")
+        elif ppo == 0 and data_source == "polygon_io":
+            issues.append("PPO value is zero (possible calculation failure with Polygon data)")
+        
+        if ppo_signal is None:
+            issues.append("PPO signal is null")
+        elif ppo_signal == 0 and data_source == "polygon_io":
+            issues.append("PPO signal is zero (possible calculation failure with Polygon data)")
+        
+        if ppo_histogram is None:
+            issues.append("PPO histogram is null")
+        
+        if ppo_slope_percentage is None:
+            issues.append("PPO slope percentage is null")
+        
+        # Check PPO history
+        ppo_history = data.get("ppo_history", [])
+        if not ppo_history:
+            issues.append("PPO history is empty")
+        elif len(ppo_history) < 3:
+            issues.append(f"PPO history incomplete: {len(ppo_history)} entries (expected 3)")
+        else:
+            # Check if PPO history values are all zero (indication of calculation failure)
+            all_zero = all(entry.get("ppo", 0) == 0 for entry in ppo_history)
+            if all_zero and data_source == "polygon_io":
+                issues.append("All PPO history values are zero (possible Polygon data issue)")
+        
+        # Check chart data PPO values
+        chart_data = data.get("chart_data", [])
+        if chart_data:
+            chart_ppo_values = [item.get("ppo", 0) for item in chart_data]
+            if len(chart_ppo_values) >= 26:  # Should have enough for PPO calculation
+                recent_ppo_values = chart_ppo_values[-10:]  # Check last 10 values
+                if all(val == 0 for val in recent_ppo_values) and data_source == "polygon_io":
+                    issues.append("Recent chart PPO values are all zero (possible Polygon calculation issue)")
+        
+        return issues
+
+    def validate_screener_ppo_data(self, data: Dict[str, Any]) -> List[str]:
+        """Validate PPO data in screener results"""
+        issues = []
+        stocks = data.get("stocks", [])
+        
+        if not stocks:
+            return ["No stocks in screener results"]
+        
+        for i, stock in enumerate(stocks[:5]):  # Check first 5 stocks
+            symbol = stock.get("symbol", f"Stock_{i}")
+            
+            # Check PPO values in screener results
+            ppo_values = stock.get("ppo_values", [])
+            if not ppo_values:
+                issues.append(f"{symbol}: Missing PPO values in screener")
+            elif len(ppo_values) != 3:
+                issues.append(f"{symbol}: PPO values should be 3 entries, got {len(ppo_values)}")
+            elif all(val == 0 for val in ppo_values):
+                issues.append(f"{symbol}: All PPO values are zero in screener")
+            
+            # Check PPO slope percentage
+            ppo_slope = stock.get("ppo_slope_percentage")
+            if ppo_slope is None:
+                issues.append(f"{symbol}: Missing PPO slope percentage in screener")
+            
+            # Check if stock has proper PPO data for filtering
+            if "ppo_slope_percentage" in stock and stock["ppo_slope_percentage"] == 0:
+                # This might indicate PPO calculation failure
+                if len([s for s in stocks if s.get("ppo_slope_percentage", 0) == 0]) > len(stocks) * 0.5:
+                    issues.append("More than 50% of stocks have zero PPO slope (possible systematic issue)")
+                    break
+        
+        return issues
+
+    def validate_insufficient_data_handling(self, data: Dict[str, Any], data_points: int) -> bool:
+        """Validate how system handles insufficient data for PPO calculation"""
+        indicators = data.get("indicators", {})
+        
+        # With insufficient data, system should either:
+        # 1. Provide fallback values (not null/zero)
+        # 2. Use mock data
+        # 3. Handle gracefully without errors
+        
+        ppo = indicators.get("ppo")
+        if ppo is None:
+            return False  # Should not be null
+        
+        # Check if system provided reasonable fallback
+        ppo_history = data.get("ppo_history", [])
+        if not ppo_history:
+            return False  # Should provide some history even with limited data
+        
+        # System should indicate data source or provide warning about limited data
+        data_source = data.get("data_source", "")
+        if data_source == "mock":
+            return True  # Mock data is acceptable fallback
+        
+        return True  # Passed basic validation
     
     def run_comprehensive_tests(self):
         """Run all tests"""
