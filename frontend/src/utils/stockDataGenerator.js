@@ -253,6 +253,37 @@ export class StockDataGenerator {
     });
   }
 
+  static applyPPOHookFilter(stocks, ppoHookFilter) {
+    if (!ppoHookFilter || ppoHookFilter === 'all') return stocks;
+    
+    return stocks.filter(stock => {
+      // Detect PPO hook pattern using the same logic as the UI
+      const ppoValues = stock.ppoValues;
+      if (!ppoValues || ppoValues.length < 3) return false;
+      
+      const today = ppoValues[0];      // Today (index 0)
+      const yesterday = ppoValues[1];   // Yesterday (index 1) 
+      const dayBefore = ppoValues[2];   // Day before yesterday (index 2)
+      
+      // Positive hook: TODAY > YESTERDAY AND YESTERDAY < PRIOR DAY
+      const hasPositiveHook = today > yesterday && yesterday < dayBefore;
+      
+      // Negative hook: TODAY < YESTERDAY AND YESTERDAY > PRIOR DAY  
+      const hasNegativeHook = today < yesterday && yesterday > dayBefore;
+      
+      switch(ppoHookFilter) {
+        case 'positive':
+          return hasPositiveHook;
+        case 'negative':
+          return hasNegativeHook;
+        case 'both':
+          return hasPositiveHook || hasNegativeHook;
+        default:
+          return true;
+      }
+    });
+  }
+
   static applySectorFilter(stocks, sectorFilter) {
     if (!sectorFilter || sectorFilter === 'all') return stocks;
     
