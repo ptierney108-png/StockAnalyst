@@ -1451,12 +1451,12 @@ def get_api_recommendations() -> list:
     """Provide recommendations based on current API usage"""
     recommendations = []
     
-    # Check Alpha Vantage usage
+    # Check Alpha Vantage usage (paid plan: 70 calls per minute)
     av_usage = api_call_tracker['alpha_vantage']['count']
-    if av_usage >= 18:  # 90% of limit
-        recommendations.append("⚠️ Alpha Vantage near limit - consider using cached data or switching to other sources")
-    elif av_usage >= 15:  # 75% of limit
-        recommendations.append("📊 Alpha Vantage usage high - monitor carefully")
+    if av_usage >= 63:  # 90% of limit (70)
+        recommendations.append("⚠️ Alpha Vantage near minute limit - consider pacing requests")
+    elif av_usage >= 53:  # 75% of limit
+        recommendations.append("📊 Alpha Vantage usage high - monitor per-minute usage")
         
     # Check Polygon.io usage  
     polygon_usage = api_call_tracker['polygon_io']['count']
