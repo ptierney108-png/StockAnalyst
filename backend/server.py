@@ -1416,9 +1416,11 @@ async def get_api_status():
         "api_usage": {
             "alpha_vantage": {
                 "calls_made": api_call_tracker['alpha_vantage']['count'],
-                "limit": 20,
-                "remaining": max(0, 20 - api_call_tracker['alpha_vantage']['count']),
-                "reset_time": api_call_tracker['alpha_vantage']['reset_time']
+                "limit": 70,
+                "remaining": max(0, 70 - api_call_tracker['alpha_vantage']['count']),
+                "reset_time": api_call_tracker['alpha_vantage']['reset_time'],
+                "plan": "paid",
+                "reset_interval": "per minute"
             },
             "polygon_io": {
                 "calls_made": api_call_tracker['polygon_io']['count'], 
