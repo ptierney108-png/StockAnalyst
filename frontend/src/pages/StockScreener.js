@@ -759,16 +759,16 @@ const StockScreener = () => {
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {stock.return1m >= 0 ? '+' : ''}{stock.return1m.toFixed(1)}%
+                          {(stock.returns?.['1y'] || 0) >= 0 ? '+' : ''}{(stock.returns?.['1y'] || 0).toFixed(1)}%
                         </span>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-right">
                         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
-                          stock.return1y >= 0 
+                          (stock.returns?.['1y'] || 0) >= 0 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {stock.return1y >= 0 ? '+' : ''}{stock.return1y.toFixed(0)}%
+                          {(stock.returns?.['1y'] || 0) >= 0 ? '+' : ''}{(stock.returns?.['1y'] || 0).toFixed(0)}%
                         </span>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-right">
