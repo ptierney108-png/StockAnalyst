@@ -1906,6 +1906,7 @@ class ScreenerFilters(BaseModel):
     price_filter: Optional[Dict[str, Any]] = None
     dmi_filter: Optional[Dict[str, Any]] = None
     ppo_slope_filter: Optional[Dict[str, Any]] = None
+    ppo_hook_filter: Optional[str] = "all"  # Added missing PPO hook filter field
     sector_filter: Optional[str] = "all"
     optionable_filter: Optional[str] = "all"
     earnings_filter: Optional[str] = "all"
