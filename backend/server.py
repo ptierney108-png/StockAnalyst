@@ -383,17 +383,56 @@ def generate_ppo_history(ppo_values: List[float], chart_data: List[Dict]) -> Lis
     return ppo_history
 
 def generate_dmi_history(indicators: Dict[str, Any], chart_data: List[Dict]) -> List[Dict[str, Any]]:
-    """Generate DMI history from indicators and chart data"""
+    """Generate DMI history from actual chart data calculations"""
     dmi_history = []
-    for i, data_point in enumerate(chart_data[-3:]):  # Last 3 days
-        variation = (i - 1) * 2  # -2, 0, 2
-        dmi_history.append({
-            "date": data_point["date"],
-            "dmi_plus": max(5, indicators.get("dmi_plus", 20) + variation),
-            "dmi_minus": max(5, indicators.get("dmi_minus", 15) - variation),
-            "adx": max(10, indicators.get("adx", 25) + variation * 0.5)
+    
+    if len(chart_data) < 15:  # Need minimum data for DMI calculation
+        # Fallback to basic calculated values if insufficient data
+        for i, data_point in enumerate(chart_data[-3:]):
+            dmi_history.append({
+                "date": data_point["date"],
+                "dmi_plus": indicators.get("dmi_plus", 20),
+                "dmi_minus": indicators.get("dmi_minus", 15),
+                "adx": indicators.get("adx", 25)
+            })
+        return dmi_history
+    
+    # Calculate DMI for different periods using real chart data
+    for i in range(max(3, len(chart_data) - 2), len(chart_data) + 1):
+        if i <= len(chart_data):
+            # Use actual price data for DMI calculation
+            subset_data = chart_data[:i] if i <= len(chart_data) else chart_data
+            if len(subset_data) >= 14:  # Minimum for DMI calculation
+                highs = [item["high"] for item in subset_data[-14:]]
+                lows = [item["low"] for item in subset_data[-14:]]
+                closes = [item["close"] for item in subset_data[-14:]]
+                dmi_result = calculate_dmi(highs, lows, closes, 14)
+                
+                dmi_history.append({
+                    "date": subset_data[-1]["date"],
+                    "dmi_plus": dmi_result["dmi_plus"],
+                    "dmi_minus": dmi_result["dmi_minus"],
+                    "adx": dmi_result["adx"]
+                })
+            else:
+                # Use basic calculation for insufficient data
+                dmi_history.append({
+                    "date": subset_data[-1]["date"],
+                    "dmi_plus": indicators.get("dmi_plus", 20),
+                    "dmi_minus": indicators.get("dmi_minus", 15), 
+                    "adx": indicators.get("adx", 25)
+                })
+    
+    # Ensure we have at least 3 entries for history
+    while len(dmi_history) < 3 and chart_data:
+        dmi_history.insert(0, {
+            "date": chart_data[max(0, len(chart_data) - 3)]["date"],
+            "dmi_plus": indicators.get("dmi_plus", 20),
+            "dmi_minus": indicators.get("dmi_minus", 15),
+            "adx": indicators.get("adx", 25)
         })
-    return dmi_history
+    
+    return dmi_history[-3:]  # Return last 3 entries
 
 def generate_mock_stock_data(symbol: str, timeframe: str) -> Dict[str, Any]:
     """Generate realistic mock stock data with proper timeframe handling for demo purposes"""
