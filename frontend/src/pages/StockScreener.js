@@ -266,10 +266,6 @@ const StockScreener = () => {
   // Sorting function
   const handleSort = (key) => {
     const direction = sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc';
-    
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
     setSortConfig({ key, direction });
     
     const sortedData = [...results].sort((a, b) => {
