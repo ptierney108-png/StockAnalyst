@@ -52,21 +52,29 @@ const StockAnalysis = () => {
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
   });
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     console.log('🔍 handleAnalyze called with inputSymbol:', inputSymbol);
     if (inputSymbol.trim()) {
       const newSymbol = inputSymbol.toUpperCase();
       console.log('✅ Setting symbol to:', newSymbol);
+      
+      // Set symbol state first
       setSymbol(newSymbol);
+      
+      // Wait for state to update, then force refetch
+      setTimeout(() => {
+        console.log('🔄 Forcing refetch for symbol:', newSymbol);
+        refetch();
+      }, 100);
+      
       setInputSymbol('');
       
-      // Force refetch by invalidating the query cache
-      refetch();
-      
-      // Update URL parameter to match the new symbol to avoid conflicts
+      // Update URL parameter to match the new symbol
       const newUrl = new URL(window.location);
       newUrl.searchParams.set('symbol', newSymbol);
       window.history.pushState({}, '', newUrl);
+      
+      console.log('🎯 Analysis initiated for:', newSymbol);
     } else {
       console.log('❌ inputSymbol is empty or whitespace');
     }
