@@ -2012,8 +2012,9 @@ def generate_comprehensive_stock_data(symbol: str, base_price: float, volatility
 async def screen_stocks(filters: ScreenerFilters):
     """Screen stocks based on technical and fundamental criteria using real Alpha Vantage data"""
     try:
-        # Stock database with symbols to analyze
+        # Comprehensive stock database with diverse sectors and market caps
         stock_symbols = [
+            # Large Cap Technology
             {"symbol": "AAPL", "name": "Apple Inc.", "sector": "Technology", "industry": "Consumer Electronics"},
             {"symbol": "MSFT", "name": "Microsoft Corporation", "sector": "Technology", "industry": "Software"},
             {"symbol": "GOOGL", "name": "Alphabet Inc.", "sector": "Technology", "industry": "Internet Services"},
@@ -2021,19 +2022,90 @@ async def screen_stocks(filters: ScreenerFilters):
             {"symbol": "TSLA", "name": "Tesla, Inc.", "sector": "Technology", "industry": "Electric Vehicles"},
             {"symbol": "META", "name": "Meta Platforms, Inc.", "sector": "Technology", "industry": "Social Media"},
             {"symbol": "NFLX", "name": "Netflix, Inc.", "sector": "Technology", "industry": "Streaming Services"},
+            {"symbol": "AMZN", "name": "Amazon.com, Inc.", "sector": "Technology", "industry": "E-commerce"},
+            {"symbol": "CRM", "name": "Salesforce, Inc.", "sector": "Technology", "industry": "Cloud Software"},
+            {"symbol": "ORCL", "name": "Oracle Corporation", "sector": "Technology", "industry": "Database Software"},
+            {"symbol": "ADBE", "name": "Adobe Inc.", "sector": "Technology", "industry": "Creative Software"},
+            {"symbol": "NOW", "name": "ServiceNow, Inc.", "sector": "Technology", "industry": "Enterprise Software"},
+            
+            # Healthcare & Pharmaceuticals
             {"symbol": "JNJ", "name": "Johnson & Johnson", "sector": "Healthcare", "industry": "Pharmaceuticals"},
             {"symbol": "UNH", "name": "UnitedHealth Group Inc.", "sector": "Healthcare", "industry": "Health Insurance"},
+            {"symbol": "PFE", "name": "Pfizer Inc.", "sector": "Healthcare", "industry": "Pharmaceuticals"},
+            {"symbol": "ABBV", "name": "AbbVie Inc.", "sector": "Healthcare", "industry": "Pharmaceuticals"},
+            {"symbol": "TMO", "name": "Thermo Fisher Scientific Inc.", "sector": "Healthcare", "industry": "Life Sciences"},
+            {"symbol": "ABT", "name": "Abbott Laboratories", "sector": "Healthcare", "industry": "Medical Devices"},
+            {"symbol": "LLY", "name": "Eli Lilly and Company", "sector": "Healthcare", "industry": "Pharmaceuticals"},
+            
+            # Financial Services  
             {"symbol": "JPM", "name": "JPMorgan Chase & Co.", "sector": "Finance", "industry": "Banking"},
             {"symbol": "BAC", "name": "Bank of America Corporation", "sector": "Finance", "industry": "Banking"},
+            {"symbol": "WFC", "name": "Wells Fargo & Company", "sector": "Finance", "industry": "Banking"},
+            {"symbol": "GS", "name": "The Goldman Sachs Group, Inc.", "sector": "Finance", "industry": "Investment Banking"},
+            {"symbol": "MS", "name": "Morgan Stanley", "sector": "Finance", "industry": "Investment Banking"},
+            {"symbol": "C", "name": "Citigroup Inc.", "sector": "Finance", "industry": "Banking"},
+            {"symbol": "AXP", "name": "American Express Company", "sector": "Finance", "industry": "Financial Services"},
+            {"symbol": "BRK.B", "name": "Berkshire Hathaway Inc.", "sector": "Finance", "industry": "Investment Services"},
+            
+            # Energy & Utilities
             {"symbol": "XOM", "name": "Exxon Mobil Corporation", "sector": "Energy", "industry": "Oil & Gas"},
             {"symbol": "CVX", "name": "Chevron Corporation", "sector": "Energy", "industry": "Oil & Gas"},
+            {"symbol": "COP", "name": "ConocoPhillips", "sector": "Energy", "industry": "Oil & Gas"},
+            {"symbol": "SLB", "name": "Schlumberger Limited", "sector": "Energy", "industry": "Oil Services"},
+            {"symbol": "NEE", "name": "NextEra Energy, Inc.", "sector": "Utilities", "industry": "Electric Utilities"},
+            {"symbol": "DUK", "name": "Duke Energy Corporation", "sector": "Utilities", "industry": "Electric Utilities"},
+            
+            # Consumer Goods & Retail
             {"symbol": "PG", "name": "The Procter & Gamble Company", "sector": "Consumer Goods", "industry": "Consumer Products"},
             {"symbol": "KO", "name": "The Coca-Cola Company", "sector": "Consumer Goods", "industry": "Beverages"},
+            {"symbol": "PEP", "name": "PepsiCo, Inc.", "sector": "Consumer Goods", "industry": "Beverages"},
             {"symbol": "WMT", "name": "Walmart Inc.", "sector": "Consumer Goods", "industry": "Retail"},
             {"symbol": "HD", "name": "The Home Depot, Inc.", "sector": "Consumer Goods", "industry": "Home Improvement"},
+            {"symbol": "COST", "name": "Costco Wholesale Corporation", "sector": "Consumer Goods", "industry": "Retail"},
+            {"symbol": "TGT", "name": "Target Corporation", "sector": "Consumer Goods", "industry": "Retail"},
+            {"symbol": "NKE", "name": "NIKE, Inc.", "sector": "Consumer Goods", "industry": "Apparel"},
+            {"symbol": "MCD", "name": "McDonald's Corporation", "sector": "Consumer Goods", "industry": "Restaurants"},
+            
+            # Industrial & Manufacturing
+            {"symbol": "BA", "name": "The Boeing Company", "sector": "Industrial", "industry": "Aerospace"},
+            {"symbol": "CAT", "name": "Caterpillar Inc.", "sector": "Industrial", "industry": "Machinery"},
+            {"symbol": "MMM", "name": "3M Company", "sector": "Industrial", "industry": "Conglomerate"},
+            {"symbol": "GE", "name": "General Electric Company", "sector": "Industrial", "industry": "Conglomerate"},
+            {"symbol": "HON", "name": "Honeywell International Inc.", "sector": "Industrial", "industry": "Conglomerate"},
+            {"symbol": "UNP", "name": "Union Pacific Corporation", "sector": "Industrial", "industry": "Transportation"},
+            
+            # Communications & Media
+            {"symbol": "VZ", "name": "Verizon Communications Inc.", "sector": "Communications", "industry": "Telecommunications"},
+            {"symbol": "T", "name": "AT&T Inc.", "sector": "Communications", "industry": "Telecommunications"},
+            {"symbol": "CMCSA", "name": "Comcast Corporation", "sector": "Communications", "industry": "Media"},
+            {"symbol": "DIS", "name": "The Walt Disney Company", "sector": "Communications", "industry": "Entertainment"},
+            
+            # Real Estate & REITs
+            {"symbol": "AMT", "name": "American Tower Corporation", "sector": "Real Estate", "industry": "REITs"},
+            {"symbol": "PLD", "name": "Prologis, Inc.", "sector": "Real Estate", "industry": "REITs"},
+            {"symbol": "CCI", "name": "Crown Castle International Corp.", "sector": "Real Estate", "industry": "REITs"},
+            
+            # Mid-Cap Growth & Emerging
             {"symbol": "ROKU", "name": "Roku, Inc.", "sector": "Technology", "industry": "Streaming Devices"},
             {"symbol": "ZM", "name": "Zoom Video Communications, Inc.", "sector": "Technology", "industry": "Video Conferencing"},
-            {"symbol": "SNAP", "name": "Snap Inc.", "sector": "Technology", "industry": "Social Media"}
+            {"symbol": "SNAP", "name": "Snap Inc.", "sector": "Technology", "industry": "Social Media"},
+            {"symbol": "SQ", "name": "Block, Inc.", "sector": "Technology", "industry": "Financial Technology"},
+            {"symbol": "SHOP", "name": "Shopify Inc.", "sector": "Technology", "industry": "E-commerce Platform"},
+            {"symbol": "ZS", "name": "Zscaler, Inc.", "sector": "Technology", "industry": "Cybersecurity"},
+            {"symbol": "CRWD", "name": "CrowdStrike Holdings, Inc.", "sector": "Technology", "industry": "Cybersecurity"},
+            {"symbol": "OKTA", "name": "Okta, Inc.", "sector": "Technology", "industry": "Identity Management"},
+            
+            # Biotech & Emerging Healthcare
+            {"symbol": "GILD", "name": "Gilead Sciences, Inc.", "sector": "Healthcare", "industry": "Biotechnology"},
+            {"symbol": "AMGN", "name": "Amgen Inc.", "sector": "Healthcare", "industry": "Biotechnology"},
+            {"symbol": "BIIB", "name": "Biogen Inc.", "sector": "Healthcare", "industry": "Biotechnology"},
+            {"symbol": "MRNA", "name": "Moderna, Inc.", "sector": "Healthcare", "industry": "Biotechnology"},
+            
+            # Materials & Commodities
+            {"symbol": "LIN", "name": "Linde plc", "sector": "Materials", "industry": "Chemicals"},
+            {"symbol": "APD", "name": "Air Products and Chemicals, Inc.", "sector": "Materials", "industry": "Chemicals"},
+            {"symbol": "FCX", "name": "Freeport-McMoRan Inc.", "sector": "Materials", "industry": "Mining"},
+            {"symbol": "NEM", "name": "Newmont Corporation", "sector": "Materials", "industry": "Mining"},
         ]
         
         print(f"📊 Starting stock screener scan with real Alpha Vantage data for {len(stock_symbols)} symbols")
