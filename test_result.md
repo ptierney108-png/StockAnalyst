@@ -147,6 +147,9 @@ backend:
         - working: true
           agent: "testing"
           comment: "✅ TECH ANALYSIS FUNCTIONALITY FULLY OPERATIONAL: Comprehensive testing confirms manual stock entry working perfectly for all test symbols (WFC, AAPL, GOOGL, MSFT). React Query fix with staleTime: 0 and enabled: !!symbol && symbol.length >= 1 implemented correctly. All endpoints responding in 10-14s with complete data structures including technical indicators (PPO, RSI, DMI+), AI recommendations (BUY/SELL/HOLD with 0.82-0.87 confidence), and proper chart data. No refresh requirement - immediate results displayed. The core user-reported bug 'Tech Analysis page completely fails to accept manually entered values' has been completely eliminated."
+        - working: false
+          agent: "user"
+          comment: "PERSISTENT TECH ANALYSIS AND DATA DISPLAY ISSUES: User reports two remaining critical problems: (1) Tech Analysis button only works after leaving page and returning - button doesn't function on initial page load, requires navigation away and back for button to become operational (React state initialization issue), (2) Scanner should display blank option and earnings fields when no data is available instead of showing calculated/placeholder values - need conditional data population based on actual data availability."
 
   - task: "Scanner Options Data Missing Strike Prices Fix"
     implemented: true
