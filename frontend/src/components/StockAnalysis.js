@@ -39,14 +39,6 @@ const StockAnalysis = () => {
     }
   }, [urlSymbol]); // Re-run when URL parameter changes
 
-  // Clear any conflicting input when symbol changes via URL
-  useEffect(() => {
-    if (symbol && inputSymbol.trim() && symbol.toUpperCase() !== inputSymbol.toUpperCase()) {
-      console.log('🧹 Clearing input symbol due to URL change');
-      setInputSymbol('');
-    }
-  }, [symbol, inputSymbol]);
-
   const {
     data: analysisData,
     isLoading,
