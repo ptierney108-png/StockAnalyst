@@ -1507,13 +1507,31 @@ async def analyze_stock_get(symbol: str, timeframe: str = "1D"):
                 "sma_200": analysis_data.get("current_price", 100.0)
             }
         
-        # Create TechnicalIndicators object with safe access
+        # Calculate PPO slope using available PPO values
+        ppo_values = analysis_data["indicators"].get("ppo_values", [0])
+        ppo_slope_data = {"slope": 0, "slope_percentage": 0}
+        
+        if len(ppo_values) >= 3:
+            # Use last 3 PPO values for slope calculation
+            ppo_today = ppo_values[-1] 
+            ppo_yesterday = ppo_values[-2]
+            ppo_day_before = ppo_values[-3]
+            ppo_slope_data = calculate_ppo_slope(ppo_today, ppo_yesterday, ppo_day_before)
+        elif len(ppo_values) >= 2:
+            # Simplified slope with 2 values
+            ppo_today = ppo_values[-1]
+            ppo_yesterday = ppo_values[-2]
+            if ppo_yesterday != 0:
+                slope = (ppo_today - ppo_yesterday) / abs(ppo_yesterday)
+                ppo_slope_data = {"slope": slope, "slope_percentage": slope * 100}
+        
+        # Create TechnicalIndicators object with safe access and proper PPO slope
         indicators = TechnicalIndicators(
-            ppo=analysis_data["indicators"].get("ppo_values", [0])[-1] if analysis_data["indicators"].get("ppo_values") else 0,
-            ppo_signal=analysis_data["indicators"].get("ppo_values", [0])[-1] * 0.85 if analysis_data["indicators"].get("ppo_values") else 0,
-            ppo_histogram=analysis_data["indicators"].get("ppo_values", [0])[-1] * 0.15 if analysis_data["indicators"].get("ppo_values") else 0,
-            ppo_slope=0,  # Calculate slope if needed
-            ppo_slope_percentage=15.0,  # Mock calculation for demo
+            ppo=ppo_values[-1] if ppo_values else 0,
+            ppo_signal=ppo_values[-1] * 0.85 if ppo_values else 0,
+            ppo_histogram=ppo_values[-1] * 0.15 if ppo_values else 0,
+            ppo_slope=ppo_slope_data["slope"],
+            ppo_slope_percentage=ppo_slope_data["slope_percentage"],
             rsi=analysis_data["indicators"]["rsi"],
             macd=analysis_data["indicators"]["macd"],
             macd_signal=analysis_data["indicators"]["macd"] * 0.9,
