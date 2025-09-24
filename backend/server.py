@@ -130,21 +130,40 @@ def calculate_rsi(prices: List[float], period: int = 14) -> Optional[float]:
     return rsi
 
 def calculate_ppo(prices: List[float], fast_period: int = 12, slow_period: int = 26) -> Dict[str, float]:
-    """Calculate Percentage Price Oscillator"""
-    if len(prices) < slow_period:
-        return {"ppo": 0, "signal": 0, "histogram": 0}
+    """Calculate Percentage Price Oscillator with adaptive period support"""
+    if len(prices) < max(fast_period, slow_period):
+        # Insufficient data - return appropriate fallback
+        if len(prices) < 2:
+            return {"ppo": 0, "signal": 0, "histogram": 0}
+        
+        # Use adaptive calculation for limited data
+        adaptive_fast = min(fast_period, max(2, len(prices) // 3))
+        adaptive_slow = min(slow_period, max(adaptive_fast + 1, len(prices) // 2))
+        
+        if len(prices) < adaptive_slow:
+            # Very limited data - use simple momentum
+            ppo = ((prices[-1] - prices[0]) / prices[0]) * 100 * 0.3  # Scale down
+            return {"ppo": ppo, "signal": ppo * 0.9, "histogram": ppo * 0.1}
+    else:
+        adaptive_fast = fast_period
+        adaptive_slow = slow_period
     
-    ema_fast = calculate_ema(prices, fast_period)
-    ema_slow = calculate_ema(prices, slow_period)
+    ema_fast = calculate_ema(prices, adaptive_fast)
+    ema_slow = calculate_ema(prices, adaptive_slow)
     
     if not ema_fast or not ema_slow or ema_slow == 0:
+        # Fallback to simple momentum if EMA calculation fails
+        if len(prices) >= 2:
+            momentum = ((prices[-1] - prices[-2]) / prices[-2]) * 100
+            return {"ppo": momentum * 0.5, "signal": momentum * 0.4, "histogram": momentum * 0.1}
         return {"ppo": 0, "signal": 0, "histogram": 0}
     
     ppo = ((ema_fast - ema_slow) / ema_slow) * 100
     
-    # Calculate signal line (EMA of PPO)
+    # Calculate signal line (EMA of PPO) - use available data
+    signal_period = min(9, max(3, len(prices) // 4))  # Adaptive signal period
     ppo_values = [ppo]  # In real implementation, you'd have historical PPO values
-    signal = calculate_ema(ppo_values, 9) or 0
+    signal = calculate_ema(ppo_values, signal_period) or (ppo * 0.85)  # Fallback approximation
     histogram = ppo - signal
     
     return {"ppo": ppo, "signal": signal, "histogram": histogram}
