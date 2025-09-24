@@ -1749,6 +1749,447 @@ class StockAnalysisAPITester:
         
         return all_passed
 
+    def test_multiple_component_fixes(self) -> bool:
+        """
+        TEST MULTIPLE COMPONENT FIXES: Verify all reported issues have been resolved
+        
+        Tests the specific fixes mentioned in the review request:
+        1. Point Based Decision: Uses real Alpha Vantage API instead of demo data
+        2. Market endpoints: /market/trending, /market/gainers, /market/losers use real data
+        3. PPO histogram calculation: Mathematically correct (histogram = ppo - signal)
+        4. DMI values: Realistic and properly calculated (0-100 range)
+        5. Default chart period: Changed from '1D' to '3M'
+        6. Data source transparency: Clear indicators of real vs demo data
+        """
+        print(f"\n🔧 TESTING MULTIPLE COMPONENT FIXES")
+        print("=" * 70)
+        
+        all_passed = True
+        fix_issues = []
+        
+        # Test symbols specifically mentioned in review request
+        test_symbols = ["AAPL", "GOOGL", "MSFT"]
+        
+        # 1. Test Point Based Decision - should use real Alpha Vantage API
+        print(f"\n📊 Testing Point Based Decision (Real Alpha Vantage Data)")
+        for symbol in test_symbols:
+            try:
+                # Test with default timeframe (should be 3M now)
+                payload = {"symbol": symbol}  # No timeframe specified - should default to 3M
+                start_time = time.time()
+                
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                response_time = time.time() - start_time
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Validate Point Based Decision uses real data
+                    point_decision_issues = self.validate_point_based_decision_fix(data, symbol)
+                    
+                    if point_decision_issues:
+                        fix_issues.extend(point_decision_issues)
+                        all_passed = False
+                        self.log_test(f"Point Based Decision Fix ({symbol})", False, 
+                                    f"Issues: {point_decision_issues}", True)
+                    else:
+                        self.log_test(f"Point Based Decision Fix ({symbol})", True, 
+                                    f"Using real Alpha Vantage data, default timeframe working")
+                    
+                    # Log detailed analysis
+                    data_source = data.get("data_source", "unknown")
+                    timeframe = data.get("timeframe", "unknown")
+                    chart_data_count = len(data.get("chart_data", []))
+                    print(f"  📈 {symbol}: Source={data_source}, Timeframe={timeframe}, Data points={chart_data_count}")
+                    
+                else:
+                    self.log_test(f"Point Based Decision API ({symbol})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Point Based Decision Test ({symbol})", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        # 2. Test Market endpoints for real Alpha Vantage data
+        print(f"\n📈 Testing Market Endpoints (Real Alpha Vantage Data)")
+        market_endpoints = [
+            ("trending", "/market/trending"),
+            ("gainers", "/market/gainers"), 
+            ("losers", "/market/losers")
+        ]
+        
+        for endpoint_name, endpoint_path in market_endpoints:
+            try:
+                response = requests.get(f"{BACKEND_URL}{endpoint_path}", timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Validate market endpoint uses real data
+                    market_issues = self.validate_market_endpoint_fix(data, endpoint_name)
+                    
+                    if market_issues:
+                        fix_issues.extend(market_issues)
+                        all_passed = False
+                        self.log_test(f"Market Endpoint Fix ({endpoint_name})", False, 
+                                    f"Issues: {market_issues}", True)
+                    else:
+                        self.log_test(f"Market Endpoint Fix ({endpoint_name})", True, 
+                                    "Using real Alpha Vantage market data")
+                    
+                    # Log market data details
+                    stocks_count = len(data.get("stocks", []))
+                    data_sources = data.get("data_sources", [])
+                    print(f"  📊 {endpoint_name}: {stocks_count} stocks, Sources: {data_sources}")
+                    
+                else:
+                    self.log_test(f"Market Endpoint ({endpoint_name})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Market Endpoint Test ({endpoint_name})", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        # 3. Test PPO histogram calculation fix
+        print(f"\n🔢 Testing PPO Histogram Calculation Fix")
+        for symbol in test_symbols:
+            try:
+                payload = {"symbol": symbol, "timeframe": "3M"}
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Validate PPO histogram calculation
+                    ppo_issues = self.validate_ppo_histogram_fix(data, symbol)
+                    
+                    if ppo_issues:
+                        fix_issues.extend(ppo_issues)
+                        all_passed = False
+                        self.log_test(f"PPO Histogram Fix ({symbol})", False, 
+                                    f"Issues: {ppo_issues}", True)
+                    else:
+                        self.log_test(f"PPO Histogram Fix ({symbol})", True, 
+                                    "PPO histogram = ppo - signal calculation correct")
+                    
+                    # Log PPO calculation details
+                    indicators = data.get("indicators", {})
+                    ppo = indicators.get("ppo", 0)
+                    ppo_signal = indicators.get("ppo_signal", 0)
+                    ppo_histogram = indicators.get("ppo_histogram", 0)
+                    expected_histogram = ppo - ppo_signal
+                    print(f"  🔢 {symbol}: PPO={ppo:.4f}, Signal={ppo_signal:.4f}, Histogram={ppo_histogram:.4f}, Expected={expected_histogram:.4f}")
+                    
+                else:
+                    self.log_test(f"PPO Histogram API ({symbol})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"PPO Histogram Test ({symbol})", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        # 4. Test DMI values fix
+        print(f"\n📐 Testing DMI Values Fix")
+        for symbol in test_symbols:
+            try:
+                payload = {"symbol": symbol, "timeframe": "3M"}
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Validate DMI values fix
+                    dmi_issues = self.validate_dmi_values_fix(data, symbol)
+                    
+                    if dmi_issues:
+                        fix_issues.extend(dmi_issues)
+                        all_passed = False
+                        self.log_test(f"DMI Values Fix ({symbol})", False, 
+                                    f"Issues: {dmi_issues}", True)
+                    else:
+                        self.log_test(f"DMI Values Fix ({symbol})", True, 
+                                    "DMI PLUS values realistic and within 0-100 range")
+                    
+                    # Log DMI values details
+                    indicators = data.get("indicators", {})
+                    dmi_plus = indicators.get("dmi_plus", 0)
+                    dmi_minus = indicators.get("dmi_minus", 0)
+                    adx = indicators.get("adx", 0)
+                    print(f"  📐 {symbol}: DMI+={dmi_plus:.2f}, DMI-={dmi_minus:.2f}, ADX={adx:.2f}")
+                    
+                else:
+                    self.log_test(f"DMI Values API ({symbol})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"DMI Values Test ({symbol})", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        # 5. Test default chart period fix (should be 3M)
+        print(f"\n📅 Testing Default Chart Period Fix (Should be 3M)")
+        for symbol in test_symbols:
+            try:
+                # Test without specifying timeframe - should default to 3M
+                payload = {"symbol": symbol}
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Validate default timeframe
+                    timeframe_issues = self.validate_default_timeframe_fix(data, symbol)
+                    
+                    if timeframe_issues:
+                        fix_issues.extend(timeframe_issues)
+                        all_passed = False
+                        self.log_test(f"Default Timeframe Fix ({symbol})", False, 
+                                    f"Issues: {timeframe_issues}", True)
+                    else:
+                        self.log_test(f"Default Timeframe Fix ({symbol})", True, 
+                                    "Default timeframe correctly set to 3M")
+                    
+                    # Log timeframe details
+                    timeframe = data.get("timeframe", "unknown")
+                    chart_data_count = len(data.get("chart_data", []))
+                    print(f"  📅 {symbol}: Default timeframe={timeframe}, Data points={chart_data_count}")
+                    
+                else:
+                    self.log_test(f"Default Timeframe API ({symbol})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Default Timeframe Test ({symbol})", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        # 6. Test data source transparency
+        print(f"\n🔍 Testing Data Source Transparency")
+        transparency_passed = self.test_data_source_transparency(test_symbols)
+        if not transparency_passed:
+            all_passed = False
+            fix_issues.append("Data source transparency not working correctly")
+        
+        # Summary of multiple component fixes testing
+        if fix_issues:
+            print(f"\n🚨 MULTIPLE COMPONENT FIX ISSUES FOUND ({len(fix_issues)}):")
+            for issue in fix_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ All multiple component fixes working correctly")
+        
+        return all_passed
+
+    def validate_point_based_decision_fix(self, data: Dict[str, Any], symbol: str) -> List[str]:
+        """Validate Point Based Decision uses real Alpha Vantage API instead of demo data"""
+        issues = []
+        
+        # Check data source
+        data_source = data.get("data_source", "unknown")
+        if data_source != "alpha_vantage":
+            issues.append(f"Expected Alpha Vantage data source, got {data_source}")
+        
+        # Check for real data indicators
+        chart_data = data.get("chart_data", [])
+        if not chart_data:
+            issues.append("No chart data received")
+            return issues
+        
+        # Check if data looks like real market data (not hash-based demo patterns)
+        prices = [item.get("close", 0) for item in chart_data[-5:]]  # Last 5 prices
+        if len(set(prices)) == 1:  # All prices the same (unlikely for real data)
+            issues.append("Prices appear to be demo data (all identical)")
+        
+        # Check PPO values are non-zero (real data should have meaningful PPO)
+        indicators = data.get("indicators", {})
+        ppo = indicators.get("ppo", 0)
+        if ppo == 0:
+            issues.append("PPO value is zero (possible demo data)")
+        
+        return issues
+
+    def validate_market_endpoint_fix(self, data: Dict[str, Any], endpoint_name: str) -> List[str]:
+        """Validate market endpoints use real Alpha Vantage data instead of hardcoded values"""
+        issues = []
+        
+        # Check for data source indicators
+        data_sources = data.get("data_sources", [])
+        if "alpha_vantage" not in data_sources:
+            issues.append(f"Alpha Vantage not in data sources: {data_sources}")
+        
+        # Check for real data count indicator
+        real_data_count = data.get("real_data_count", 0)
+        total_stocks = len(data.get("stocks", []))
+        if real_data_count == 0:
+            issues.append("No real data count indicator")
+        elif real_data_count != total_stocks:
+            issues.append(f"Real data count ({real_data_count}) doesn't match total stocks ({total_stocks})")
+        
+        # Check individual stock data sources
+        stocks = data.get("stocks", [])
+        if stocks:
+            for i, stock in enumerate(stocks[:5]):  # Check first 5 stocks
+                stock_data_source = stock.get("data_source", "unknown")
+                if stock_data_source != "alpha_vantage":
+                    issues.append(f"Stock {i+1} data source is {stock_data_source}, expected alpha_vantage")
+        
+        # Check for note about real data usage
+        note = data.get("note", "")
+        if "real Alpha Vantage data" not in note:
+            issues.append("Missing note about real Alpha Vantage data usage")
+        
+        return issues
+
+    def validate_ppo_histogram_fix(self, data: Dict[str, Any], symbol: str) -> List[str]:
+        """Validate PPO histogram calculation is mathematically correct (histogram = ppo - signal)"""
+        issues = []
+        
+        indicators = data.get("indicators", {})
+        if not indicators:
+            issues.append("Missing indicators")
+            return issues
+        
+        ppo = indicators.get("ppo")
+        ppo_signal = indicators.get("ppo_signal")
+        ppo_histogram = indicators.get("ppo_histogram")
+        
+        if ppo is None or ppo_signal is None or ppo_histogram is None:
+            issues.append("Missing PPO values (ppo, signal, or histogram)")
+            return issues
+        
+        # Calculate expected histogram
+        expected_histogram = ppo - ppo_signal
+        
+        # Allow small floating point differences
+        tolerance = 0.001
+        if abs(ppo_histogram - expected_histogram) > tolerance:
+            issues.append(f"PPO histogram calculation incorrect: got {ppo_histogram:.4f}, expected {expected_histogram:.4f}")
+        
+        return issues
+
+    def validate_dmi_values_fix(self, data: Dict[str, Any], symbol: str) -> List[str]:
+        """Validate DMI values are realistic and properly calculated (0-100 range)"""
+        issues = []
+        
+        indicators = data.get("indicators", {})
+        if not indicators:
+            issues.append("Missing indicators")
+            return issues
+        
+        dmi_plus = indicators.get("dmi_plus")
+        dmi_minus = indicators.get("dmi_minus")
+        adx = indicators.get("adx")
+        
+        if dmi_plus is None or dmi_minus is None or adx is None:
+            issues.append("Missing DMI values (dmi_plus, dmi_minus, or adx)")
+            return issues
+        
+        # Check DMI+ range (0-100)
+        if not (0 <= dmi_plus <= 100):
+            issues.append(f"DMI+ value {dmi_plus:.2f} outside valid range (0-100)")
+        
+        # Check DMI- range (0-100)
+        if not (0 <= dmi_minus <= 100):
+            issues.append(f"DMI- value {dmi_minus:.2f} outside valid range (0-100)")
+        
+        # Check ADX range (0-100)
+        if not (0 <= adx <= 100):
+            issues.append(f"ADX value {adx:.2f} outside valid range (0-100)")
+        
+        # Check for realistic values (not all zeros or identical)
+        if dmi_plus == 0 and dmi_minus == 0 and adx == 0:
+            issues.append("All DMI values are zero (unrealistic)")
+        
+        # Check DMI history for realistic values
+        dmi_history = data.get("dmi_history", [])
+        if dmi_history:
+            for i, entry in enumerate(dmi_history):
+                entry_dmi_plus = entry.get("dmi_plus", 0)
+                if not (0 <= entry_dmi_plus <= 100):
+                    issues.append(f"DMI history entry {i+1} DMI+ value {entry_dmi_plus:.2f} outside valid range")
+        
+        return issues
+
+    def validate_default_timeframe_fix(self, data: Dict[str, Any], symbol: str) -> List[str]:
+        """Validate default chart period is 3M instead of 1D"""
+        issues = []
+        
+        timeframe = data.get("timeframe", "unknown")
+        if timeframe != "3M":
+            issues.append(f"Default timeframe is {timeframe}, expected 3M")
+        
+        # Check chart data count is appropriate for 3M timeframe
+        chart_data = data.get("chart_data", [])
+        chart_data_count = len(chart_data)
+        
+        # For 3M timeframe, expect around 60-90 data points (daily data for ~3 months)
+        if chart_data_count < 30:
+            issues.append(f"Chart data count {chart_data_count} too low for 3M timeframe")
+        elif chart_data_count > 120:
+            issues.append(f"Chart data count {chart_data_count} too high for 3M timeframe")
+        
+        return issues
+
+    def test_data_source_transparency(self, symbols: List[str]) -> bool:
+        """Test data source transparency shows real vs demo data correctly"""
+        all_passed = True
+        
+        for symbol in symbols:
+            try:
+                payload = {"symbol": symbol, "timeframe": "3M"}
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Check data source transparency
+                    data_source = data.get("data_source", "unknown")
+                    if data_source in ["alpha_vantage", "polygon_io", "yahoo_finance"]:
+                        self.log_test(f"Data Source Transparency ({symbol})", True, 
+                                    f"Real data source clearly indicated: {data_source}")
+                    elif data_source == "mock":
+                        self.log_test(f"Data Source Transparency ({symbol})", True, 
+                                    f"Demo data source clearly indicated: {data_source}")
+                    else:
+                        self.log_test(f"Data Source Transparency ({symbol})", False, 
+                                    f"Unclear data source: {data_source}")
+                        all_passed = False
+                    
+                    # Check for additional transparency indicators
+                    response_time = data.get("response_time")
+                    if response_time is not None:
+                        self.log_test(f"Response Time Transparency ({symbol})", True, 
+                                    f"Response time provided: {response_time}s")
+                    
+                else:
+                    self.log_test(f"Data Source Transparency API ({symbol})", False, 
+                                f"HTTP {response.status_code}: {response.text}")
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Data Source Transparency Test ({symbol})", False, f"Error: {str(e)}")
+                all_passed = False
+        
+        return all_passed
+
     def run_comprehensive_tests(self):
         """Run all tests with priority on stock screener real data fix"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
