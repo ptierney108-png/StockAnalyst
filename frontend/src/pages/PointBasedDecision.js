@@ -1,53 +1,38 @@
 import React, { useState } from 'react';
 import { Search, TrendingUp, TrendingDown, Minus, BarChart3, Activity, Target, Zap, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import api from '../services/api';
 
 const PointBasedDecision = () => {
   const [stockSymbol, setStockSymbol] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [dataSource, setDataSource] = useState('');
 
-  // Deterministic simulation engine using stock symbol as seed
-  const generateFinancialMetrics = (symbol) => {
-    const seed = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    
-    // Deterministic random generator
-    const deterministicRandom = (seed, index = 0) => {
-      const x = Math.sin(seed + index) * 10000;
-      return x - Math.floor(x);
-    };
+  // Convert real API data to point-based analysis format
+  const convertToPointBasedAnalysis = (apiData) => {
+    if (!apiData) return null;
 
-    // Generate realistic financial metrics
-    const basePrice = 50 + (deterministicRandom(seed, 1) * 200); // $50-$250
-    const priceChange = (deterministicRandom(seed, 2) - 0.5) * 20; // -10% to +10%
-    const currentPrice = basePrice + (basePrice * priceChange / 100);
-    
-    const peRatio = 8 + (deterministicRandom(seed, 3) * 40); // 8-48
-    const rsi = 20 + (deterministicRandom(seed, 4) * 60); // 20-80
-    const volume = Math.floor(500000 + (deterministicRandom(seed, 5) * 2000000)); // 500K-2.5M
-    
-    // Calculate moving averages
-    const sma20 = currentPrice - (deterministicRandom(seed, 6) - 0.5) * 10;
-    const sma50 = currentPrice - (deterministicRandom(seed, 7) - 0.5) * 20;
-    const sma200 = currentPrice - (deterministicRandom(seed, 8) - 0.5) * 40;
-    
-    const marketCap = currentPrice * (50 + deterministicRandom(seed, 9) * 450) * 1000000; // 50M-500M shares
-    const dividendYield = deterministicRandom(seed, 10) * 5; // 0-5%
-    
     return {
-      symbol: symbol.toUpperCase(),
-      currentPrice: Number(currentPrice.toFixed(2)),
-      priceChange: Number(priceChange.toFixed(2)),
-      peRatio: Number(peRatio.toFixed(1)),
-      rsi: Number(rsi.toFixed(1)),
-      volume: volume,
-      sma20: Number(sma20.toFixed(2)),
-      sma50: Number(sma50.toFixed(2)),
-      sma200: Number(sma200.toFixed(2)),
-      marketCap: Math.floor(marketCap),
-      dividendYield: Number(dividendYield.toFixed(2)),
-      timestamp: new Date().toISOString()
+      symbol: apiData.symbol,
+      currentPrice: apiData.current_price,
+      priceChange: apiData.price_change_percent,
+      peRatio: apiData.fundamental_data?.pe_ratio || 25.0,
+      rsi: apiData.indicators?.rsi || 50.0,
+      volume: apiData.volume,
+      sma20: apiData.indicators?.sma_20 || apiData.current_price,
+      sma50: apiData.indicators?.sma_50 || apiData.current_price,
+      sma200: apiData.indicators?.sma_200 || apiData.current_price,
+      marketCap: apiData.fundamental_data?.market_cap || 'N/A',
+      dividendYield: apiData.fundamental_data?.dividend_yield || 0,
+      timestamp: new Date().toISOString(),
+      dataSource: apiData.data_source || 'alpha_vantage',
+      ppo: apiData.indicators?.ppo || 0,
+      adx: apiData.indicators?.adx || 25,
+      dmi_plus: apiData.indicators?.dmi_plus || 20,
+      dmi_minus: apiData.indicators?.dmi_minus || 15
     };
+  };
   };
 
   // Comprehensive scoring algorithm
