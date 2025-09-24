@@ -2073,12 +2073,12 @@ async def screen_stocks(filters: ScreenerFilters):
                             base_ppo + (0.005 - symbol_variation/2)    # Day before (different again)
                         ]
                     
-                    # Calculate PPO slope using last 3 values
+                    # Calculate PPO slope using the 3-day historical data
                     ppo_slope_percentage = 0
-                    if len(ppo_values) >= 3:
-                        ppo_today = ppo_values[-1]
-                        ppo_yesterday = ppo_values[-2] 
-                        ppo_day_before = ppo_values[-3]
+                    if len(ppo_3_days) >= 3:
+                        ppo_today = ppo_3_days[0]      # Today (most recent)
+                        ppo_yesterday = ppo_3_days[1]  # Yesterday 
+                        ppo_day_before = ppo_3_days[2] # Day before yesterday
                         slope_data = calculate_ppo_slope(ppo_today, ppo_yesterday, ppo_day_before)
                         ppo_slope_percentage = slope_data["slope_percentage"]
                     
