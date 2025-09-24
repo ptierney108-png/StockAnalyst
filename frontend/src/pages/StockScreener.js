@@ -704,49 +704,58 @@ const StockScreener = () => {
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-right">
                         <div className="text-sm font-semibold text-gray-900">
-                          {(stock.volume / 1000000).toFixed(1)}M
+                          {stock.volume_today ? (stock.volume_today / 1000000).toFixed(1) + 'M' : 'N/A'}
                         </div>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-right">
                         <div className="text-sm text-gray-700">
-                          {(stock.volume3m / 1000000).toFixed(1)}M
+                          {stock.volume_3m ? (stock.volume_3m / 1000000).toFixed(1) + 'M' : 'N/A'}
                         </div>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-right">
                         <div className="text-sm text-gray-700">
-                          {(stock.volumeYear / 1000000).toFixed(1)}M
+                          {stock.volume_year ? (stock.volume_year / 1000000).toFixed(1) + 'M' : 'N/A'}
                         </div>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-right">
                         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
-                          stock.return1d >= 0 
+                          (stock.returns?.['1d'] || 0) >= 0 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {stock.return1d >= 0 ? '+' : ''}{stock.return1d.toFixed(1)}%
+                          {(stock.returns?.['1d'] || 0) >= 0 ? '+' : ''}{(stock.returns?.['1d'] || 0).toFixed(1)}%
                         </span>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-right">
                         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
-                          stock.return5d >= 0 
+                          (stock.returns?.['5d'] || 0) >= 0 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {stock.return5d >= 0 ? '+' : ''}{stock.return5d.toFixed(1)}%
+                          {(stock.returns?.['5d'] || 0) >= 0 ? '+' : ''}{(stock.returns?.['5d'] || 0).toFixed(1)}%
                         </span>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-right">
                         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
-                          stock.return2w >= 0 
+                          (stock.returns?.['2w'] || 0) >= 0 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {stock.return2w >= 0 ? '+' : ''}{stock.return2w.toFixed(1)}%
+                          {(stock.returns?.['2w'] || 0) >= 0 ? '+' : ''}{(stock.returns?.['2w'] || 0).toFixed(1)}%
                         </span>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-right">
                         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
-                          stock.return1m >= 0 
+                          (stock.returns?.['1m'] || 0) >= 0 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {(stock.returns?.['1m'] || 0) >= 0 ? '+' : ''}{(stock.returns?.['1m'] || 0).toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-right">
+                        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
+                          (stock.returns?.['1y'] || 0) >= 0 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
