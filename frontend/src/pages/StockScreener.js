@@ -76,6 +76,7 @@ const StockScreener = () => {
   const [showTooltip, setShowTooltip] = useState(null);
   const [scanProgress, setScanProgress] = useState(0);
   const [lastScanTime, setLastScanTime] = useState(null);
+  const [dataSourceInfo, setDataSourceInfo] = useState(null);
 
   // Export functionality
   const exportResults = () => {
