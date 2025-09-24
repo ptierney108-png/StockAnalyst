@@ -2132,7 +2132,7 @@ async def screen_stocks(filters: ScreenerFilters):
                         "sector": stock_info["sector"],
                         "industry": stock_info["industry"],
                         "price": current_price,
-                        "dmi": adx,
+                        "dmi": (dmi_plus + dmi_minus) / 2,  # DMI is composite of DI+ and DI-
                         "adx": adx,
                         "di_plus": dmi_plus,
                         "di_minus": dmi_minus,
