@@ -259,8 +259,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Multiple component demo data and chart issues fix"
-  stuck_tasks: []
+    - "Critical runtime errors and data issues fix"
+  stuck_tasks:
+    - "Critical runtime errors and data issues fix"
   test_all: false
   test_priority: "high_first"
 
