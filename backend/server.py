@@ -1478,7 +1478,7 @@ async def analyze_stock_post(request: StockAnalysisRequest):
     return await analyze_stock_get(request.symbol, request.timeframe)
 
 @api_router.get("/analyze/{symbol}")
-async def analyze_stock_get(symbol: str, timeframe: str = "1D"):
+async def analyze_stock_get(symbol: str, timeframe: str = "3M"):
     """Get comprehensive technical analysis for a stock with timeframe support"""
     try:
         print(f"🔍 Starting analysis for {symbol} ({timeframe})")
