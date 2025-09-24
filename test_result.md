@@ -267,7 +267,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Stock Screener Phase 3 implementation with tweaks"
+    - "Stock Screener Real Data Fix"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
