@@ -827,7 +827,7 @@ const StockScreener = () => {
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-center">
                         <div className="space-y-1">
-                          {stock.optionable ? (
+                          {stock.call_strike && stock.put_strike ? (
                             <>
                               <div className="text-xs">
                                 <span className="text-green-600 font-medium">C{stock.call_strike}: {(stock.call_bid || 0).toFixed(2)}-{(stock.call_ask || 0).toFixed(2)}</span>
@@ -840,27 +840,37 @@ const StockScreener = () => {
                               </div>
                             </>
                           ) : (
-                            <span className="text-xs text-gray-500">N/A</span>
+                            <div className="text-xs text-gray-400 italic">
+                              No options data
+                            </div>
                           )}
                         </div>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-center">
-                        <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                          (stock.days_to_earnings || 999) <= 7 
-                            ? 'bg-yellow-100 text-yellow-800' 
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {(stock.days_to_earnings || 999) <= 7 && (
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                          )}
-                          {stock.days_to_earnings || 'TBD'}d
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {stock.next_earnings ? new Date(stock.next_earnings).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD'}
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          Last: {stock.last_earnings ? new Date(stock.last_earnings).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
-                        </div>
+                        {stock.days_to_earnings ? (
+                          <>
+                            <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                              stock.days_to_earnings <= 7 
+                                ? 'bg-yellow-100 text-yellow-800' 
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {stock.days_to_earnings <= 7 && (
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                              )}
+                              {stock.days_to_earnings}d
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {stock.next_earnings ? new Date(stock.next_earnings).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD'}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              Last: {stock.last_earnings ? new Date(stock.last_earnings).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-xs text-gray-400 italic">
+                            No earnings data
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
