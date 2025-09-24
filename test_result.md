@@ -166,6 +166,18 @@ backend:
           agent: "main"
           comment: "Backend API endpoints tested successfully with 97.6% success rate. All technical indicators, AI recommendations, and sentiment analysis working properly with enhanced GPT-5 integration"
 
+  - task: "Critical runtime errors and data issues fix"
+    implemented: false
+    working: false
+    file: "/app/frontend/src/pages/PointBasedDecision.js, /app/frontend/src/pages/StockScreener.js, /app/frontend/src/components/StockAnalysis.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "CRITICAL RUNTIME ERRORS: User reported multiple issues: (1) Scanner still showing simulated data message despite using real data, (2) Point Based Decision throws 'analysis.metrics.div.toFixed is not a function' TypeError preventing stock entry, (3) DMI component values for DMI+ do not update when different stocks are entered. These are blocking functionality issues that prevent normal usage."
+
   - task: "Multiple component demo data and chart issues fix"
     implemented: true
     working: true
