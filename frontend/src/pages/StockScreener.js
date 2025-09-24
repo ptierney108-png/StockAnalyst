@@ -129,9 +129,9 @@ const StockScreener = () => {
           (stock.put_bid || 0).toFixed(2),
           (stock.put_ask || 0).toFixed(2),
           stock.options_expiration || 'N/A',
-          stock.lastEarnings?.toLocaleDateString() || 'N/A',
-          stock.nextEarnings?.toLocaleDateString() || 'N/A',
-          stock.daysToEarnings || 'N/A'
+          stock.last_earnings ? new Date(stock.last_earnings).toLocaleDateString() : 'N/A',
+          stock.next_earnings ? new Date(stock.next_earnings).toLocaleDateString() : 'N/A',
+          stock.days_to_earnings || 'N/A'
         ].join(',');
       })
     ].join('\n');
