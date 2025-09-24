@@ -794,7 +794,7 @@ const StockScreener = () => {
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-center">
                         <div className="space-y-1">
-                          {stock.ppoValues?.map((ppo, idx) => {
+                          {stock.ppo_values?.map((ppo, idx) => {
                             const dayLabels = ['Today', 'Yesterday', '2 Days Ago'];
                             return (
                               <div key={idx} className={`text-xs px-1 py-0.5 rounded font-medium ${
@@ -809,7 +809,7 @@ const StockScreener = () => {
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-right">
                         {(() => {
-                          const hook = detectPPOHook(stock.ppoValues);
+                          const hook = detectPPOHook(stock.ppo_values);
                           return (
                             <div className="space-y-1">
                               <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
