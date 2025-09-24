@@ -241,7 +241,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Paid Alpha Vantage API integration"
+    - "Multiple component demo data and chart issues fix"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
