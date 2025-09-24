@@ -1530,7 +1530,30 @@ async def analyze_stock_get(symbol: str, timeframe: str = "1D"):
         ai_result = await get_enhanced_ai_recommendation(symbol, indicators, analysis_data["current_price"], analysis_data["fundamental_data"])
         sentiment_result = await get_enhanced_sentiment_analysis(symbol, analysis_data["fundamental_data"])
         
-        return {
+        # Extract data quality information from indicators
+        data_quality_info = {
+            "data_source": analysis_data.get("data_source", "unknown"),
+            "chart_data_points": len(analysis_data.get("chart_data", [])),
+            "response_time": analysis_data.get("response_time", 0)
+        }
+        
+        # Add data quality indicators from technical analysis
+        if isinstance(analysis_data.get("indicators"), dict):
+            data_quality_info.update({
+                "data_quality": analysis_data["indicators"].get("data_quality", "standard"),
+                "fallback_reason": analysis_data["indicators"].get("fallback_reason")
+            })
+        
+        # Determine if PPO calculation used fallbacks
+        ppo_calculation_note = None
+        if data_quality_info.get("data_quality") == "adaptive":
+            ppo_calculation_note = f"PPO calculated using adaptive periods due to limited data ({data_quality_info['chart_data_points']} points)"
+        elif data_quality_info.get("data_quality") == "insufficient":
+            ppo_calculation_note = "PPO calculation used fallback values due to insufficient historical data"
+        elif data_quality_info["chart_data_points"] < 26:
+            ppo_calculation_note = f"PPO calculation may be less reliable with {data_quality_info['chart_data_points']} data points (standard requires 26+)"
+        
+        response = {
             "symbol": analysis_data["symbol"],
             "timeframe": analysis_data["timeframe"],
             "current_price": analysis_data["current_price"],
@@ -1549,8 +1572,15 @@ async def analyze_stock_get(symbol: str, timeframe: str = "1D"):
             "sentiment_analysis": sentiment_result["sentiment"],
             "sentiment_score": sentiment_result["score"],
             "sentiment_summary": sentiment_result["summary"],
-            "sentiment_details": sentiment_result.get("details", [])
+            "sentiment_details": sentiment_result.get("details", []),
+            "data_quality": data_quality_info
         }
+        
+        # Add PPO calculation note if applicable  
+        if ppo_calculation_note:
+            response["ppo_calculation_note"] = ppo_calculation_note
+            
+        return response
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
