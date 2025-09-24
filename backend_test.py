@@ -4288,7 +4288,7 @@ class StockAnalysisAPITester:
         return all_passed
 
     def run_comprehensive_tests(self):
-        """Run all tests with priority on dashboard navigation fix and data source transparency"""
+        """Run all tests with priority on scanner filtering logic fix from review request"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
         print("=" * 60)
         
@@ -4297,8 +4297,12 @@ class StockAnalysisAPITester:
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
         
-        # HIGHEST PRIORITY: Test Dashboard Navigation Fix and Data Source Transparency (Review Request Focus)
-        print(f"\n🎯 HIGHEST PRIORITY: DASHBOARD NAVIGATION FIX AND DATA SOURCE TRANSPARENCY")
+        # HIGHEST PRIORITY: Test Scanner Filtering Logic Fix (Review Request Focus)
+        print(f"\n🎯 HIGHEST PRIORITY: SCANNER FILTERING LOGIC FIX")
+        self.test_scanner_filtering_logic_fix()
+        
+        # PRIORITY: Test Dashboard Navigation Fix and Data Source Transparency (Review Request Focus)
+        print(f"\n🎯 PRIORITY: DASHBOARD NAVIGATION FIX AND DATA SOURCE TRANSPARENCY")
         self.test_dashboard_navigation_fix()
         
         # PRIORITY: Test Critical DMI+ Value Variation (Review Request Focus)
