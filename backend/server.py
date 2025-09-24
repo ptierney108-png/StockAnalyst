@@ -2045,13 +2045,18 @@ async def screen_stocks(filters: ScreenerFilters):
             # Add to filtered results
             filtered_stocks.append(stock)
         
+        data_sources_used = list(set(stock.get("data_source", "unknown") for stock in all_stocks))
+        
         return {
             "success": True,
             "total_scanned": len(all_stocks),
             "results_found": len(filtered_stocks),
             "stocks": filtered_stocks,
             "scan_time": datetime.utcnow().isoformat(),
-            "filters_applied": filters.dict()
+            "filters_applied": filters.dict(),
+            "data_sources": data_sources_used,
+            "real_data_count": successful_analyses,
+            "note": f"Using real Alpha Vantage data for {successful_analyses}/{len(stock_symbols)} stocks"
         }
         
     except Exception as e:
