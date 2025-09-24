@@ -2027,31 +2027,56 @@ class StockAnalysisAPITester:
         """Validate market endpoints use real Alpha Vantage data instead of hardcoded values"""
         issues = []
         
-        # Check for data source indicators
-        data_sources = data.get("data_sources", [])
-        if "alpha_vantage" not in data_sources:
-            issues.append(f"Alpha Vantage not in data sources: {data_sources}")
-        
-        # Check for real data count indicator
-        real_data_count = data.get("real_data_count", 0)
-        total_stocks = len(data.get("stocks", []))
-        if real_data_count == 0:
-            issues.append("No real data count indicator")
-        elif real_data_count != total_stocks:
-            issues.append(f"Real data count ({real_data_count}) doesn't match total stocks ({total_stocks})")
-        
-        # Check individual stock data sources
-        stocks = data.get("stocks", [])
-        if stocks:
+        # Market endpoints return a list directly, not an object
+        if isinstance(data, list):
+            stocks = data
+            
+            # Check if we have stocks data
+            if not stocks:
+                issues.append("No stocks data received")
+                return issues
+            
+            # Check individual stock data sources
             for i, stock in enumerate(stocks[:5]):  # Check first 5 stocks
                 stock_data_source = stock.get("data_source", "unknown")
                 if stock_data_source != "alpha_vantage":
                     issues.append(f"Stock {i+1} data source is {stock_data_source}, expected alpha_vantage")
-        
-        # Check for note about real data usage
-        note = data.get("note", "")
-        if "real Alpha Vantage data" not in note:
-            issues.append("Missing note about real Alpha Vantage data usage")
+                
+                # Check for realistic price data
+                price = stock.get("price", 0)
+                if price <= 0:
+                    issues.append(f"Stock {i+1} has invalid price: {price}")
+                
+                # Check for proper stock symbol
+                symbol = stock.get("symbol", "")
+                if not symbol:
+                    issues.append(f"Stock {i+1} missing symbol")
+        else:
+            # If it's an object, check for the expected structure
+            data_sources = data.get("data_sources", [])
+            if "alpha_vantage" not in data_sources:
+                issues.append(f"Alpha Vantage not in data sources: {data_sources}")
+            
+            # Check for real data count indicator
+            real_data_count = data.get("real_data_count", 0)
+            total_stocks = len(data.get("stocks", []))
+            if real_data_count == 0:
+                issues.append("No real data count indicator")
+            elif real_data_count != total_stocks:
+                issues.append(f"Real data count ({real_data_count}) doesn't match total stocks ({total_stocks})")
+            
+            # Check individual stock data sources
+            stocks = data.get("stocks", [])
+            if stocks:
+                for i, stock in enumerate(stocks[:5]):  # Check first 5 stocks
+                    stock_data_source = stock.get("data_source", "unknown")
+                    if stock_data_source != "alpha_vantage":
+                        issues.append(f"Stock {i+1} data source is {stock_data_source}, expected alpha_vantage")
+            
+            # Check for note about real data usage
+            note = data.get("note", "")
+            if "real Alpha Vantage data" not in note:
+                issues.append("Missing note about real Alpha Vantage data usage")
         
         return issues
 
