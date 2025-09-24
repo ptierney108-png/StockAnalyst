@@ -1750,7 +1750,7 @@ class StockAnalysisAPITester:
         return all_passed
 
     def run_comprehensive_tests(self):
-        """Run all tests"""
+        """Run all tests with priority on stock screener real data fix"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
         print("=" * 60)
         
@@ -1758,6 +1758,10 @@ class StockAnalysisAPITester:
         if not self.test_basic_connectivity():
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
+        
+        # PRIORITY: Test Stock Screener Real Data Fix (Review Request Focus)
+        print(f"\n🔧 PRIORITY: STOCK SCREENER REAL DATA FIX TESTING")
+        self.test_stock_screener_real_data_fix()
         
         # PRIORITY: Test Paid Alpha Vantage API Integration (New Feature)
         print(f"\n💰 PRIORITY: PAID ALPHA VANTAGE API INTEGRATION TESTING")
