@@ -2220,6 +2220,373 @@ class StockAnalysisAPITester:
         
         return all_passed
 
+    def test_critical_runtime_errors_fix(self) -> bool:
+        """
+        TEST CRITICAL RUNTIME ERRORS FIX
+        
+        Tests the specific fixes for critical runtime errors reported by user:
+        1. Point Based Decision TypeError Fix: 'analysis.metrics.div.toFixed is not a function'
+        2. Stock Screener Real Data Integration: Scanner showing simulated data message
+        3. DMI Values Update Fix: DMI+ values not updating when different stocks entered
+        4. Data Source Transparency: Verify real Alpha Vantage data indicators
+        """
+        print(f"\n🚨 TESTING CRITICAL RUNTIME ERRORS FIX")
+        print("=" * 70)
+        
+        all_passed = True
+        critical_issues = []
+        
+        # Test symbols specifically mentioned in review request
+        test_symbols = ["AAPL", "GOOGL", "MSFT"]
+        
+        # 1. Test Point Based Decision TypeError Fix
+        print(f"\n🔧 Testing Point Based Decision TypeError Fix")
+        print("-" * 50)
+        
+        for symbol in test_symbols:
+            try:
+                payload = {"symbol": symbol, "timeframe": "3M"}  # Default changed to 3M
+                start_time = time.time()
+                
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                response_time = time.time() - start_time
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Validate Point Based Decision fix - check for proper Number() casting
+                    point_based_issues = self.validate_point_based_decision_fix(data, symbol)
+                    
+                    if point_based_issues:
+                        critical_issues.extend(point_based_issues)
+                        all_passed = False
+                        self.log_test(f"Point Based Decision Fix ({symbol})", False, 
+                                    f"Issues: {point_based_issues}", True)
+                    else:
+                        self.log_test(f"Point Based Decision Fix ({symbol})", True, 
+                                    f"No TypeError issues, proper Number() casting working")
+                    
+                    # Log detailed analysis for debugging
+                    indicators = data.get("indicators", {})
+                    print(f"  📊 {symbol}: PPO={indicators.get('ppo', 0):.4f}, "
+                          f"DMI+={indicators.get('dmi_plus', 0):.2f}, "
+                          f"Response time={response_time:.2f}s")
+                    
+                else:
+                    self.log_test(f"Point Based Decision API ({symbol})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    critical_issues.append(f"{symbol} analysis API failed: {response.status_code}")
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Point Based Decision Test ({symbol})", False, f"Error: {str(e)}", True)
+                critical_issues.append(f"{symbol} analysis test failed: {str(e)}")
+                all_passed = False
+        
+        # 2. Test Stock Screener Real Data Integration
+        print(f"\n📊 Testing Stock Screener Real Data Integration")
+        print("-" * 50)
+        
+        try:
+            screener_filters = {
+                "price_filter": {"type": "under", "under": 500},
+                "dmi_filter": {"min": 15, "max": 65},
+                "ppo_slope_filter": {"threshold": 1}
+            }
+            
+            start_time = time.time()
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=screener_filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            response_time = time.time() - start_time
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Validate real data integration
+                screener_real_data_issues = self.validate_screener_real_data_integration(data)
+                
+                if screener_real_data_issues:
+                    critical_issues.extend(screener_real_data_issues)
+                    all_passed = False
+                    self.log_test("Stock Screener Real Data Integration", False, 
+                                f"Issues: {screener_real_data_issues}", True)
+                else:
+                    self.log_test("Stock Screener Real Data Integration", True, 
+                                "Real Alpha Vantage data integration working correctly")
+                
+                # Log detailed screener results
+                stocks_found = data.get("results_found", 0)
+                data_sources = data.get("data_sources", [])
+                real_data_count = data.get("real_data_count", 0)
+                print(f"  📈 Screener: {stocks_found} stocks found, "
+                      f"Data sources: {data_sources}, "
+                      f"Real data count: {real_data_count}, "
+                      f"Response time: {response_time:.2f}s")
+                
+            else:
+                self.log_test("Stock Screener Real Data API", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                critical_issues.append(f"Screener API failed: {response.status_code}")
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Stock Screener Real Data Test", False, f"Error: {str(e)}", True)
+            critical_issues.append(f"Screener test failed: {str(e)}")
+            all_passed = False
+        
+        # 3. Test DMI Values Update Fix
+        print(f"\n🔄 Testing DMI Values Update Fix")
+        print("-" * 50)
+        
+        dmi_values_by_symbol = {}
+        
+        for symbol in test_symbols:
+            try:
+                payload = {"symbol": symbol, "timeframe": "1D"}
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    indicators = data.get("indicators", {})
+                    
+                    dmi_plus = indicators.get("dmi_plus", 0)
+                    dmi_minus = indicators.get("dmi_minus", 0)
+                    adx = indicators.get("adx", 0)
+                    
+                    dmi_values_by_symbol[symbol] = {
+                        "dmi_plus": dmi_plus,
+                        "dmi_minus": dmi_minus,
+                        "adx": adx
+                    }
+                    
+                    print(f"  📊 {symbol}: DMI+={dmi_plus:.2f}, DMI-={dmi_minus:.2f}, ADX={adx:.2f}")
+                    
+                else:
+                    self.log_test(f"DMI Values API ({symbol})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    critical_issues.append(f"{symbol} DMI API failed: {response.status_code}")
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"DMI Values Test ({symbol})", False, f"Error: {str(e)}", True)
+                critical_issues.append(f"{symbol} DMI test failed: {str(e)}")
+                all_passed = False
+        
+        # Validate DMI values are different between symbols (not static 26.0)
+        dmi_update_issues = self.validate_dmi_values_updating(dmi_values_by_symbol)
+        
+        if dmi_update_issues:
+            critical_issues.extend(dmi_update_issues)
+            all_passed = False
+            self.log_test("DMI Values Update Fix", False, 
+                        f"Issues: {dmi_update_issues}", True)
+        else:
+            self.log_test("DMI Values Update Fix", True, 
+                        "DMI values updating correctly between different stocks")
+        
+        # 4. Test Data Source Transparency
+        print(f"\n🔍 Testing Data Source Transparency")
+        print("-" * 50)
+        
+        data_source_issues = self.validate_data_source_transparency(test_symbols)
+        
+        if data_source_issues:
+            critical_issues.extend(data_source_issues)
+            all_passed = False
+            self.log_test("Data Source Transparency", False, 
+                        f"Issues: {data_source_issues}", True)
+        else:
+            self.log_test("Data Source Transparency", True, 
+                        "Data source indicators showing real Alpha Vantage data correctly")
+        
+        # Summary of critical runtime errors fix testing
+        if critical_issues:
+            print(f"\n🚨 CRITICAL RUNTIME ERRORS STILL PRESENT ({len(critical_issues)}):")
+            for issue in critical_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ All critical runtime errors have been successfully resolved")
+        
+        return all_passed
+
+    def validate_point_based_decision_fix(self, data: Dict[str, Any], symbol: str) -> List[str]:
+        """Validate Point Based Decision TypeError fix"""
+        issues = []
+        
+        indicators = data.get("indicators", {})
+        if not indicators:
+            issues.append("Missing indicators object")
+            return issues
+        
+        # Check for proper Number() casting - all values should be numbers, not undefined
+        numeric_fields = [
+            "ppo", "ppo_signal", "ppo_histogram", "ppo_slope", "ppo_slope_percentage",
+            "dmi_plus", "dmi_minus", "adx", "sma_20", "sma_50", "sma_200",
+            "rsi", "macd", "macd_signal", "macd_histogram"
+        ]
+        
+        for field in numeric_fields:
+            value = indicators.get(field)
+            if value is None:
+                issues.append(f"{field} is null (could cause toFixed() error)")
+            elif not isinstance(value, (int, float)):
+                issues.append(f"{field} is not a number: {type(value)} (could cause toFixed() error)")
+        
+        # Check convertToPointBasedAnalysis function requirements
+        # Ensure all metrics have proper fallback values
+        required_metrics = ["ppo", "rsi", "macd", "dmi_plus", "adx"]
+        for metric in required_metrics:
+            value = indicators.get(metric)
+            if value is None or (isinstance(value, str) and value == "undefined"):
+                issues.append(f"{metric} could cause toFixed() TypeError in Point Based Decision")
+        
+        # Check for proper fallback values (should not be 0 for all indicators)
+        all_zero_count = sum(1 for field in numeric_fields 
+                           if indicators.get(field) == 0)
+        if all_zero_count > len(numeric_fields) * 0.8:  # More than 80% are zero
+            issues.append("Too many indicators are zero - may indicate calculation issues")
+        
+        return issues
+
+    def validate_screener_real_data_integration(self, data: Dict[str, Any]) -> List[str]:
+        """Validate Stock Screener real data integration"""
+        issues = []
+        
+        # Check for data source transparency fields
+        data_sources = data.get("data_sources", [])
+        if not data_sources:
+            issues.append("Missing data_sources field in screener response")
+        elif "alpha_vantage" not in data_sources:
+            issues.append(f"Expected alpha_vantage in data sources, got: {data_sources}")
+        
+        # Check real data count
+        real_data_count = data.get("real_data_count")
+        if real_data_count is None:
+            issues.append("Missing real_data_count field")
+        elif real_data_count == 0:
+            issues.append("real_data_count is 0 - may still be using simulated data")
+        
+        # Check for note about real data usage
+        note = data.get("note", "")
+        if "real" not in note.lower() or "alpha vantage" not in note.lower():
+            issues.append(f"Note doesn't indicate real Alpha Vantage data usage: {note}")
+        
+        # Check individual stock data sources
+        stocks = data.get("stocks", [])
+        if stocks:
+            for i, stock in enumerate(stocks[:5]):  # Check first 5 stocks
+                stock_data_source = stock.get("data_source")
+                if stock_data_source != "alpha_vantage":
+                    issues.append(f"Stock {i+1} ({stock.get('symbol', 'unknown')}) "
+                                f"has data_source: {stock_data_source}, expected: alpha_vantage")
+        
+        # Check that PPO values are realistic (not hash-based demo patterns)
+        if stocks:
+            ppo_values_realistic = self.validate_realistic_ppo_values(stocks[:3])
+            if not ppo_values_realistic:
+                issues.append("PPO values appear to be demo/hash-based rather than real market data")
+        
+        return issues
+
+    def validate_dmi_values_updating(self, dmi_values_by_symbol: Dict[str, Dict]) -> List[str]:
+        """Validate that DMI values are different between symbols (not static)"""
+        issues = []
+        
+        if len(dmi_values_by_symbol) < 2:
+            issues.append("Insufficient symbols to test DMI value variation")
+            return issues
+        
+        # Check if all DMI+ values are the same (static 26.0 issue)
+        dmi_plus_values = [values["dmi_plus"] for values in dmi_values_by_symbol.values()]
+        dmi_minus_values = [values["dmi_minus"] for values in dmi_values_by_symbol.values()]
+        adx_values = [values["adx"] for values in dmi_values_by_symbol.values()]
+        
+        # Check for static values (all the same)
+        if len(set(dmi_plus_values)) == 1:
+            static_value = dmi_plus_values[0]
+            if static_value == 26.0:
+                issues.append(f"All DMI+ values are static at 26.0 - update fix not working")
+            else:
+                issues.append(f"All DMI+ values are static at {static_value}")
+        
+        if len(set(dmi_minus_values)) == 1:
+            issues.append(f"All DMI- values are static at {dmi_minus_values[0]}")
+        
+        if len(set(adx_values)) == 1:
+            issues.append(f"All ADX values are static at {adx_values[0]}")
+        
+        # Check for reasonable variation (should vary by at least 1.0 between symbols)
+        dmi_plus_range = max(dmi_plus_values) - min(dmi_plus_values)
+        if dmi_plus_range < 1.0:
+            issues.append(f"DMI+ values have insufficient variation: range={dmi_plus_range:.2f}")
+        
+        # Check for realistic DMI ranges (0-100)
+        for symbol, values in dmi_values_by_symbol.items():
+            for indicator, value in values.items():
+                if not (0 <= value <= 100):
+                    issues.append(f"{symbol} {indicator} value {value:.2f} outside valid range (0-100)")
+        
+        return issues
+
+    def validate_data_source_transparency(self, test_symbols: List[str]) -> List[str]:
+        """Validate data source transparency shows real Alpha Vantage data"""
+        issues = []
+        
+        for symbol in test_symbols:
+            try:
+                payload = {"symbol": symbol, "timeframe": "1D"}
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    data_source = data.get("data_source")
+                    
+                    if data_source != "alpha_vantage":
+                        issues.append(f"{symbol} data_source is {data_source}, expected alpha_vantage")
+                    
+                    # Check response time is reasonable for cached data
+                    response_time = data.get("response_time", 0)
+                    if response_time > 5.0:  # More than 5 seconds might indicate issues
+                        issues.append(f"{symbol} response time {response_time:.2f}s is too slow")
+                
+                else:
+                    issues.append(f"{symbol} API call failed: {response.status_code}")
+                    
+            except Exception as e:
+                issues.append(f"{symbol} data source test failed: {str(e)}")
+        
+        return issues
+
+    def validate_realistic_ppo_values(self, stocks: List[Dict]) -> bool:
+        """Check if PPO values appear realistic rather than hash-based demo data"""
+        for stock in stocks:
+            ppo_values = stock.get("ppo_values", [])
+            if not ppo_values or len(ppo_values) < 3:
+                continue
+            
+            # Real PPO values should have some variation and not follow hash patterns
+            ppo_range = max(ppo_values) - min(ppo_values)
+            if ppo_range == 0:  # All values identical
+                return False
+            
+            # Check for unrealistic precision (hash-based values often have many decimals)
+            for ppo in ppo_values:
+                if isinstance(ppo, float) and len(str(ppo).split('.')[-1]) > 6:
+                    return False  # Too many decimal places, likely hash-based
+        
+        return True
+
     def run_comprehensive_tests(self):
         """Run all tests with priority on multiple component fixes"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
