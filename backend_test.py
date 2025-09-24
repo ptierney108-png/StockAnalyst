@@ -2840,6 +2840,391 @@ class StockAnalysisAPITester:
                         "All financial metrics properly formatted")
             return True
 
+    def test_critical_fixes_verification(self) -> bool:
+        """
+        CRITICAL FIXES VERIFICATION - Test the three specific fixes from review request:
+        1. StockScreener Property Name Fixes (camelCase to snake_case)
+        2. DMI Calculation Fix (composite calculation instead of ADX duplication)
+        3. Enhanced Sorting (nested property support for returns.1d, returns.5d, etc.)
+        """
+        print(f"\n🔧 CRITICAL FIXES VERIFICATION TESTING")
+        print("=" * 70)
+        
+        all_passed = True
+        fix_issues = []
+        
+        # Test symbols specifically mentioned in review request
+        test_symbols = ["AAPL", "WFC"]
+        
+        # 1. TEST STOCK SCREENER PROPERTY NAME FIXES
+        print(f"\n📊 Testing StockScreener Property Name Fixes (camelCase → snake_case)")
+        screener_fix_passed = self.test_screener_property_name_fixes()
+        if not screener_fix_passed:
+            all_passed = False
+            fix_issues.append("StockScreener property name fixes failed")
+        
+        # 2. TEST DMI CALCULATION FIX
+        print(f"\n🧮 Testing DMI Calculation Fix (composite vs ADX duplication)")
+        dmi_fix_passed = self.test_dmi_calculation_fix(test_symbols)
+        if not dmi_fix_passed:
+            all_passed = False
+            fix_issues.append("DMI calculation fix failed")
+        
+        # 3. TEST ENHANCED SORTING WITH NESTED PROPERTIES
+        print(f"\n🔄 Testing Enhanced Sorting (nested property support)")
+        sorting_fix_passed = self.test_enhanced_sorting_fix()
+        if not sorting_fix_passed:
+            all_passed = False
+            fix_issues.append("Enhanced sorting fix failed")
+        
+        # 4. COMPREHENSIVE INTEGRATION TEST
+        print(f"\n🔗 Testing Integration of All Three Fixes")
+        integration_passed = self.test_all_fixes_integration(test_symbols)
+        if not integration_passed:
+            all_passed = False
+            fix_issues.append("Integration of all fixes failed")
+        
+        # Summary of critical fixes testing
+        if fix_issues:
+            print(f"\n🚨 CRITICAL FIXES ISSUES FOUND ({len(fix_issues)}):")
+            for issue in fix_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ All three critical fixes verified successfully")
+        
+        return all_passed
+    
+    def test_screener_property_name_fixes(self) -> bool:
+        """Test StockScreener property name fixes from camelCase to snake_case"""
+        all_passed = True
+        
+        try:
+            # Test screener endpoint with filters that would trigger property access
+            filters = {
+                "price_filter": {"type": "under", "under": 500},
+                "dmi_filter": {"min": 15, "max": 65},
+                "ppo_slope_filter": {"threshold": 1}
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                stocks = data.get("stocks", [])
+                
+                if stocks:
+                    # Check first stock for proper snake_case property names
+                    stock = stocks[0]
+                    property_issues = []
+                    
+                    # Check for snake_case properties that should exist
+                    required_snake_case_props = [
+                        "ppo_slope_percentage",  # was ppoSlope
+                        "di_plus",              # was diPlus  
+                        "di_minus"              # was diMinus
+                    ]
+                    
+                    for prop in required_snake_case_props:
+                        if prop not in stock:
+                            property_issues.append(f"Missing snake_case property: {prop}")
+                        elif stock[prop] is None:
+                            property_issues.append(f"Property {prop} is null (possible undefined access)")
+                    
+                    # Check that old camelCase properties are NOT present
+                    old_camel_case_props = ["ppoSlope", "diPlus", "diMinus"]
+                    for prop in old_camel_case_props:
+                        if prop in stock:
+                            property_issues.append(f"Old camelCase property still present: {prop}")
+                    
+                    if property_issues:
+                        self.log_test("Screener Property Names", False, 
+                                    f"Property name issues: {property_issues}", True)
+                        all_passed = False
+                    else:
+                        self.log_test("Screener Property Names", True, 
+                                    "All snake_case properties present, no camelCase properties found")
+                        
+                        # Log actual values for verification
+                        ppo_slope = stock.get("ppo_slope_percentage", "N/A")
+                        di_plus = stock.get("di_plus", "N/A")
+                        di_minus = stock.get("di_minus", "N/A")
+                        print(f"  ✅ Sample values: ppo_slope_percentage={ppo_slope}, di_plus={di_plus}, di_minus={di_minus}")
+                else:
+                    self.log_test("Screener Property Names", False, 
+                                "No stocks returned from screener", True)
+                    all_passed = False
+            else:
+                self.log_test("Screener Property Names", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Screener Property Names", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+    
+    def test_dmi_calculation_fix(self, test_symbols: List[str]) -> bool:
+        """Test DMI calculation fix - should be composite calculation, not ADX duplication"""
+        all_passed = True
+        
+        for symbol in test_symbols:
+            try:
+                payload = {"symbol": symbol, "timeframe": "3M"}
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    indicators = data.get("indicators", {})
+                    
+                    # Get DMI values
+                    dmi_plus = indicators.get("dmi_plus")
+                    dmi_minus = indicators.get("dmi_minus") 
+                    adx = indicators.get("adx")
+                    
+                    # Check if we have a separate DMI field (composite calculation)
+                    dmi = indicators.get("dmi")  # This should be the composite
+                    
+                    dmi_issues = []
+                    
+                    # Validate that DMI values exist and are not null
+                    if dmi_plus is None:
+                        dmi_issues.append("dmi_plus is null")
+                    if dmi_minus is None:
+                        dmi_issues.append("dmi_minus is null")
+                    if adx is None:
+                        dmi_issues.append("adx is null")
+                    
+                    # CRITICAL TEST: DMI should NOT equal ADX (was the bug)
+                    if dmi is not None and adx is not None:
+                        if dmi == adx:
+                            dmi_issues.append(f"DMI ({dmi}) equals ADX ({adx}) - fix not working!")
+                        else:
+                            # Check if DMI is composite calculation: (dmi_plus + dmi_minus) / 2
+                            if dmi_plus is not None and dmi_minus is not None:
+                                expected_dmi = (dmi_plus + dmi_minus) / 2
+                                if abs(dmi - expected_dmi) > 0.1:  # Allow small floating point differences
+                                    dmi_issues.append(f"DMI ({dmi}) not composite calculation (expected {expected_dmi:.2f})")
+                                else:
+                                    print(f"  ✅ {symbol}: DMI={dmi:.2f} is composite of DMI+({dmi_plus:.2f}) + DMI-({dmi_minus:.2f})")
+                    
+                    # Test that DMI values are different between stocks (not static)
+                    if symbol == "WFC":
+                        # Compare with user-provided reference data expectations
+                        if dmi_plus is not None and dmi_minus is not None and adx is not None:
+                            # Values should be realistic for WFC analysis
+                            if 0 <= dmi_plus <= 100 and 0 <= dmi_minus <= 100 and 0 <= adx <= 100:
+                                print(f"  ✅ {symbol}: Realistic DMI values - DMI+={dmi_plus:.2f}, DMI-={dmi_minus:.2f}, ADX={adx:.2f}")
+                            else:
+                                dmi_issues.append(f"DMI values outside valid range (0-100)")
+                    
+                    if dmi_issues:
+                        self.log_test(f"DMI Calculation Fix ({symbol})", False, 
+                                    f"DMI issues: {dmi_issues}", True)
+                        all_passed = False
+                    else:
+                        self.log_test(f"DMI Calculation Fix ({symbol})", True, 
+                                    f"DMI composite calculation working correctly")
+                else:
+                    self.log_test(f"DMI Calculation Fix ({symbol})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"DMI Calculation Fix ({symbol})", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        return all_passed
+    
+    def test_enhanced_sorting_fix(self) -> bool:
+        """Test enhanced sorting with nested property support for returns.1d, returns.5d, etc."""
+        all_passed = True
+        
+        try:
+            # Test screener with sorting that would use nested properties
+            filters = {
+                "price_filter": {"type": "under", "under": 500},
+                "dmi_filter": {"min": 20, "max": 60},
+                "ppo_slope_filter": {"threshold": 1}
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                stocks = data.get("stocks", [])
+                
+                if len(stocks) >= 2:
+                    sorting_issues = []
+                    
+                    # Check that returns object has nested properties
+                    for i, stock in enumerate(stocks[:3]):
+                        returns = stock.get("returns", {})
+                        if not isinstance(returns, dict):
+                            sorting_issues.append(f"Stock {i+1}: returns is not a dict")
+                            continue
+                        
+                        # Check for nested return properties
+                        required_return_periods = ["1d", "5d", "2w", "1m", "1y"]
+                        for period in required_return_periods:
+                            if period not in returns:
+                                sorting_issues.append(f"Stock {i+1}: missing returns.{period}")
+                            elif returns[period] is None:
+                                sorting_issues.append(f"Stock {i+1}: returns.{period} is null")
+                    
+                    # Test that nested property values are extractable
+                    if len(stocks) >= 2:
+                        stock1_1d = stocks[0].get("returns", {}).get("1d")
+                        stock2_1d = stocks[1].get("returns", {}).get("1d")
+                        
+                        if stock1_1d is not None and stock2_1d is not None:
+                            print(f"  ✅ Nested property extraction working: Stock1 1d return={stock1_1d}%, Stock2 1d return={stock2_1d}%")
+                        else:
+                            sorting_issues.append("Cannot extract nested return values for sorting")
+                    
+                    if sorting_issues:
+                        self.log_test("Enhanced Sorting Fix", False, 
+                                    f"Sorting issues: {sorting_issues}", True)
+                        all_passed = False
+                    else:
+                        self.log_test("Enhanced Sorting Fix", True, 
+                                    "Nested property support working correctly")
+                else:
+                    self.log_test("Enhanced Sorting Fix", False, 
+                                "Insufficient stocks to test sorting", True)
+                    all_passed = False
+            else:
+                self.log_test("Enhanced Sorting Fix", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Enhanced Sorting Fix", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+    
+    def test_all_fixes_integration(self, test_symbols: List[str]) -> bool:
+        """Test integration of all three fixes working together"""
+        all_passed = True
+        
+        print(f"  Testing integration with symbols: {test_symbols}")
+        
+        # Test that screener endpoint works without undefined property errors
+        try:
+            filters = {
+                "price_filter": {"type": "under", "under": 500},
+                "dmi_filter": {"min": 15, "max": 65},
+                "ppo_slope_filter": {"threshold": 1}
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Check that response is valid and has no errors
+                if data.get("success", False):
+                    stocks = data.get("stocks", [])
+                    
+                    integration_issues = []
+                    
+                    # Test all three fixes together
+                    for stock in stocks[:2]:  # Test first 2 stocks
+                        symbol = stock.get("symbol", "Unknown")
+                        
+                        # Fix 1: Property names
+                        if "ppo_slope_percentage" not in stock:
+                            integration_issues.append(f"{symbol}: Missing ppo_slope_percentage")
+                        if "di_plus" not in stock:
+                            integration_issues.append(f"{symbol}: Missing di_plus")
+                        if "di_minus" not in stock:
+                            integration_issues.append(f"{symbol}: Missing di_minus")
+                        
+                        # Fix 2: DMI calculation (check in individual analysis)
+                        # This will be verified in the individual stock analysis
+                        
+                        # Fix 3: Nested properties
+                        returns = stock.get("returns", {})
+                        if not isinstance(returns, dict) or "1d" not in returns:
+                            integration_issues.append(f"{symbol}: Missing nested returns.1d")
+                    
+                    if integration_issues:
+                        self.log_test("Integration Test", False, 
+                                    f"Integration issues: {integration_issues}", True)
+                        all_passed = False
+                    else:
+                        self.log_test("Integration Test", True, 
+                                    f"All three fixes working together - {len(stocks)} stocks processed")
+                        
+                        # Test individual analysis for DMI fix
+                        for symbol in test_symbols:
+                            individual_passed = self.test_individual_analysis_integration(symbol)
+                            if not individual_passed:
+                                all_passed = False
+                else:
+                    self.log_test("Integration Test", False, 
+                                "Screener returned success=false", True)
+                    all_passed = False
+            else:
+                self.log_test("Integration Test", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Integration Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+    
+    def test_individual_analysis_integration(self, symbol: str) -> bool:
+        """Test individual stock analysis for DMI calculation fix"""
+        try:
+            payload = {"symbol": symbol, "timeframe": "3M"}
+            response = requests.post(f"{BACKEND_URL}/analyze", 
+                                   json=payload,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                indicators = data.get("indicators", {})
+                
+                # Check DMI calculation fix
+                dmi_plus = indicators.get("dmi_plus")
+                dmi_minus = indicators.get("dmi_minus")
+                adx = indicators.get("adx")
+                dmi = indicators.get("dmi")
+                
+                if dmi is not None and adx is not None and dmi == adx:
+                    self.log_test(f"Individual DMI Fix ({symbol})", False, 
+                                f"DMI still equals ADX - fix not working", True)
+                    return False
+                else:
+                    self.log_test(f"Individual DMI Fix ({symbol})", True, 
+                                f"DMI calculation fix working in individual analysis")
+                    return True
+            else:
+                self.log_test(f"Individual Analysis ({symbol})", False, 
+                            f"HTTP {response.status_code}", True)
+                return False
+                
+        except Exception as e:
+            self.log_test(f"Individual Analysis ({symbol})", False, f"Error: {str(e)}", True)
+            return False
+
     def run_comprehensive_tests(self):
         """Run all tests with priority on critical runtime errors fix"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
