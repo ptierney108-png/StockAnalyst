@@ -214,25 +214,25 @@ const StockScreener = () => {
         await new Promise(resolve => setTimeout(resolve, 300));
       }
       
-      // Create filter criteria object
+      // Create filter criteria object to match backend expectations
       const filterCriteria = {
-        priceFilter: {
+        price_filter: {
           type: priceFilterType,
           under: priceUnder,
           min: priceMin,
           max: priceMax
         },
-        dmiFilter: {
+        dmi_filter: {
           min: dmiMin,
           max: dmiMax
         },
-        ppoSlopeFilter: {
+        ppo_slope_filter: {
           threshold: Math.abs(ppoSlopeThreshold)
         },
-        ppoHookFilter: ppoHookFilter, // NEW: PPO hook filtering
-        sectorFilter,
-        optionableFilter,
-        earningsFilter
+        ppo_hook_filter: ppoHookFilter,
+        sector_filter: sectorFilter,
+        optionable_filter: optionableFilter,
+        earnings_filter: earningsFilter
       };
 
       // Call backend API for screening with real Alpha Vantage data
