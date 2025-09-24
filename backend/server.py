@@ -2356,11 +2356,14 @@ async def screen_stocks(filters: ScreenerFilters):
                 else:
                     print(f"✅ {stock['symbol']} DMI filter passed: ADX {stock['adx']:.1f} in range {dmi_min}-{dmi_max}")
             
-            # PPO slope filter (minimum 5% as specified) - must be positive slope above threshold
+            # PPO slope filter (minimum threshold specified) - can be positive or negative
             if filters.ppo_slope_filter:
                 threshold = filters.ppo_slope_filter.get("threshold", 5)
                 ppo_slope = stock["ppo_slope_percentage"]
-                if ppo_slope < threshold:  # Only positive slopes above threshold pass
+                
+                # If threshold is negative, we're looking for slopes above that negative value
+                # If threshold is positive, we're looking for slopes above that positive value
+                if ppo_slope < threshold:
                     print(f"❌ {stock['symbol']} filtered out: PPO slope {ppo_slope:.2f}% < {threshold}%")
                     continue
                 else:
