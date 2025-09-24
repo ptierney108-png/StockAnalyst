@@ -521,10 +521,14 @@ const StockAnalysis = () => {
       name: 'PPO Signal',
       type: 'line',
       yAxisIndex: 0,
-      data: analysisData?.chart_data?.map(item => ({
-        x: new Date(item.date).getTime(),
-        y: parseFloat(((item.ppo || 0) * 0.85).toFixed(3))
-      })) || []
+      data: analysisData?.chart_data?.map(item => {
+        const ppo = item.ppo || 0;
+        const signal = ppo * 0.85; // Use the same calculation as backend for consistency
+        return {
+          x: new Date(item.date).getTime(),
+          y: parseFloat(signal.toFixed(3))
+        };
+      }) || []
     },
     {
       name: 'Histogram',
@@ -532,11 +536,11 @@ const StockAnalysis = () => {
       yAxisIndex: 1,
       data: analysisData?.chart_data?.map(item => {
         const ppo = item.ppo || 0;
-        const signal = ppo * 0.85;
+        const signal = ppo * 0.85; // Same calculation as signal line
         const histogram = ppo - signal;
         return {
           x: new Date(item.date).getTime(),
-          y: parseFloat((histogram * 8).toFixed(4)), // Amplify histogram for better visibility like reference chart
+          y: parseFloat((histogram * 6).toFixed(4)), // Reduced amplification for better proportion
           fillColor: histogram >= 0 ? '#10b981' : '#ef4444' // Green for positive, red for negative
         };
       }) || []
