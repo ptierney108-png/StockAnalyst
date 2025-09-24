@@ -1694,45 +1694,126 @@ async def get_stock_details(symbol: str):
         "volume": analysis_data["volume"]
     }
 
-# Market Data Endpoints
 @api_router.get("/market/trending")
 async def get_trending_stocks():
-    """Get trending stocks with mock data"""
-    trending_stocks = [
-        {"symbol": "AAPL", "name": "Apple Inc.", "price": 175.43, "change": 2.35, "change_percent": 1.36, "volume": 58234567},
-        {"symbol": "TSLA", "name": "Tesla, Inc.", "price": 248.75, "change": -5.42, "change_percent": -2.13, "volume": 89567234},
-        {"symbol": "GOOGL", "name": "Alphabet Inc.", "price": 138.21, "change": 1.87, "change_percent": 1.37, "volume": 34567891},
-        {"symbol": "MSFT", "name": "Microsoft Corporation", "price": 378.85, "change": 4.23, "change_percent": 1.13, "volume": 45672389},
-        {"symbol": "AMZN", "name": "Amazon.com, Inc.", "price": 142.33, "change": -1.25, "change_percent": -0.87, "volume": 67234856},
-        {"symbol": "NVDA", "name": "NVIDIA Corporation", "price": 875.28, "change": 15.67, "change_percent": 1.82, "volume": 78923456},
-        {"symbol": "META", "name": "Meta Platforms, Inc.", "price": 298.47, "change": 3.89, "change_percent": 1.32, "volume": 56789234},
-        {"symbol": "NFLX", "name": "Netflix, Inc.", "price": 425.67, "change": -8.23, "change_percent": -1.90, "volume": 23456789}
-    ]
-    return trending_stocks
+    """Get trending stocks using real Alpha Vantage data"""
+    try:
+        # List of popular symbols to analyze
+        trending_symbols = ["AAPL", "MSFT", "GOOGL", "TSLA", "AMZN", "NVDA", "META", "NFLX"]
+        trending_stocks = []
+        
+        for symbol in trending_symbols:
+            try:
+                # Use the same real data function as individual analysis
+                analysis_data = await get_advanced_stock_data(symbol, "1D")
+                
+                if analysis_data and analysis_data.get("current_price"):
+                    stock_info = {
+                        "symbol": symbol,
+                        "name": get_company_name(symbol),
+                        "price": analysis_data["current_price"],
+                        "change": analysis_data.get("price_change", 0),
+                        "change_percent": analysis_data.get("price_change_percent", 0),
+                        "volume": analysis_data.get("volume", 0),
+                        "data_source": analysis_data.get("data_source", "alpha_vantage")
+                    }
+                    trending_stocks.append(stock_info)
+                    
+            except Exception as e:
+                print(f"Error getting data for {symbol}: {e}")
+                continue
+        
+        # If we have fewer than 4 stocks, add fallback data
+        if len(trending_stocks) < 4:
+            fallback_data = [
+                {"symbol": "AAPL", "name": "Apple Inc.", "price": 175.43, "change": 2.35, "change_percent": 1.36, "volume": 58234567, "data_source": "fallback"},
+                {"symbol": "MSFT", "name": "Microsoft Corporation", "price": 378.85, "change": 4.23, "change_percent": 1.13, "volume": 45672389, "data_source": "fallback"},
+                {"symbol": "GOOGL", "name": "Alphabet Inc.", "price": 138.21, "change": 1.87, "change_percent": 1.37, "volume": 34567891, "data_source": "fallback"},
+                {"symbol": "NVDA", "name": "NVIDIA Corporation", "price": 875.28, "change": 15.67, "change_percent": 1.82, "volume": 78923456, "data_source": "fallback"}
+            ]
+            # Add missing stocks from fallback
+            for fallback_stock in fallback_data:
+                if not any(stock["symbol"] == fallback_stock["symbol"] for stock in trending_stocks):
+                    trending_stocks.append(fallback_stock)
+                    if len(trending_stocks) >= 8:
+                        break
+        
+        return trending_stocks
+        
+    except Exception as e:
+        print(f"Error in trending stocks: {e}")
+        # Return fallback data if all else fails
+        return [
+            {"symbol": "AAPL", "name": "Apple Inc.", "price": 175.43, "change": 2.35, "change_percent": 1.36, "volume": 58234567, "data_source": "fallback"},
+            {"symbol": "MSFT", "name": "Microsoft Corporation", "price": 378.85, "change": 4.23, "change_percent": 1.13, "volume": 45672389, "data_source": "fallback"}
+        ]
 
-@api_router.get("/market/gainers")
+@api_router.get("/market/gainers")  
 async def get_top_gainers():
-    """Get top gaining stocks with mock data"""
-    gainers = [
-        {"symbol": "NVDA", "name": "NVIDIA Corporation", "price": 875.28, "change": 15.67, "change_percent": 1.82, "volume": 78923456},
-        {"symbol": "GOOGL", "name": "Alphabet Inc.", "price": 138.21, "change": 1.87, "change_percent": 1.37, "volume": 34567891},
-        {"symbol": "AAPL", "name": "Apple Inc.", "price": 175.43, "change": 2.35, "change_percent": 1.36, "volume": 58234567},
-        {"symbol": "META", "name": "Meta Platforms, Inc.", "price": 298.47, "change": 3.89, "change_percent": 1.32, "volume": 56789234},
-        {"symbol": "MSFT", "name": "Microsoft Corporation", "price": 378.85, "change": 4.23, "change_percent": 1.13, "volume": 45672389}
-    ]
-    return gainers
+    """Get top gaining stocks using real Alpha Vantage data"""
+    try:
+        # Get trending stocks first
+        trending_stocks = await get_trending_stocks()
+        
+        # Sort by change_percent to get gainers
+        gainers = sorted(
+            [stock for stock in trending_stocks if stock.get("change_percent", 0) > 0],
+            key=lambda x: x.get("change_percent", 0),
+            reverse=True
+        )[:5]  # Top 5 gainers
+        
+        return gainers
+        
+    except Exception as e:
+        print(f"Error in top gainers: {e}")
+        # Fallback data
+        return [
+            {"symbol": "NVDA", "name": "NVIDIA Corporation", "price": 875.28, "change": 15.67, "change_percent": 1.82, "volume": 78923456, "data_source": "fallback"},
+            {"symbol": "GOOGL", "name": "Alphabet Inc.", "price": 138.21, "change": 1.87, "change_percent": 1.37, "volume": 34567891, "data_source": "fallback"}
+        ]
 
 @api_router.get("/market/losers")
 async def get_top_losers():
-    """Get top losing stocks with mock data"""
-    losers = [
-        {"symbol": "TSLA", "name": "Tesla, Inc.", "price": 248.75, "change": -5.42, "change_percent": -2.13, "volume": 89567234},
-        {"symbol": "NFLX", "name": "Netflix, Inc.", "price": 425.67, "change": -8.23, "change_percent": -1.90, "volume": 23456789},
-        {"symbol": "AMZN", "name": "Amazon.com, Inc.", "price": 142.33, "change": -1.25, "change_percent": -0.87, "volume": 67234856},
-        {"symbol": "PYPL", "name": "PayPal Holdings, Inc.", "price": 58.92, "change": -0.45, "change_percent": -0.76, "volume": 34567234},
-        {"symbol": "DIS", "name": "The Walt Disney Company", "price": 89.45, "change": -0.67, "change_percent": -0.74, "volume": 45678923}
-    ]
-    return losers
+    """Get top losing stocks using real Alpha Vantage data"""
+    try:
+        # Get trending stocks first  
+        trending_stocks = await get_trending_stocks()
+        
+        # Sort by change_percent to get losers
+        losers = sorted(
+            [stock for stock in trending_stocks if stock.get("change_percent", 0) < 0],
+            key=lambda x: x.get("change_percent", 0)
+        )[:5]  # Top 5 losers (most negative)
+        
+        return losers
+        
+    except Exception as e:
+        print(f"Error in top losers: {e}")
+        # Fallback data
+        return [
+            {"symbol": "TSLA", "name": "Tesla, Inc.", "price": 248.75, "change": -5.42, "change_percent": -2.13, "volume": 89567234, "data_source": "fallback"},
+            {"symbol": "NFLX", "name": "Netflix, Inc.", "price": 425.67, "change": -8.23, "change_percent": -1.90, "volume": 23456789, "data_source": "fallback"}
+        ]
+
+def get_company_name(symbol):
+    """Get company name for a given symbol"""
+    company_names = {
+        "AAPL": "Apple Inc.",
+        "MSFT": "Microsoft Corporation", 
+        "GOOGL": "Alphabet Inc.",
+        "TSLA": "Tesla, Inc.",
+        "AMZN": "Amazon.com, Inc.",
+        "NVDA": "NVIDIA Corporation",
+        "META": "Meta Platforms, Inc.",
+        "NFLX": "Netflix, Inc.",
+        "JNJ": "Johnson & Johnson",
+        "UNH": "UnitedHealth Group Inc.",
+        "JPM": "JPMorgan Chase & Co.",
+        "BAC": "Bank of America Corporation",
+        "XOM": "Exxon Mobil Corporation",
+        "CVX": "Chevron Corporation"
+    }
+    return company_names.get(symbol, f"{symbol} Inc.")
 
 # Portfolio Management Endpoints
 @api_router.get("/portfolios")
