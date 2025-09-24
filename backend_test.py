@@ -4287,6 +4287,266 @@ class StockAnalysisAPITester:
         
         return all_passed
 
+    def test_ppo_hook_pattern_filtering(self) -> bool:
+        """
+        COMPREHENSIVE PPO HOOK PATTERN FILTERING TEST
+        
+        Tests the specific user issue: Scanner with negative hook criteria should return results
+        but returned no results. Tests:
+        1. Negative hook pattern detection logic
+        2. User's exact criteria: Price $100-$500, DMI 20-60, PPO Slope Min -100%, PPO Hook: -HOOK
+        3. Debug logging for hook pattern analysis
+        4. Combined filters working together
+        """
+        print(f"\n🎯 COMPREHENSIVE PPO HOOK PATTERN FILTERING TEST")
+        print("=" * 70)
+        
+        all_passed = True
+        hook_issues = []
+        
+        # Test the exact user criteria from the review request
+        user_criteria = {
+            "price_filter": {"type": "range", "min": 100, "max": 500},
+            "dmi_filter": {"min": 20, "max": 60},
+            "ppo_slope_filter": {"threshold": -100},
+            "ppo_hook_filter": "-HOOK"
+        }
+        
+        print(f"\n📊 Testing User's Exact Criteria:")
+        print(f"  • Price Range: $100-$500 (broad range)")
+        print(f"  • DMI Range: 20-60 (reasonable range)")
+        print(f"  • PPO Slope: Min -100% (very permissive, allows negative slopes)")
+        print(f"  • PPO Hook Pattern: Negative Hook (-HOOK) Only")
+        
+        try:
+            start_time = time.time()
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=user_criteria,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            response_time = time.time() - start_time
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Validate response structure
+                if not self.validate_screener_response(data, "User Exact Criteria"):
+                    all_passed = False
+                    hook_issues.append("Invalid screener response structure")
+                
+                # Check results
+                results_found = data.get("results_found", 0)
+                total_scanned = data.get("total_scanned", 0)
+                stocks = data.get("stocks", [])
+                
+                print(f"\n📈 RESULTS ANALYSIS:")
+                print(f"  • Total Stocks Scanned: {total_scanned}")
+                print(f"  • Results Found: {results_found}")
+                print(f"  • Response Time: {response_time:.2f}s")
+                
+                # The key issue: With broad criteria, we should find SOME negative hook patterns
+                if results_found == 0:
+                    self.log_test("Negative Hook Detection", False, 
+                                f"No results found with broad criteria - negative hook detection may not be working", True)
+                    hook_issues.append("No negative hook patterns detected with permissive criteria")
+                    all_passed = False
+                else:
+                    self.log_test("Negative Hook Detection", True, 
+                                f"Found {results_found} stocks with negative hook patterns")
+                    
+                    # Validate that returned stocks actually have negative hooks
+                    negative_hook_validation = self.validate_negative_hook_patterns(stocks)
+                    if not negative_hook_validation:
+                        all_passed = False
+                        hook_issues.append("Returned stocks don't have valid negative hook patterns")
+                
+                # Test debug logging analysis
+                self.analyze_hook_debug_logs(data, user_criteria)
+                
+            else:
+                self.log_test("PPO Hook Filter API", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                hook_issues.append(f"API call failed: {response.status_code}")
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("PPO Hook Filter Test", False, f"Error: {str(e)}", True)
+            hook_issues.append(f"Test execution failed: {str(e)}")
+            all_passed = False
+        
+        # Test positive hook patterns for comparison
+        print(f"\n🔄 Testing Positive Hook Patterns for Comparison")
+        positive_criteria = user_criteria.copy()
+        positive_criteria["ppo_hook_filter"] = "+HOOK"
+        
+        try:
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=positive_criteria,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                positive_results = data.get("results_found", 0)
+                print(f"  • Positive Hook Results: {positive_results}")
+                
+                if positive_results > 0:
+                    self.log_test("Positive Hook Detection", True, 
+                                f"Found {positive_results} stocks with positive hook patterns")
+                else:
+                    self.log_test("Positive Hook Detection", False, 
+                                "No positive hook patterns found either - may indicate broader issue", True)
+                    hook_issues.append("No positive hook patterns detected either")
+                    all_passed = False
+            else:
+                hook_issues.append(f"Positive hook test failed: {response.status_code}")
+                all_passed = False
+                
+        except Exception as e:
+            hook_issues.append(f"Positive hook test error: {str(e)}")
+            all_passed = False
+        
+        # Test both hooks filter
+        print(f"\n🔄 Testing Both Hook Patterns Filter")
+        both_criteria = user_criteria.copy()
+        both_criteria["ppo_hook_filter"] = "both"
+        
+        try:
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=both_criteria,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                both_results = data.get("results_found", 0)
+                print(f"  • Both Hook Patterns Results: {both_results}")
+                
+                if both_results > 0:
+                    self.log_test("Both Hook Patterns", True, 
+                                f"Found {both_results} stocks with hook patterns")
+                else:
+                    self.log_test("Both Hook Patterns", False, 
+                                "No hook patterns found with 'both' filter", True)
+                    hook_issues.append("No hook patterns detected with 'both' filter")
+                    all_passed = False
+            else:
+                hook_issues.append(f"Both hooks test failed: {response.status_code}")
+                all_passed = False
+                
+        except Exception as e:
+            hook_issues.append(f"Both hooks test error: {str(e)}")
+            all_passed = False
+        
+        # Test edge cases
+        print(f"\n🔬 Testing Hook Pattern Edge Cases")
+        edge_case_results = self.test_hook_pattern_edge_cases()
+        if not edge_case_results:
+            all_passed = False
+            hook_issues.append("Hook pattern edge cases failed")
+        
+        # Summary
+        if hook_issues:
+            print(f"\n🚨 PPO HOOK PATTERN FILTERING ISSUES FOUND ({len(hook_issues)}):")
+            for issue in hook_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ PPO hook pattern filtering working correctly")
+        
+        return all_passed
+
+    def validate_negative_hook_patterns(self, stocks: List[Dict[str, Any]]) -> bool:
+        """Validate that returned stocks actually have negative hook patterns"""
+        all_valid = True
+        
+        for i, stock in enumerate(stocks[:5]):  # Check first 5 stocks
+            symbol = stock.get("symbol", f"Stock_{i}")
+            ppo_values = stock.get("ppo_values", [])
+            
+            if len(ppo_values) >= 3:
+                today = ppo_values[0]
+                yesterday = ppo_values[1] 
+                day_before = ppo_values[2]
+                
+                # Negative Hook: Today < Yesterday AND Yesterday > Day Before
+                negative_hook = today < yesterday and yesterday > day_before
+                
+                if not negative_hook:
+                    self.log_test(f"Negative Hook Validation ({symbol})", False, 
+                                f"Stock doesn't have negative hook: PPO({today:.3f}, {yesterday:.3f}, {day_before:.3f})", True)
+                    all_valid = False
+                else:
+                    self.log_test(f"Negative Hook Validation ({symbol})", True, 
+                                f"Valid negative hook: PPO({today:.3f}, {yesterday:.3f}, {day_before:.3f})")
+            else:
+                self.log_test(f"PPO Data Validation ({symbol})", False, 
+                            f"Insufficient PPO data: {len(ppo_values)} values", True)
+                all_valid = False
+        
+        return all_valid
+
+    def analyze_hook_debug_logs(self, data: Dict[str, Any], criteria: Dict[str, Any]) -> None:
+        """Analyze debug logging for hook pattern detection"""
+        # This would analyze server logs if available
+        # For now, we'll analyze the response data structure
+        
+        stocks = data.get("stocks", [])
+        filters_applied = data.get("filters_applied", {})
+        
+        print(f"\n🔍 HOOK PATTERN ANALYSIS:")
+        print(f"  • Filters Applied: {filters_applied}")
+        print(f"  • Hook Filter: {filters_applied.get('ppo_hook_filter', 'Not found')}")
+        
+        if stocks:
+            print(f"  • Sample Stock PPO Analysis:")
+            for i, stock in enumerate(stocks[:3]):
+                symbol = stock.get("symbol", f"Stock_{i}")
+                ppo_values = stock.get("ppo_values", [])
+                if len(ppo_values) >= 3:
+                    today, yesterday, day_before = ppo_values[0], ppo_values[1], ppo_values[2]
+                    negative_hook = today < yesterday and yesterday > day_before
+                    print(f"    • {symbol}: PPO({today:.3f}, {yesterday:.3f}, {day_before:.3f}) - Negative Hook: {negative_hook}")
+
+    def test_hook_pattern_edge_cases(self) -> bool:
+        """Test edge cases for hook pattern detection"""
+        all_passed = True
+        
+        # Test with very restrictive other filters but permissive hook filter
+        restrictive_criteria = {
+            "price_filter": {"type": "range", "min": 50, "max": 1000},  # Very broad price range
+            "dmi_filter": {"min": 10, "max": 80},  # Very broad DMI range
+            "ppo_slope_filter": {"threshold": -200},  # Very permissive slope
+            "ppo_hook_filter": "-HOOK"
+        }
+        
+        try:
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=restrictive_criteria,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                results = data.get("results_found", 0)
+                
+                if results > 0:
+                    self.log_test("Hook Edge Case - Broad Filters", True, 
+                                f"Found {results} negative hooks with very broad other filters")
+                else:
+                    self.log_test("Hook Edge Case - Broad Filters", False, 
+                                "No negative hooks found even with very broad other filters", True)
+                    all_passed = False
+            else:
+                self.log_test("Hook Edge Case API", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Hook Edge Case Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+
     def run_comprehensive_tests(self):
         """Run all tests with priority on scanner filtering logic fix from review request"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
