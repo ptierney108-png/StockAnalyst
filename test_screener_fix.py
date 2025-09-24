@@ -100,15 +100,23 @@ def validate_real_data_fix(data, filters):
     
     # Validate individual stocks
     alpha_vantage_count = 0
+    total_stocks = len(stocks)
     
     print(f"\n📊 STOCK DATA ANALYSIS:")
-    for i, stock in enumerate(stocks[:5]):  # Check first 5 stocks
+    for i, stock in enumerate(stocks[:5]):  # Check first 5 stocks for display
         symbol = stock.get("symbol", f"Stock_{i}")
         stock_data_source = stock.get("data_source", "unknown")
         price = stock.get("price", 0)
         ppo_values = stock.get("ppo_values", [])
         
         print(f"   {symbol}: Price=${price:.2f}, Source={stock_data_source}, PPO={ppo_values}")
+    
+    # Count all stocks with Alpha Vantage data source
+    for stock in stocks:
+        symbol = stock.get("symbol", "Unknown")
+        stock_data_source = stock.get("data_source", "unknown")
+        price = stock.get("price", 0)
+        ppo_values = stock.get("ppo_values", [])
         
         if stock_data_source == "alpha_vantage":
             alpha_vantage_count += 1
@@ -125,12 +133,15 @@ def validate_real_data_fix(data, filters):
         elif stock_data_source == "mock":
             issues.append(f"{symbol}: Still using mock data source")
     
+    print(f"   📊 Total stocks with Alpha Vantage data: {alpha_vantage_count}/{total_stocks}")
+    
     # Check data source distribution
-    total_stocks = len(stocks)
     if alpha_vantage_count == 0 and total_stocks > 0:
         issues.append("No stocks using Alpha Vantage data source")
     elif alpha_vantage_count < total_stocks * 0.8:  # Less than 80% real data
         issues.append(f"Only {alpha_vantage_count}/{total_stocks} stocks using Alpha Vantage (expected majority)")
+    else:
+        print(f"   ✅ {alpha_vantage_count}/{total_stocks} stocks using Alpha Vantage data source")
     
     # Validate filtering still works with real data
     price_filter = filters.get("price_filter", {})
