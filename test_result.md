@@ -350,6 +350,7 @@ test_plan:
   test_all: false
   test_priority: "high_first"
   completed_focus:
+    - "Scanner Filtering Logic Fix"
     - "Tech Analysis Button Complete Failure Fix"
     - "Scanner Hardcoded/Demo Data Issues Fix"
 
