@@ -2191,7 +2191,7 @@ class StockAnalysisAPITester:
         return all_passed
 
     def run_comprehensive_tests(self):
-        """Run all tests with priority on stock screener real data fix"""
+        """Run all tests with priority on multiple component fixes"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
         print("=" * 60)
         
@@ -2199,6 +2199,10 @@ class StockAnalysisAPITester:
         if not self.test_basic_connectivity():
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
+        
+        # HIGHEST PRIORITY: Test Multiple Component Fixes (Review Request Focus)
+        print(f"\n🔧 HIGHEST PRIORITY: MULTIPLE COMPONENT FIXES TESTING")
+        self.test_multiple_component_fixes()
         
         # PRIORITY: Test Stock Screener Real Data Fix (Review Request Focus)
         print(f"\n🔧 PRIORITY: STOCK SCREENER REAL DATA FIX TESTING")
