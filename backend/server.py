@@ -2366,6 +2366,46 @@ async def screen_stocks(filters: ScreenerFilters):
                 else:
                     print(f"✅ {stock['symbol']} PPO slope filter passed: {ppo_slope:.2f}% >= {threshold}%")
             
+            # PPO Hook Pattern filter
+            if filters.ppo_hook_filter and filters.ppo_hook_filter != "all":
+                ppo_values = stock.get("ppo_values", [0, 0, 0])
+                
+                # Ensure we have at least 3 PPO values for hook detection
+                if len(ppo_values) >= 3:
+                    today = ppo_values[0]      # Most recent (index 0)
+                    yesterday = ppo_values[1]  # Yesterday (index 1) 
+                    day_before = ppo_values[2] # Day before (index 2)
+                    
+                    # Detect hook patterns
+                    # Positive Hook: Today > Yesterday AND Yesterday < Day Before (upward reversal)
+                    positive_hook = today > yesterday and yesterday < day_before
+                    
+                    # Negative Hook: Today < Yesterday AND Yesterday > Day Before (downward reversal)
+                    negative_hook = today < yesterday and yesterday > day_before
+                    
+                    hook_type = None
+                    if positive_hook:
+                        hook_type = "positive"
+                    elif negative_hook:
+                        hook_type = "negative"
+                    
+                    # Apply hook filter
+                    if filters.ppo_hook_filter == "+HOOK" and not positive_hook:
+                        print(f"❌ {stock['symbol']} filtered out: No positive hook pattern (PPO: {today:.3f}, {yesterday:.3f}, {day_before:.3f})")
+                        continue
+                    elif filters.ppo_hook_filter == "-HOOK" and not negative_hook:
+                        print(f"❌ {stock['symbol']} filtered out: No negative hook pattern (PPO: {today:.3f}, {yesterday:.3f}, {day_before:.3f})")
+                        continue
+                    elif filters.ppo_hook_filter == "both" and not (positive_hook or negative_hook):
+                        print(f"❌ {stock['symbol']} filtered out: No hook pattern detected (PPO: {today:.3f}, {yesterday:.3f}, {day_before:.3f})")
+                        continue
+                    else:
+                        hook_desc = "positive hook" if positive_hook else "negative hook" if negative_hook else "no hook"
+                        print(f"✅ {stock['symbol']} PPO hook filter passed: {hook_desc} (PPO: {today:.3f}, {yesterday:.3f}, {day_before:.3f})")
+                else:
+                    print(f"❌ {stock['symbol']} filtered out: Insufficient PPO data for hook detection")
+                    continue
+            
             # Sector filter
             if filters.sector_filter and filters.sector_filter != "all":
                 if stock["sector"].lower() != filters.sector_filter.lower():
