@@ -168,7 +168,7 @@ backend:
 
   - task: "Multiple component demo data and chart issues fix"
     implemented: true
-    working: false
+    working: true
     file: "/app/frontend/src/pages/PointBasedDecision.js, /app/frontend/src/pages/Market.js, /app/frontend/src/pages/Portfolio.js, /app/frontend/src/pages/Watchlist.js, /app/frontend/src/components/StockAnalysis.js"
     stuck_count: 0
     priority: "high"
