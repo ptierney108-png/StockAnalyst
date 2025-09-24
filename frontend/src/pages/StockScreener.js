@@ -608,8 +608,11 @@ const StockScreener = () => {
                     <div>• <strong>Stock Prices & Technical Indicators:</strong> {dataSourceInfo ? (
                       dataSourceInfo.data_sources.includes('alpha_vantage') ? 'Alpha Vantage (Real Market Data)' : 'Mixed Real Sources'
                     ) : 'Real Market Data'}</div>
-                    <div>• <strong>Options Data:</strong> Simulated (70% of stocks have options data)</div>
-                    <div>• <strong>Earnings Data:</strong> Simulated (80% of stocks have earnings data)</div>
+                    <div>• <strong>Options Data:</strong> Simulated - Real options APIs available (Polygon.io, IEX Cloud)</div>
+                    <div>• <strong>Earnings Data:</strong> Simulated - Real earnings APIs available (Alpha Vantage, Polygon.io)</div>
+                    <div className="mt-2 text-xs text-yellow-600 italic">
+                      💡 Real options and earnings data integration available upon request
+                    </div>
                   </div>
                 </div>
                 <button 
