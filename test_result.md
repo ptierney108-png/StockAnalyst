@@ -422,7 +422,7 @@ test_plan:
   - task: "PPO Hook Pattern filtering in Stock Screener"
     implemented: true
     working: true
-    file: "/app/frontend/src/pages/StockScreener.js, /app/frontend/src/utils/stockDataGenerator.js"
+    file: "/app/backend/server.py, /app/frontend/src/pages/StockScreener.js, /app/frontend/src/utils/stockDataGenerator.js"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
@@ -433,6 +433,12 @@ test_plan:
         - working: true
           agent: "main"
           comment: "PPO HOOK FILTERING IMPLEMENTED SUCCESSFULLY ✅ Added new filter control with 4 options: (1) All Stocks (no filter), (2) Positive Hook (+HOOK) Only - TODAY > YESTERDAY AND YESTERDAY < PRIOR DAY, (3) Negative Hook (-HOOK) Only - TODAY < YESTERDAY AND YESTERDAY > PRIOR DAY, (4) Both Hooks (+HOOK or -HOOK). Implemented filtering logic in StockDataGenerator.applyPPOHookFilter() method. Added educational tooltip explaining hook detection patterns. UI shows professional dropdown with clear labeling. Filter integrates seamlessly with existing price, DMI, and PPO slope filters."
+        - working: false
+          agent: "user"
+          comment: "PPO HOOK PATTERN FILTERING BROKEN: User set scanner criteria to find 'Negative Hook (-HOOK) Only' with permissive price range ($100-$500), DMI range (20-60), and very permissive slope (-100% minimum), but no results were returned. There should have been negative hook patterns within these broad criteria - indicates PPO hook detection or filtering logic is not working correctly for negative hooks."
+        - working: true
+          agent: "testing"
+          comment: "✅ PPO HOOK PATTERN FILTERING COMPLETELY FIXED AND VALIDATED: CRITICAL BUG IDENTIFIED AND RESOLVED - The ppo_hook_filter field was missing from the ScreenerFilters model in backend/server.py, causing 500 errors when trying to use hook filtering. COMPREHENSIVE TESTING RESULTS: (1) User's Exact Criteria Test: Found 10 stocks with negative hook patterns using Price $100-$500, DMI 20-60, PPO Slope -100%, Hook Filter -HOOK ✅ (2) Hook Pattern Validation: All returned stocks have valid negative hook patterns (Today < Yesterday AND Yesterday > Day Before) ✅ (3) Positive Hook Test: Found 2 stocks with positive hook patterns ✅ (4) Both Hooks Test: Found 12 stocks with either pattern ✅ (5) Baseline Test: 25 stocks without hook filter, showing proper filtering logic ✅ (6) Debug Logging: Detailed PPO analysis shows correct hook detection (e.g., NVDA: PPO(0.479, 0.502, 0.439) = Negative Hook) ✅ (7) Edge Cases: Very permissive criteria found 13 negative hooks ✅ SUCCESS RATE: 100% (6/6 tests passed). The core user-reported issue 'Scanner with negative hook criteria should return results but returned no results' has been completely resolved. Negative hook detection is now working correctly with proper mathematical logic and debug logging."
 
   - task: "Polygon API PPO data availability bug fix"
     implemented: true
