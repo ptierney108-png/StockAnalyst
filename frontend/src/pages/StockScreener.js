@@ -844,20 +844,20 @@ const StockScreener = () => {
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-center">
                         <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                          stock.daysToEarnings <= 7 
+                          (stock.days_to_earnings || 999) <= 7 
                             ? 'bg-yellow-100 text-yellow-800' 
                             : 'bg-gray-100 text-gray-800'
                         }`}>
-                          {stock.daysToEarnings <= 7 && (
+                          {(stock.days_to_earnings || 999) <= 7 && (
                             <AlertCircle className="h-3 w-3 mr-1" />
                           )}
-                          {stock.daysToEarnings}d
+                          {stock.days_to_earnings || 'TBD'}d
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {stock.nextEarnings?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {stock.next_earnings ? new Date(stock.next_earnings).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD'}
                         </div>
                         <div className="text-xs text-gray-400">
-                          Last: {stock.lastEarnings?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          Last: {stock.last_earnings ? new Date(stock.last_earnings).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
                         </div>
                       </td>
                     </tr>
