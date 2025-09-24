@@ -29,6 +29,14 @@ const StockAnalysis = () => {
     { label: 'All', value: 'All', description: 'All Time' }
   ];
 
+  // Initialize symbol from URL parameter on component mount
+  useEffect(() => {
+    if (urlSymbol && !symbol) {
+      // Initialize symbol from URL parameter on first load
+      setSymbol(urlSymbol.toUpperCase());
+    }
+  }, []); // Run only once on mount
+
   // Update symbol when URL parameter changes, but don't interfere with manual input
   useEffect(() => {
     if (urlSymbol && urlSymbol !== symbol && !inputSymbol.trim()) {
