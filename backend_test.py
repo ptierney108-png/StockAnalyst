@@ -3700,10 +3700,276 @@ class StockAnalysisAPITester:
         
         return issues
 
+    def test_dashboard_navigation_fix(self) -> bool:
+        """
+        TEST DASHBOARD NAVIGATION FIX AND DATA SOURCE TRANSPARENCY
+        
+        Tests the specific fixes mentioned in the review request:
+        1. Dashboard → Tech Analysis Navigation with URL parameter handling
+        2. Data Source Transparency with "📊 Simulated" labels
+        3. Enhanced header information showing data source breakdown
+        4. Backend API support for options_data_source and earnings_data_source fields
+        """
+        print(f"\n🎯 TESTING DASHBOARD NAVIGATION FIX AND DATA SOURCE TRANSPARENCY")
+        print("=" * 80)
+        
+        all_passed = True
+        navigation_issues = []
+        
+        # Test symbols mentioned in review request
+        test_symbols = ["AAPL", "GOOGL", "MSFT"]
+        
+        # 1. Test Tech Analysis API with URL parameter simulation
+        print(f"\n📱 Testing Tech Analysis API for Dashboard Navigation Support")
+        for symbol in test_symbols:
+            try:
+                # Simulate navigation from dashboard with URL parameter
+                payload = {"symbol": symbol, "timeframe": "3M"}  # Default changed to 3M
+                start_time = time.time()
+                
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                response_time = time.time() - start_time
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Validate URL parameter handling support
+                    url_param_issues = self.validate_url_parameter_support(data, symbol)
+                    if url_param_issues:
+                        navigation_issues.extend(url_param_issues)
+                        all_passed = False
+                        self.log_test(f"URL Parameter Support ({symbol})", False, 
+                                    f"Issues: {url_param_issues}", True)
+                    else:
+                        self.log_test(f"URL Parameter Support ({symbol})", True, 
+                                    f"API supports dashboard navigation in {response_time:.2f}s")
+                    
+                    # Log console-like information for debugging
+                    print(f"  🔍 {symbol}: Symbol set from URL parameter, response time: {response_time:.2f}s")
+                    
+                else:
+                    self.log_test(f"Dashboard Navigation API ({symbol})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    navigation_issues.append(f"{symbol} API call failed: {response.status_code}")
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Dashboard Navigation Test ({symbol})", False, f"Error: {str(e)}", True)
+                navigation_issues.append(f"{symbol} test failed: {str(e)}")
+                all_passed = False
+        
+        # 2. Test Stock Screener for Data Source Transparency
+        print(f"\n📊 Testing Stock Screener for Data Source Transparency")
+        try:
+            screener_filters = {
+                "price_filter": {"type": "under", "under": 500},
+                "dmi_filter": {"min": 20, "max": 60},
+                "ppo_slope_filter": {"threshold": 5}
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=screener_filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Validate data source transparency in screener
+                transparency_issues = self.validate_data_source_transparency_screener(data)
+                if transparency_issues:
+                    navigation_issues.extend(transparency_issues)
+                    all_passed = False
+                    self.log_test("Data Source Transparency", False, 
+                                f"Issues: {transparency_issues}", True)
+                else:
+                    self.log_test("Data Source Transparency", True, 
+                                "Clear data source indicators present")
+                
+                # Check for enhanced header information
+                header_info_issues = self.validate_enhanced_header_info(data)
+                if header_info_issues:
+                    navigation_issues.extend(header_info_issues)
+                    all_passed = False
+                    self.log_test("Enhanced Header Information", False, 
+                                f"Issues: {header_info_issues}", True)
+                else:
+                    self.log_test("Enhanced Header Information", True, 
+                                "Data source breakdown clearly indicated")
+                
+            else:
+                self.log_test("Screener Data Source Test", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                navigation_issues.append(f"Screener API failed: {response.status_code}")
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Data Source Transparency Test", False, f"Error: {str(e)}", True)
+            navigation_issues.append(f"Data source transparency test failed: {str(e)}")
+            all_passed = False
+        
+        # 3. Test Individual Stock Analysis for Data Source Fields
+        print(f"\n🏷️ Testing Individual Stock Analysis for Data Source Fields")
+        for symbol in test_symbols:
+            try:
+                response = requests.get(f"{BACKEND_URL}/analyze/{symbol}", timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Check for new data source fields
+                    source_field_issues = self.validate_data_source_fields(data, symbol)
+                    if source_field_issues:
+                        navigation_issues.extend(source_field_issues)
+                        all_passed = False
+                        self.log_test(f"Data Source Fields ({symbol})", False, 
+                                    f"Issues: {source_field_issues}", True)
+                    else:
+                        self.log_test(f"Data Source Fields ({symbol})", True, 
+                                    "options_data_source and earnings_data_source fields present")
+                
+                else:
+                    self.log_test(f"Stock Analysis Data Source ({symbol})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    navigation_issues.append(f"{symbol} analysis failed: {response.status_code}")
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Data Source Fields Test ({symbol})", False, f"Error: {str(e)}", True)
+                navigation_issues.append(f"{symbol} data source fields test failed: {str(e)}")
+                all_passed = False
+        
+        # Summary of dashboard navigation and data source transparency testing
+        if navigation_issues:
+            print(f"\n🚨 DASHBOARD NAVIGATION AND DATA SOURCE ISSUES FOUND ({len(navigation_issues)}):")
+            for issue in navigation_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ Dashboard navigation fix and data source transparency working correctly")
+        
+        return all_passed
+
+    def validate_url_parameter_support(self, data: Dict[str, Any], symbol: str) -> List[str]:
+        """Validate that API supports URL parameter handling for dashboard navigation"""
+        issues = []
+        
+        # Check that symbol is properly handled
+        response_symbol = data.get("symbol", "").upper()
+        if response_symbol != symbol.upper():
+            issues.append(f"Symbol mismatch: expected {symbol}, got {response_symbol}")
+        
+        # Check that response includes all necessary data for immediate display
+        required_fields = ["current_price", "indicators", "chart_data", "ai_recommendation"]
+        for field in required_fields:
+            if field not in data or data[field] is None:
+                issues.append(f"Missing {field} for immediate display")
+        
+        # Check that technical indicators are calculated
+        indicators = data.get("indicators", {})
+        if not indicators:
+            issues.append("No technical indicators calculated")
+        else:
+            # Check key indicators needed for tech analysis
+            key_indicators = ["ppo", "rsi", "dmi_plus", "dmi_minus", "adx"]
+            for indicator in key_indicators:
+                if indicator not in indicators or indicators[indicator] is None:
+                    issues.append(f"Missing {indicator} indicator")
+        
+        return issues
+
+    def validate_data_source_transparency_screener(self, data: Dict[str, Any]) -> List[str]:
+        """Validate data source transparency in screener results"""
+        issues = []
+        
+        # Check for data source information in response
+        if "data_sources" not in data:
+            issues.append("Missing data_sources field in response")
+        
+        # Check individual stock data for source indicators
+        stocks = data.get("stocks", [])
+        if not stocks:
+            issues.append("No stocks in screener results to validate")
+            return issues
+        
+        # Check first few stocks for data source transparency
+        for i, stock in enumerate(stocks[:3]):
+            symbol = stock.get("symbol", f"Stock_{i}")
+            
+            # Check for options data source indication
+            if "options_data_source" in stock:
+                options_source = stock["options_data_source"]
+                if options_source == "simulated":
+                    # This is good - clear indication of simulated data
+                    pass
+                elif options_source == "real":
+                    # This is also good - clear indication of real data
+                    pass
+                else:
+                    issues.append(f"{symbol}: Unclear options data source: {options_source}")
+            
+            # Check for earnings data source indication
+            if "earnings_data_source" in stock:
+                earnings_source = stock["earnings_data_source"]
+                if earnings_source not in ["simulated", "real"]:
+                    issues.append(f"{symbol}: Unclear earnings data source: {earnings_source}")
+        
+        return issues
+
+    def validate_enhanced_header_info(self, data: Dict[str, Any]) -> List[str]:
+        """Validate enhanced header information showing data source breakdown"""
+        issues = []
+        
+        # Check for enhanced data source breakdown
+        data_sources = data.get("data_sources", [])
+        if not data_sources:
+            issues.append("Missing data_sources array")
+        
+        # Check for specific data source notes
+        note = data.get("note", "")
+        if not note:
+            issues.append("Missing explanatory note about data sources")
+        elif "Alpha Vantage" not in note and "real" not in note.lower():
+            issues.append("Note doesn't clearly indicate real vs simulated data sources")
+        
+        # Check for data source count information
+        real_data_count = data.get("real_data_count")
+        if real_data_count is None:
+            issues.append("Missing real_data_count field")
+        
+        return issues
+
+    def validate_data_source_fields(self, data: Dict[str, Any], symbol: str) -> List[str]:
+        """Validate new data source fields in individual stock analysis"""
+        issues = []
+        
+        # Check for options_data_source field
+        if "options_data_source" not in data:
+            issues.append("Missing options_data_source field")
+        else:
+            options_source = data["options_data_source"]
+            if options_source not in ["simulated", "real", "alpha_vantage", "polygon", "yahoo_finance"]:
+                issues.append(f"Invalid options_data_source value: {options_source}")
+        
+        # Check for earnings_data_source field
+        if "earnings_data_source" not in data:
+            issues.append("Missing earnings_data_source field")
+        else:
+            earnings_source = data["earnings_data_source"]
+            if earnings_source not in ["simulated", "real", "alpha_vantage", "polygon", "yahoo_finance"]:
+                issues.append(f"Invalid earnings_data_source value: {earnings_source}")
+        
+        # Check that data source is clearly indicated in main response
+        main_data_source = data.get("data_source", "unknown")
+        if main_data_source == "unknown":
+            issues.append("Main data_source field is unknown")
+        
+        return issues
+
     def run_comprehensive_tests(self):
-        """Run all tests with priority on critical fixes verification"""
-    def run_comprehensive_tests(self):
-        """Run all tests with priority on critical fixes verification"""
+        """Run all tests with priority on dashboard navigation fix and data source transparency"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
         print("=" * 60)
         
@@ -3712,9 +3978,9 @@ class StockAnalysisAPITester:
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
         
-        # HIGHEST PRIORITY: Test the three critical user fixes from review request
-        print(f"\n🎯 HIGHEST PRIORITY: CRITICAL USER FIXES VERIFICATION")
-        critical_user_fixes_passed = self.test_critical_user_fixes()
+        # HIGHEST PRIORITY: Test Dashboard Navigation Fix and Data Source Transparency (Review Request Focus)
+        print(f"\n🎯 HIGHEST PRIORITY: DASHBOARD NAVIGATION FIX AND DATA SOURCE TRANSPARENCY")
+        self.test_dashboard_navigation_fix()
         
         # PRIORITY: Test Critical DMI+ Value Variation (Review Request Focus)
         print(f"\n🎯 PRIORITY: CRITICAL DMI+ VALUE VARIATION TEST")
