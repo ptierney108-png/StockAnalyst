@@ -3702,6 +3702,8 @@ class StockAnalysisAPITester:
 
     def run_comprehensive_tests(self):
         """Run all tests with priority on critical fixes verification"""
+    def run_comprehensive_tests(self):
+        """Run all tests with priority on critical fixes verification"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
         print("=" * 60)
         
@@ -3710,9 +3712,9 @@ class StockAnalysisAPITester:
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
         
-        # HIGHEST PRIORITY: Test the three critical fixes from review request
-        print(f"\n🎯 HIGHEST PRIORITY: CRITICAL FIXES VERIFICATION")
-        critical_fixes_passed = self.test_critical_fixes_verification()
+        # HIGHEST PRIORITY: Test the three critical user fixes from review request
+        print(f"\n🎯 HIGHEST PRIORITY: CRITICAL USER FIXES VERIFICATION")
+        critical_user_fixes_passed = self.test_critical_user_fixes()
         
         # PRIORITY: Test Critical DMI+ Value Variation (Review Request Focus)
         print(f"\n🎯 PRIORITY: CRITICAL DMI+ VALUE VARIATION TEST")
