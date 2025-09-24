@@ -772,15 +772,6 @@ const StockScreener = () => {
                         </span>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-right">
-                        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
-                          (stock.returns?.['1y'] || 0) >= 0 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {(stock.returns?.['1y'] || 0) >= 0 ? '+' : ''}{(stock.returns?.['1y'] || 0).toFixed(0)}%
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-right">
                         <div className="text-sm font-semibold text-gray-900">
                           {stock.dmi.toFixed(1)}
                         </div>
