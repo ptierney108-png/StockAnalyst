@@ -53,13 +53,20 @@ const StockAnalysis = () => {
   } = useQuery({
     queryKey: ['stock-analysis', symbol, selectedTimeframe],
     queryFn: () => api.getStockAnalysis(symbol, selectedTimeframe),
-    enabled: !!symbol && symbol.length >= 1, // More explicit check
+    enabled: Boolean(symbol && symbol.trim().length >= 1), // More explicit boolean check
     staleTime: 0, // Always consider data stale to ensure fresh fetches
     cacheTime: 300000, // 5 minutes cache
     refetchInterval: false,
     refetchOnWindowFocus: false,
     retry: 1, // Retry once on failure
     retryDelay: 1000, // 1 second delay between retries
+    // Add debug logging
+    onSuccess: (data) => {
+      console.log('✅ Stock analysis data loaded for:', symbol, data?.symbol);
+    },
+    onError: (error) => {
+      console.error('❌ Stock analysis error for:', symbol, error);
+    }
   });
 
   const handleAnalyze = () => {
