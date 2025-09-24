@@ -166,6 +166,18 @@ backend:
           agent: "main"
           comment: "Backend API endpoints tested successfully with 97.6% success rate. All technical indicators, AI recommendations, and sentiment analysis working properly with enhanced GPT-5 integration"
 
+  - task: "Multiple component demo data and chart issues fix"
+    implemented: false
+    working: false
+    file: "/app/frontend/src/pages/PointBasedDecision.js, /app/frontend/src/pages/Market.js, /app/frontend/src/pages/Portfolio.js, /app/frontend/src/pages/Watchlist.js, /app/frontend/src/components/StockAnalysis.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "User reported multiple issues: (1) Demo data still being used in Point Based Decision, Market, Portfolio and Watchlist pages, (2) PPO chart histogram value incorrect, (3) DMI component DMI PLUS value incorrect, (4) Default chart period should be 3 months instead of current setting."
+
 frontend:
   - task: "Technical Analysis routing and component"
     implemented: true
