@@ -1118,9 +1118,9 @@ class StockAnalysisAPITester:
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
         
-        # PRIORITY: Test Polygon API PPO Data Availability (Critical Bug Investigation)
-        print(f"\n🚨 CRITICAL BUG INVESTIGATION: Polygon API PPO Data Availability")
-        self.test_polygon_api_ppo_data_availability()
+        # PRIORITY: Test PPO Calculation Fix (Critical Bug Fix Verification)
+        print(f"\n🔧 CRITICAL BUG FIX VERIFICATION: PPO Calculation Fix")
+        self.test_ppo_calculation_fix()
         
         # Test Stock Screener Phase 3 endpoints (Priority)
         print(f"\n📊 Testing Stock Screener Phase 3 Implementation")
