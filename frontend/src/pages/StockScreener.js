@@ -293,11 +293,17 @@ const StockScreener = () => {
           {/* Data Source Indicator */}
           <div className="flex items-center space-x-4 text-sm text-gray-500">
             <span className="flex items-center space-x-1">
-              <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
-              <span>Data Source: Simulated Market Data</span>
+              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+              <span>Data Source: {dataSourceInfo ? (
+                dataSourceInfo.data_sources.includes('alpha_vantage') ? 'Alpha Vantage (Real Market Data)' : 'Mixed Sources'
+              ) : 'Real Market Data'}</span>
             </span>
-            <span>•</span>
-            <span>Realistic technical indicators and market behavior</span>
+            {dataSourceInfo && (
+              <>
+                <span>•</span>
+                <span>{dataSourceInfo.real_data_count}/{dataSourceInfo.total_scanned} stocks from real APIs</span>
+              </>
+            )}
           </div>
         </div>
 
