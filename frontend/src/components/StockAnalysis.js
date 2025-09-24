@@ -45,7 +45,7 @@ const StockAnalysis = () => {
     queryKey: ['stock-analysis', symbol, selectedTimeframe],
     queryFn: () => api.getStockAnalysis(symbol, selectedTimeframe),
     enabled: !!symbol,
-    staleTime: 300000, // 5 minutes - data is considered fresh for 5 minutes
+    staleTime: 60000, // 1 minute - reduced for better symbol switching experience
     cacheTime: 600000, // 10 minutes - keep in cache for 10 minutes
     refetchInterval: false, // Disable automatic refetching to reduce load
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
