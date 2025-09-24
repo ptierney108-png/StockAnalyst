@@ -13,24 +13,29 @@ const PointBasedDecision = () => {
   const convertToPointBasedAnalysis = (apiData) => {
     if (!apiData) return null;
 
+    // Safely extract data with fallbacks
+    const currentPrice = Number(apiData.current_price) || 0;
+    const indicators = apiData.indicators || {};
+    const fundamental = apiData.fundamental_data || {};
+
     return {
-      symbol: apiData.symbol,
-      currentPrice: apiData.current_price,
-      priceChange: apiData.price_change_percent,
-      peRatio: apiData.fundamental_data?.pe_ratio || 25.0,
-      rsi: apiData.indicators?.rsi || 50.0,
-      volume: apiData.volume,
-      sma20: apiData.indicators?.sma_20 || apiData.current_price,
-      sma50: apiData.indicators?.sma_50 || apiData.current_price,
-      sma200: apiData.indicators?.sma_200 || apiData.current_price,
-      marketCap: apiData.fundamental_data?.market_cap || 'N/A',
-      dividendYield: apiData.fundamental_data?.dividend_yield || 0,
+      symbol: apiData.symbol || 'N/A',
+      currentPrice: currentPrice,
+      priceChange: Number(apiData.price_change_percent) || 0,
+      peRatio: Number(fundamental.pe_ratio) || 25.0,
+      rsi: Number(indicators.rsi) || 50.0,
+      volume: Number(apiData.volume) || 1000000,
+      sma20: Number(indicators.sma_20) || currentPrice,
+      sma50: Number(indicators.sma_50) || currentPrice,
+      sma200: Number(indicators.sma_200) || currentPrice,
+      marketCap: fundamental.market_cap || 'N/A',
+      dividendYield: Number(fundamental.dividend_yield) || 0,
       timestamp: new Date().toISOString(),
       dataSource: apiData.data_source || 'alpha_vantage',
-      ppo: apiData.indicators?.ppo || 0,
-      adx: apiData.indicators?.adx || 25,
-      dmi_plus: apiData.indicators?.dmi_plus || 20,
-      dmi_minus: apiData.indicators?.dmi_minus || 15
+      ppo: Number(indicators.ppo) || 0,
+      adx: Number(indicators.adx) || 25,
+      dmi_plus: Number(indicators.dmi_plus) || 20,
+      dmi_minus: Number(indicators.dmi_minus) || 15
     };
   };
 
