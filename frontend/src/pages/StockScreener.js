@@ -638,23 +638,23 @@ const StockScreener = () => {
                       Volume Year
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                        onClick={() => handleSort('return1d')}>
+                        onClick={() => handleSort('returns.1d')}>
                       1D
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                        onClick={() => handleSort('return5d')}>
+                        onClick={() => handleSort('returns.5d')}>
                       5D
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                        onClick={() => handleSort('return2w')}>
+                        onClick={() => handleSort('returns.2w')}>
                       2W
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                        onClick={() => handleSort('return1m')}>
+                        onClick={() => handleSort('returns.1m')}>
                       1M
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                        onClick={() => handleSort('return1y')}>
+                        onClick={() => handleSort('returns.1y')}>
                       1Y
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
