@@ -914,14 +914,21 @@ def track_api_call(api_name: str) -> bool:
     import time
     current_time = time.time()
     
-    # Reset daily counters at midnight
-    if current_time - api_call_tracker[api_name]['reset_time'] > 86400:
-        api_call_tracker[api_name]['count'] = 0
-        api_call_tracker[api_name]['reset_time'] = current_time
+    # Reset counters based on API limits
+    if api_name == 'alpha_vantage':
+        # Paid plan: 75 calls per minute, reset every minute
+        if current_time - api_call_tracker[api_name]['reset_time'] > 60:
+            api_call_tracker[api_name]['count'] = 0
+            api_call_tracker[api_name]['reset_time'] = current_time
+    else:
+        # Reset daily counters for other APIs
+        if current_time - api_call_tracker[api_name]['reset_time'] > 86400:
+            api_call_tracker[api_name]['count'] = 0
+            api_call_tracker[api_name]['reset_time'] = current_time
     
     # Check limits (conservative to avoid hitting actual limits)
     limits = {
-        'alpha_vantage': 20,  # Conservative: 20/day instead of 25
+        'alpha_vantage': 70,  # Conservative: 70/minute instead of 75 (paid plan)
         'polygon_io': 4,      # Conservative: 4/minute instead of 5
         'yahoo_finance': 100  # Higher limit for Yahoo Finance
     }
