@@ -828,13 +828,13 @@ const StockScreener = () => {
                           {stock.optionable ? (
                             <>
                               <div className="text-xs">
-                                <span className="text-green-600 font-medium">C: {stock.callBid?.toFixed(2)}-{stock.callAsk?.toFixed(2)}</span>
+                                <span className="text-green-600 font-medium">C: {(stock.call_bid || 0).toFixed(2)}-{(stock.call_ask || 0).toFixed(2)}</span>
                               </div>
                               <div className="text-xs">
-                                <span className="text-red-600 font-medium">P: {stock.putBid?.toFixed(2)}-{stock.putAsk?.toFixed(2)}</span>
+                                <span className="text-red-600 font-medium">P: {(stock.put_bid || 0).toFixed(2)}-{(stock.put_ask || 0).toFixed(2)}</span>
                               </div>
                               <div className="text-xs text-gray-500 font-medium">
-                                Exp: {stock.optionsExpiration || 'N/A'}
+                                Exp: {stock.options_expiration || 'N/A'}
                               </div>
                             </>
                           ) : (
