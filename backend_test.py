@@ -3225,6 +3225,481 @@ class StockAnalysisAPITester:
             self.log_test(f"Individual Analysis ({symbol})", False, f"Error: {str(e)}", True)
             return False
 
+    def test_critical_user_fixes(self) -> bool:
+        """
+        TEST ALL CRITICAL USER FIXES: Verify the three major issues reported by user are resolved
+        
+        **USER ISSUES TO VALIDATE:**
+        1. **Tech Analysis Button Issue**: Stock entered doesn't return results, no error message, but refresh works - should now work immediately
+        2. **Scanner UI Offset Issues**: PPO field and columns misaligned, PPO field not populating correctly - should now display properly
+        3. **Stock Universe Limitation**: Only 20 stocks hardcoded - should now scan broader market (65+ stocks across multiple sectors)
+        
+        **FIXES IMPLEMENTED:**
+        1. **Tech Analysis Button**: Added async function with setTimeout for state update, better logging, forced refetch sequence
+        2. **PPO Column Fix**: Updated property names from `ppoValues` to `ppo_values` in frontend to match backend snake_case
+        3. **Stock Universe Expansion**: Expanded from 20 stocks to 65+ stocks across 9 sectors
+        """
+        print(f"\n🎯 TESTING CRITICAL USER FIXES")
+        print("=" * 70)
+        print("Testing three major user-reported issues:")
+        print("1. Tech Analysis Button Issue - immediate results without refresh")
+        print("2. Scanner UI Offset Issues - PPO field alignment and population")
+        print("3. Stock Universe Limitation - 65+ stocks across multiple sectors")
+        print("=" * 70)
+        
+        all_passed = True
+        critical_issues = []
+        
+        # 1. Test Tech Analysis Button Fix - Individual Stock Analysis
+        print(f"\n🔍 TEST 1: TECH ANALYSIS BUTTON FIX")
+        print("-" * 50)
+        analysis_button_passed = self.test_analysis_button_fix()
+        if not analysis_button_passed:
+            all_passed = False
+            critical_issues.append("Tech Analysis Button still not working immediately")
+        
+        # 2. Test PPO Data Structure and Column Alignment
+        print(f"\n📊 TEST 2: PPO COLUMN FIX AND DATA STRUCTURE")
+        print("-" * 50)
+        ppo_structure_passed = self.test_ppo_data_structure_fix()
+        if not ppo_structure_passed:
+            all_passed = False
+            critical_issues.append("PPO data structure and column alignment issues persist")
+        
+        # 3. Test Stock Universe Expansion
+        print(f"\n🌐 TEST 3: STOCK UNIVERSE EXPANSION")
+        print("-" * 50)
+        universe_expansion_passed = self.test_stock_universe_expansion()
+        if not universe_expansion_passed:
+            all_passed = False
+            critical_issues.append("Stock universe still limited to 20 stocks")
+        
+        # 4. Test Sector Diversity
+        print(f"\n🏢 TEST 4: SECTOR DIVERSITY VERIFICATION")
+        print("-" * 50)
+        sector_diversity_passed = self.test_sector_diversity()
+        if not sector_diversity_passed:
+            all_passed = False
+            critical_issues.append("Sector diversity not achieved - still Technology-heavy")
+        
+        # Summary of critical fixes testing
+        if critical_issues:
+            print(f"\n🚨 CRITICAL USER FIXES - ISSUES FOUND ({len(critical_issues)}):")
+            for issue in critical_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ ALL CRITICAL USER FIXES VALIDATED SUCCESSFULLY")
+        
+        return all_passed
+    
+    def test_analysis_button_fix(self) -> bool:
+        """Test individual stock analysis to verify immediate results without refresh requirement"""
+        all_passed = True
+        test_symbols = ["AAPL", "GOOGL", "MSFT", "TSLA"]
+        
+        print("Testing individual stock analysis for immediate results...")
+        
+        for symbol in test_symbols:
+            try:
+                # Test the analyze endpoint that the frontend button calls
+                payload = {"symbol": symbol, "timeframe": "3M"}  # Default timeframe
+                start_time = time.time()
+                
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                response_time = time.time() - start_time
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Validate that we get immediate, complete results
+                    analysis_issues = self.validate_immediate_analysis_results(data, symbol, response_time)
+                    
+                    if analysis_issues:
+                        self.log_test(f"Analysis Button Fix ({symbol})", False, 
+                                    f"Issues: {analysis_issues}", True)
+                        all_passed = False
+                    else:
+                        self.log_test(f"Analysis Button Fix ({symbol})", True, 
+                                    f"Immediate results in {response_time:.2f}s")
+                        
+                        # Log key metrics for verification
+                        current_price = data.get("current_price", 0)
+                        indicators = data.get("indicators", {})
+                        ppo = indicators.get("ppo", 0)
+                        chart_data_count = len(data.get("chart_data", []))
+                        data_source = data.get("data_source", "unknown")
+                        
+                        print(f"  ✅ {symbol}: Price=${current_price:.2f}, PPO={ppo:.4f}, Data points={chart_data_count}, Source={data_source}")
+                        
+                else:
+                    self.log_test(f"Analysis Button API ({symbol})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Analysis Button Test ({symbol})", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        return all_passed
+    
+    def validate_immediate_analysis_results(self, data: Dict[str, Any], symbol: str, response_time: float) -> List[str]:
+        """Validate that analysis results are complete and immediate"""
+        issues = []
+        
+        # Check response time (should be reasonable for immediate results)
+        if response_time > 20:  # More than 20 seconds is too slow for immediate results
+            issues.append(f"Response too slow: {response_time:.2f}s")
+        
+        # Check that all required data is present (no missing fields that would require refresh)
+        required_fields = ["symbol", "current_price", "indicators", "ppo_history", "dmi_history", 
+                          "ai_recommendation", "chart_data"]
+        
+        for field in required_fields:
+            if field not in data or data[field] is None:
+                issues.append(f"Missing {field} - would require refresh")
+        
+        # Check that technical indicators are calculated
+        indicators = data.get("indicators", {})
+        if not indicators:
+            issues.append("No technical indicators - would require refresh")
+        else:
+            # Check key indicators that should be immediately available
+            key_indicators = ["ppo", "ppo_signal", "ppo_histogram", "rsi", "adx"]
+            for indicator in key_indicators:
+                if indicators.get(indicator) is None:
+                    issues.append(f"Missing {indicator} indicator")
+        
+        # Check that chart data is populated
+        chart_data = data.get("chart_data", [])
+        if not chart_data or len(chart_data) < 10:
+            issues.append("Insufficient chart data - would require refresh")
+        
+        # Check that AI recommendations are present
+        ai_rec = data.get("ai_recommendation")
+        if not ai_rec or ai_rec == "":
+            issues.append("Missing AI recommendation - would require refresh")
+        
+        return issues
+    
+    def test_ppo_data_structure_fix(self) -> bool:
+        """Test PPO 3-day values display correctly in screener results with proper alignment"""
+        all_passed = True
+        
+        print("Testing PPO data structure and 3-day historical values...")
+        
+        try:
+            # Test screener endpoint for PPO data structure
+            screener_filters = {
+                "price_filter": {"type": "under", "under": 500},
+                "dmi_filter": {"min": 15, "max": 65},
+                "ppo_slope_filter": {"threshold": 1},
+                "sector_filter": "all"
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=screener_filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                stocks = data.get("stocks", [])
+                
+                if not stocks:
+                    self.log_test("PPO Data Structure", False, "No stocks returned from screener", True)
+                    return False
+                
+                # Test PPO data structure in first few stocks
+                ppo_structure_issues = []
+                
+                for i, stock in enumerate(stocks[:5]):  # Test first 5 stocks
+                    symbol = stock.get("symbol", f"Stock_{i}")
+                    
+                    # Check for snake_case property names (fix for camelCase issue)
+                    ppo_structure_issues.extend(self.validate_ppo_property_names(stock, symbol))
+                    
+                    # Check PPO 3-day historical data structure
+                    ppo_structure_issues.extend(self.validate_ppo_3day_structure(stock, symbol))
+                    
+                    # Check PPO values are realistic (not all zeros or identical)
+                    ppo_structure_issues.extend(self.validate_ppo_value_diversity(stock, symbol))
+                
+                if ppo_structure_issues:
+                    self.log_test("PPO Data Structure Fix", False, 
+                                f"Structure issues: {ppo_structure_issues}", True)
+                    all_passed = False
+                else:
+                    self.log_test("PPO Data Structure Fix", True, 
+                                f"PPO structure correct for {len(stocks)} stocks")
+                    
+                    # Log sample PPO data for verification
+                    if stocks:
+                        sample_stock = stocks[0]
+                        ppo_values = sample_stock.get("ppo_values", [])
+                        ppo_slope = sample_stock.get("ppo_slope_percentage", 0)
+                        print(f"  ✅ Sample PPO data: {sample_stock.get('symbol')} - Values={ppo_values}, Slope={ppo_slope:.2f}%")
+                
+            else:
+                self.log_test("PPO Structure API Test", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("PPO Data Structure Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+    
+    def validate_ppo_property_names(self, stock: Dict[str, Any], symbol: str) -> List[str]:
+        """Validate that PPO properties use snake_case (fix for camelCase issue)"""
+        issues = []
+        
+        # Check for correct snake_case property names
+        required_snake_case_props = [
+            "ppo_values", "ppo_slope_percentage", "di_plus", "di_minus"
+        ]
+        
+        for prop in required_snake_case_props:
+            if prop not in stock:
+                issues.append(f"{symbol}: Missing snake_case property '{prop}'")
+        
+        # Check that old camelCase properties are NOT present (should be fixed)
+        old_camel_case_props = [
+            "ppoValues", "ppoSlope", "diPlus", "diMinus"
+        ]
+        
+        for prop in old_camel_case_props:
+            if prop in stock:
+                issues.append(f"{symbol}: Old camelCase property '{prop}' still present")
+        
+        return issues
+    
+    def validate_ppo_3day_structure(self, stock: Dict[str, Any], symbol: str) -> List[str]:
+        """Validate PPO 3-day historical data structure"""
+        issues = []
+        
+        ppo_values = stock.get("ppo_values", [])
+        
+        if not isinstance(ppo_values, list):
+            issues.append(f"{symbol}: ppo_values is not a list")
+            return issues
+        
+        if len(ppo_values) != 3:
+            issues.append(f"{symbol}: Expected 3 PPO values, got {len(ppo_values)}")
+            return issues
+        
+        # Check that values are numbers and not all identical
+        for i, value in enumerate(ppo_values):
+            if not isinstance(value, (int, float)):
+                issues.append(f"{symbol}: PPO value {i} is not numeric: {value}")
+        
+        # Check for proper [Today, Yesterday, 2 Days Ago] format
+        # Values should be different (not repeated single-day data)
+        if len(set(ppo_values)) == 1:  # All values are identical
+            issues.append(f"{symbol}: All PPO values identical {ppo_values} - not proper 3-day history")
+        
+        return issues
+    
+    def validate_ppo_value_diversity(self, stock: Dict[str, Any], symbol: str) -> List[str]:
+        """Validate that PPO values show proper diversity (not all zeros or unrealistic)"""
+        issues = []
+        
+        ppo_values = stock.get("ppo_values", [])
+        ppo_slope = stock.get("ppo_slope_percentage", 0)
+        
+        # Check for all-zero PPO values (indicates calculation failure)
+        if all(val == 0 for val in ppo_values):
+            issues.append(f"{symbol}: All PPO values are zero - calculation may have failed")
+        
+        # Check for unrealistic PPO slope values
+        if abs(ppo_slope) > 1000:  # Unreasonably high slope
+            issues.append(f"{symbol}: Unrealistic PPO slope: {ppo_slope}%")
+        
+        # Check that PPO values are within reasonable range
+        for i, value in enumerate(ppo_values):
+            if isinstance(value, (int, float)) and abs(value) > 100:
+                issues.append(f"{symbol}: PPO value {i} outside reasonable range: {value}")
+        
+        return issues
+    
+    def test_stock_universe_expansion(self) -> bool:
+        """Test that screener now processes 65+ stocks instead of hardcoded 20"""
+        all_passed = True
+        
+        print("Testing stock universe expansion to 65+ stocks...")
+        
+        try:
+            # Test with broad filters to capture maximum stock universe
+            broad_filters = {
+                "price_filter": {"type": "under", "under": 1000},  # Very broad price filter
+                "dmi_filter": {"min": 0, "max": 100},              # Very broad DMI filter
+                "ppo_slope_filter": {"threshold": 0},              # Very broad PPO filter
+                "sector_filter": "all"
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=broad_filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                total_scanned = data.get("total_scanned", 0)
+                results_found = data.get("results_found", 0)
+                stocks = data.get("stocks", [])
+                
+                # Validate stock universe expansion
+                universe_issues = self.validate_stock_universe_size(data, total_scanned, results_found)
+                
+                if universe_issues:
+                    self.log_test("Stock Universe Expansion", False, 
+                                f"Universe issues: {universe_issues}", True)
+                    all_passed = False
+                else:
+                    self.log_test("Stock Universe Expansion", True, 
+                                f"Scanned {total_scanned} stocks, found {results_found} results")
+                    
+                    print(f"  ✅ Stock Universe: Total scanned={total_scanned}, Results={results_found}")
+                    
+                    # Log sample of stock symbols to verify diversity
+                    if stocks:
+                        sample_symbols = [stock.get("symbol", "N/A") for stock in stocks[:10]]
+                        print(f"  📊 Sample symbols: {', '.join(sample_symbols)}")
+                
+            else:
+                self.log_test("Universe Expansion API Test", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Stock Universe Expansion Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+    
+    def validate_stock_universe_size(self, data: Dict[str, Any], total_scanned: int, results_found: int) -> List[str]:
+        """Validate that stock universe has been expanded beyond 20 stocks"""
+        issues = []
+        
+        # Check total scanned stocks (should be 65+ now)
+        if total_scanned < 65:
+            issues.append(f"Total scanned stocks ({total_scanned}) still below 65 - universe not expanded")
+        elif total_scanned == 20:
+            issues.append("Total scanned stocks is exactly 20 - still using old hardcoded limit")
+        
+        # Check that we have reasonable results
+        if results_found == 0:
+            issues.append("No results found with broad filters - possible filtering issue")
+        
+        # Check for data source transparency
+        data_sources = data.get("data_sources", [])
+        if not data_sources:
+            issues.append("Missing data_sources field - transparency not implemented")
+        
+        # Check for real data count
+        real_data_count = data.get("real_data_count", 0)
+        if real_data_count < 65:
+            issues.append(f"Real data count ({real_data_count}) below expected 65+ stocks")
+        
+        return issues
+    
+    def test_sector_diversity(self) -> bool:
+        """Test that stocks span multiple sectors (not just Technology-heavy)"""
+        all_passed = True
+        
+        print("Testing sector diversity across multiple sectors...")
+        
+        try:
+            # Test with filters that should return diverse sectors
+            diverse_filters = {
+                "price_filter": {"type": "under", "under": 500},
+                "dmi_filter": {"min": 10, "max": 80},
+                "ppo_slope_filter": {"threshold": 1},
+                "sector_filter": "all"  # All sectors
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=diverse_filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                stocks = data.get("stocks", [])
+                
+                if not stocks:
+                    self.log_test("Sector Diversity", False, "No stocks returned for diversity test", True)
+                    return False
+                
+                # Analyze sector diversity
+                diversity_issues = self.validate_sector_diversity(stocks)
+                
+                if diversity_issues:
+                    self.log_test("Sector Diversity", False, 
+                                f"Diversity issues: {diversity_issues}", True)
+                    all_passed = False
+                else:
+                    # Count sectors represented
+                    sectors = {}
+                    for stock in stocks:
+                        sector = stock.get("sector", "Unknown")
+                        sectors[sector] = sectors.get(sector, 0) + 1
+                    
+                    self.log_test("Sector Diversity", True, 
+                                f"Found {len(sectors)} sectors across {len(stocks)} stocks")
+                    
+                    print(f"  🏢 Sector breakdown:")
+                    for sector, count in sorted(sectors.items()):
+                        print(f"    • {sector}: {count} stocks")
+                
+            else:
+                self.log_test("Sector Diversity API Test", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Sector Diversity Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+    
+    def validate_sector_diversity(self, stocks: List[Dict[str, Any]]) -> List[str]:
+        """Validate that stocks represent multiple sectors"""
+        issues = []
+        
+        # Count sectors
+        sectors = {}
+        for stock in stocks:
+            sector = stock.get("sector", "Unknown")
+            sectors[sector] = sectors.get(sector, 0) + 1
+        
+        # Check for minimum sector diversity (should have at least 5 different sectors)
+        if len(sectors) < 5:
+            issues.append(f"Only {len(sectors)} sectors represented - need more diversity")
+        
+        # Check that Technology is not overwhelming (should be <60% of total)
+        tech_count = sectors.get("Technology", 0)
+        total_stocks = len(stocks)
+        tech_percentage = (tech_count / total_stocks) * 100 if total_stocks > 0 else 0
+        
+        if tech_percentage > 60:
+            issues.append(f"Technology sector dominates with {tech_percentage:.1f}% - need more sector balance")
+        
+        # Check for expected sectors from the 9-sector expansion
+        expected_sectors = [
+            "Technology", "Healthcare", "Finance", "Energy", "Consumer Goods", 
+            "Industrial", "Communications", "Real Estate", "Materials"
+        ]
+        
+        missing_sectors = [sector for sector in expected_sectors if sector not in sectors]
+        if len(missing_sectors) > 5:  # Allow some missing, but not too many
+            issues.append(f"Many expected sectors missing: {missing_sectors[:3]}...")
+        
+        return issues
+
     def run_comprehensive_tests(self):
         """Run all tests with priority on critical fixes verification"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
