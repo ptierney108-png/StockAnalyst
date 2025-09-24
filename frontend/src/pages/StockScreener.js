@@ -838,6 +838,9 @@ const StockScreener = () => {
                               <div className="text-xs text-gray-500 font-medium">
                                 Exp: {stock.options_expiration || 'N/A'}
                               </div>
+                              <div className="text-xs text-orange-500 italic">
+                                📊 Simulated
+                              </div>
                             </>
                           ) : (
                             <div className="text-xs text-gray-400 italic">
