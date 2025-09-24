@@ -424,10 +424,10 @@ def generate_dmi_history(indicators: Dict[str, Any], chart_data: List[Dict]) -> 
         if i <= len(chart_data):
             # Use actual price data for DMI calculation
             subset_data = chart_data[:i] if i <= len(chart_data) else chart_data
-            if len(subset_data) >= 14:  # Minimum for DMI calculation
-                highs = [item["high"] for item in subset_data[-14:]]
-                lows = [item["low"] for item in subset_data[-14:]]
-                closes = [item["close"] for item in subset_data[-14:]]
+            if len(subset_data) >= 15:  # Need 15 points for 14-period DMI calculation
+                highs = [item["high"] for item in subset_data[-15:]]  # Take 15 points, not 14
+                lows = [item["low"] for item in subset_data[-15:]]    # Take 15 points, not 14
+                closes = [item["close"] for item in subset_data[-15:]]  # Take 15 points, not 14
                 dmi_result = calculate_dmi(highs, lows, closes, 14)
                 
                 dmi_history.append({
