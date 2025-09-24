@@ -191,17 +191,23 @@ const PointBasedDecision = () => {
     setError('');
     setLoading(true);
     setAnalysis(null);
+    setDataSource('');
 
     try {
-      // Simulate API delay for realistic experience
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Use real API to get stock data
+      const apiData = await api.getStockAnalysis(stockSymbol.toUpperCase(), '3M');
       
-      const metrics = generateFinancialMetrics(stockSymbol);
-      const analysisResult = calculateRecommendation(metrics);
-      
-      setAnalysis(analysisResult);
+      if (apiData) {
+        const metrics = convertToPointBasedAnalysis(apiData);
+        const analysisResult = calculateRecommendation(metrics);
+        setDataSource(apiData.data_source || 'alpha_vantage');
+        setAnalysis(analysisResult);
+      } else {
+        setError('No data found for this symbol. Please try another symbol.');
+      }
     } catch (err) {
-      setError('Analysis failed. Please try again.');
+      console.error('Analysis error:', err);
+      setError('Analysis failed. Please check the symbol and try again.');
     } finally {
       setLoading(false);
     }
