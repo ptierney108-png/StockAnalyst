@@ -599,20 +599,18 @@ const StockScreener = () => {
                   )}
                 </div>
                 
-                {/* Data Source Indicator for Screener */}
-                <div className="flex items-center space-x-4 text-sm text-gray-600 mt-2">
-                  <span className="flex items-center space-x-1">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    <span>Source: {dataSourceInfo ? (
-                      dataSourceInfo.data_sources.includes('alpha_vantage') ? 'Alpha Vantage (Real Data)' : 'Mixed Sources'
-                    ) : 'Real Market Data'}</span>
-                  </span>
-                  {dataSourceInfo && dataSourceInfo.note && (
-                    <>
-                      <span>•</span>
-                      <span>{dataSourceInfo.note}</span>
-                    </>
-                  )}
+                {/* Enhanced Data Source Information */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-yellow-700 font-semibold">📋 Data Sources:</span>
+                  </div>
+                  <div className="mt-2 text-sm text-yellow-700">
+                    <div>• <strong>Stock Prices & Technical Indicators:</strong> {dataSourceInfo ? (
+                      dataSourceInfo.data_sources.includes('alpha_vantage') ? 'Alpha Vantage (Real Market Data)' : 'Mixed Real Sources'
+                    ) : 'Real Market Data'}</div>
+                    <div>• <strong>Options Data:</strong> Simulated (70% of stocks have options data)</div>
+                    <div>• <strong>Earnings Data:</strong> Simulated (80% of stocks have earnings data)</div>
+                  </div>
                 </div>
                 <button 
                   onClick={exportResults}
