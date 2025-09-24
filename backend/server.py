@@ -2336,18 +2336,26 @@ async def screen_stocks(filters: ScreenerFilters):
                     if not (price_filter.get("min", 0) <= stock["price"] <= price_filter.get("max", 1000)):
                         continue
             
-            # DMI filter (20-60 range as specified)
+            # DMI filter (20-60 range as specified) - using ADX as the DMI strength indicator
             if filters.dmi_filter:
                 dmi_min = filters.dmi_filter.get("min", 20)
                 dmi_max = filters.dmi_filter.get("max", 60)
+                # Use ADX as the DMI strength indicator (standard practice)
                 if not (dmi_min <= stock["adx"] <= dmi_max):
+                    print(f"❌ {stock['symbol']} filtered out: ADX {stock['adx']:.1f} not in range {dmi_min}-{dmi_max}")
                     continue
+                else:
+                    print(f"✅ {stock['symbol']} DMI filter passed: ADX {stock['adx']:.1f} in range {dmi_min}-{dmi_max}")
             
-            # PPO slope filter (minimum 5% as specified)
+            # PPO slope filter (minimum 5% as specified) - must be positive slope above threshold
             if filters.ppo_slope_filter:
                 threshold = filters.ppo_slope_filter.get("threshold", 5)
-                if abs(stock["ppo_slope_percentage"]) < threshold:
+                ppo_slope = stock["ppo_slope_percentage"]
+                if ppo_slope < threshold:  # Only positive slopes above threshold pass
+                    print(f"❌ {stock['symbol']} filtered out: PPO slope {ppo_slope:.2f}% < {threshold}%")
                     continue
+                else:
+                    print(f"✅ {stock['symbol']} PPO slope filter passed: {ppo_slope:.2f}% >= {threshold}%")
             
             # Sector filter
             if filters.sector_filter and filters.sector_filter != "all":
