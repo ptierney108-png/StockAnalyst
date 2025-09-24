@@ -1600,7 +1600,9 @@ async def analyze_stock_get(symbol: str, timeframe: str = "1D"):
             "sentiment_score": sentiment_result["score"],
             "sentiment_summary": sentiment_result["summary"],
             "sentiment_details": sentiment_result.get("details", []),
-            "data_quality": data_quality_info
+            "data_quality": data_quality_info,
+            "data_source": analysis_data.get("data_source", "unknown"),
+            "response_time": analysis_data.get("response_time", 0)
         }
         
         # Add PPO calculation note if applicable  
