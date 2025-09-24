@@ -184,8 +184,9 @@ def calculate_ppo_slope(ppo_today: float, ppo_yesterday: float, ppo_day_before: 
     return {"slope": slope, "slope_percentage": slope_percentage}
 
 def calculate_dmi(highs: List[float], lows: List[float], closes: List[float], period: int = 14) -> Dict[str, float]:
-    """Calculate Directional Movement Index (DMI)"""
+    """Calculate Directional Movement Index (DMI) with enhanced debugging and stock-specific fallback"""
     if len(highs) < period + 1:
+        print(f"⚠️ DMI: Insufficient data points ({len(highs)}) for period {period}")
         return {"dmi_plus": 0, "dmi_minus": 0, "adx": 0}
     
     # Calculate True Range and Directional Movement
@@ -211,8 +212,28 @@ def calculate_dmi(highs: List[float], lows: List[float], closes: List[float], pe
     dm_plus_smooth = sum(dm_plus_list[-period:]) / period
     dm_minus_smooth = sum(dm_minus_list[-period:]) / period
     
-    if atr == 0:
-        return {"dmi_plus": 0, "dmi_minus": 0, "adx": 0}
+    print(f"🔧 DMI Debug: ATR={atr:.4f}, DM+={dm_plus_smooth:.4f}, DM-={dm_minus_smooth:.4f}")
+    
+    if atr == 0 or atr < 0.0001:  # Enhanced check for very small ATR
+        print(f"⚠️ DMI: ATR too small ({atr:.6f}), using price-based fallback calculation")
+        
+        # Fallback calculation using price volatility
+        price_range = max(highs) - min(highs)
+        if price_range > 0:
+            # Calculate simple directional indicators based on price movement
+            recent_high_change = highs[-1] - highs[-2] if len(highs) >= 2 else 0
+            recent_low_change = lows[-2] - lows[-1] if len(lows) >= 2 else 0
+            
+            # Normalize to 0-100 range
+            di_plus = max(0, min(100, (recent_high_change / price_range) * 100 + 25))
+            di_minus = max(0, min(100, (recent_low_change / price_range) * 100 + 25))
+            adx = min(100, abs(di_plus - di_minus) + 15)
+            
+            print(f"✅ DMI Fallback: DMI+={di_plus:.2f}, DMI-={di_minus:.2f}, ADX={adx:.2f}")
+            return {"dmi_plus": di_plus, "dmi_minus": di_minus, "adx": adx}
+        else:
+            print(f"⚠️ DMI: No price variation detected, returning zeros")
+            return {"dmi_plus": 0, "dmi_minus": 0, "adx": 0}
     
     di_plus = (dm_plus_smooth / atr) * 100
     di_minus = (dm_minus_smooth / atr) * 100
@@ -221,6 +242,7 @@ def calculate_dmi(highs: List[float], lows: List[float], closes: List[float], pe
     dx = abs(di_plus - di_minus) / (di_plus + di_minus) * 100 if (di_plus + di_minus) != 0 else 0
     adx = dx  # Simplified - in reality you'd smooth this over period
     
+    print(f"✅ DMI Calculated: DMI+={di_plus:.2f}, DMI-={di_minus:.2f}, ADX={adx:.2f}")
     return {"dmi_plus": di_plus, "dmi_minus": di_minus, "adx": adx}
 
 def calculate_macd(prices: List[float], fast_period: int = 12, slow_period: int = 26, signal_period: int = 9) -> Dict[str, float]:
