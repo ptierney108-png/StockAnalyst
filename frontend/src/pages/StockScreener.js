@@ -665,7 +665,7 @@ const StockScreener = () => {
                       PPO (3 Days)
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                        onClick={() => handleSort('ppoSlope')}>
+                        onClick={() => handleSort('ppo_slope_percentage')}>
                       PPO Slope
                     </th>
                     <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
