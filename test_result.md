@@ -170,13 +170,16 @@ backend:
     implemented: false
     working: false
     file: "/app/frontend/src/pages/PointBasedDecision.js, /app/frontend/src/pages/StockScreener.js, /app/frontend/src/components/StockAnalysis.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "critical"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "user"
           comment: "CRITICAL RUNTIME ERRORS: User reported multiple issues: (1) Scanner still showing simulated data message despite using real data, (2) Point Based Decision throws 'analysis.metrics.div.toFixed is not a function' TypeError preventing stock entry, (3) DMI component values for DMI+ do not update when different stocks are entered. These are blocking functionality issues that prevent normal usage."
+        - working: false
+          agent: "testing"
+          comment: "🚨 CRITICAL BUG CONFIRMED: Comprehensive testing validates the user-reported DMI+ value issue. FINDINGS: (1) DMI+ Value Variation Test: All tested stocks (AAPL, MSFT) return identical DMI+ values of 22.00, confirming the bug where 'DMI component values for DMI+ do not update when different stocks are entered' ❌ (2) Stock Analysis Scenario (AAPL->GOOGL): Could not complete due to API timeouts, but AAPL and MSFT both show DMI+ = 22.00 ❌ (3) Point Based Decision Scenario (AAPL->MSFT): FAILED - both stocks return identical DMI+ = 22.00 instead of different values ❌ (4) Backend API Response: APIs are functional but DMI+ calculation appears to be using static/cached values rather than stock-specific calculations ❌ ROOT CAUSE: The DMI+ calculation in the backend is not properly varying between different stock symbols, likely due to static fallback values or caching issues in the calculate_dmi() function. IMPACT: This prevents users from getting accurate technical analysis when switching between stocks, making the DMI component unreliable for investment decisions. RECOMMENDATION: Main agent must investigate and fix the DMI calculation logic in /app/backend/server.py to ensure stock-specific DMI+ values."
 
   - task: "Multiple component demo data and chart issues fix"
     implemented: true
