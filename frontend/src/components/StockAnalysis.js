@@ -29,21 +29,23 @@ const StockAnalysis = () => {
     { label: 'All', value: 'All', description: 'All Time' }
   ];
 
-  // Initialize symbol from URL parameter on component mount
+  // Initialize symbol from URL parameter on component mount - always set if URL has symbol
   useEffect(() => {
-    if (urlSymbol && !symbol) {
-      // Initialize symbol from URL parameter on first load
-      setSymbol(urlSymbol.toUpperCase());
+    console.log('🔄 URL Parameter Effect - urlSymbol:', urlSymbol, 'current symbol:', symbol);
+    if (urlSymbol) {
+      const upperSymbol = urlSymbol.toUpperCase();
+      console.log('📝 Setting symbol from URL:', upperSymbol);
+      setSymbol(upperSymbol);
     }
-  }, []); // Run only once on mount
+  }, [urlSymbol]); // Re-run when URL parameter changes
 
-  // Update symbol when URL parameter changes, but don't interfere with manual input
+  // Clear any conflicting input when symbol changes via URL
   useEffect(() => {
-    if (urlSymbol && urlSymbol !== symbol && !inputSymbol.trim()) {
-      // Only auto-update if user hasn't entered anything manually
-      setSymbol(urlSymbol.toUpperCase());
+    if (symbol && inputSymbol.trim() && symbol.toUpperCase() !== inputSymbol.toUpperCase()) {
+      console.log('🧹 Clearing input symbol due to URL change');
+      setInputSymbol('');
     }
-  }, [urlSymbol, symbol, inputSymbol]);
+  }, [symbol, inputSymbol]);
 
   const {
     data: analysisData,
