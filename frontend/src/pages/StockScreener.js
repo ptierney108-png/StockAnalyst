@@ -804,13 +804,13 @@ const StockScreener = () => {
                           return (
                             <div className="space-y-1">
                               <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
-                                stock.ppoSlope >= 0 
+                                (stock.ppo_slope_percentage || 0) >= 0 
                                   ? 'bg-blue-100 text-blue-800' 
                                   : 'bg-orange-100 text-orange-800'
                               }`}>
                                 {hook === 'positive' && <span className="mr-1">⭐</span>}
                                 {hook === 'negative' && <span className="mr-1">⚠️</span>}
-                                {stock.ppoSlope >= 0 ? '+' : ''}{stock.ppoSlope.toFixed(2)}%
+                                {(stock.ppo_slope_percentage || 0) >= 0 ? '+' : ''}{(stock.ppo_slope_percentage || 0).toFixed(2)}%
                               </span>
                               {hook && (
                                 <div className={`text-xs font-medium ${
