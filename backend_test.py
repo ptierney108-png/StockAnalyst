@@ -1137,8 +1137,8 @@ class StockAnalysisAPITester:
                 status_data = response.json()
                 
                 # Check if Alpha Vantage shows paid plan limits
-                alpha_vantage_status = status_data.get("alpha_vantage", {})
-                calls_per_minute = alpha_vantage_status.get("calls_per_minute", 0)
+                alpha_vantage_status = status_data.get("api_usage", {}).get("alpha_vantage", {})
+                calls_per_minute = alpha_vantage_status.get("limit", 0)
                 
                 if calls_per_minute == 70:
                     self.log_test("API Status - Alpha Vantage Limits", True, 
@@ -1150,9 +1150,10 @@ class StockAnalysisAPITester:
                     all_passed = False
                     
                 # Check current usage
-                current_usage = alpha_vantage_status.get("current_usage", 0)
+                current_usage = alpha_vantage_status.get("calls_made", 0)
+                plan_type = alpha_vantage_status.get("plan", "unknown")
                 self.log_test("API Status - Current Usage", True, 
-                            f"Current Alpha Vantage usage: {current_usage} calls")
+                            f"Alpha Vantage usage: {current_usage} calls, Plan: {plan_type}")
                 
             else:
                 self.log_test("API Status Endpoint", False, 
