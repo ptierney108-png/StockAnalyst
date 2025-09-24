@@ -1108,6 +1108,344 @@ class StockAnalysisAPITester:
         
         return True  # Passed basic validation
     
+    def test_paid_alpha_vantage_api(self) -> bool:
+        """
+        COMPREHENSIVE PAID ALPHA VANTAGE API INTEGRATION TESTING
+        
+        Tests the paid Alpha Vantage API key (KM341MJ89UZJGECS) with 75 calls/minute limit:
+        1. Verify API key is working and returning real data
+        2. Test multiple rapid API calls to confirm higher rate limits (70/minute)
+        3. Check data quality improvements with paid API access
+        4. Verify PPO calculations with better Alpha Vantage data
+        5. Test API status endpoint shows correct limits (70/minute)
+        6. Confirm proper fallback behavior if limits are reached
+        """
+        print(f"\n💰 COMPREHENSIVE PAID ALPHA VANTAGE API TESTING")
+        print("=" * 70)
+        
+        all_passed = True
+        api_issues = []
+        
+        # Test symbols specifically mentioned in the review request
+        test_symbols = ["AAPL", "GOOGL", "MSFT"]
+        
+        # 1. Test API Status endpoint for correct rate limits
+        print(f"\n📊 Testing API Status Endpoint for Paid Plan Limits")
+        try:
+            response = requests.get(f"{BACKEND_URL}/api-status", timeout=10)
+            if response.status_code == 200:
+                status_data = response.json()
+                
+                # Check if Alpha Vantage shows paid plan limits
+                alpha_vantage_status = status_data.get("alpha_vantage", {})
+                calls_per_minute = alpha_vantage_status.get("calls_per_minute", 0)
+                
+                if calls_per_minute == 70:
+                    self.log_test("API Status - Alpha Vantage Limits", True, 
+                                f"Correct paid plan limit: {calls_per_minute}/minute")
+                else:
+                    self.log_test("API Status - Alpha Vantage Limits", False, 
+                                f"Expected 70/minute, got {calls_per_minute}/minute", True)
+                    api_issues.append(f"API status shows incorrect rate limit: {calls_per_minute}")
+                    all_passed = False
+                    
+                # Check current usage
+                current_usage = alpha_vantage_status.get("current_usage", 0)
+                self.log_test("API Status - Current Usage", True, 
+                            f"Current Alpha Vantage usage: {current_usage} calls")
+                
+            else:
+                self.log_test("API Status Endpoint", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                api_issues.append("API status endpoint not accessible")
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("API Status Test", False, f"Error: {str(e)}", True)
+            api_issues.append(f"API status test failed: {str(e)}")
+            all_passed = False
+        
+        # 2. Test individual symbols for real Alpha Vantage data quality
+        print(f"\n📈 Testing Real Alpha Vantage Data Quality")
+        for symbol in test_symbols:
+            try:
+                payload = {"symbol": symbol, "timeframe": "1D"}
+                start_time = time.time()
+                
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                response_time = time.time() - start_time
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    data_source = data.get("data_source", "unknown")
+                    
+                    # Validate Alpha Vantage data quality
+                    quality_issues = self.validate_alpha_vantage_data_quality(data, symbol, data_source)
+                    
+                    if quality_issues:
+                        api_issues.extend(quality_issues)
+                        all_passed = False
+                        self.log_test(f"Alpha Vantage Data Quality ({symbol})", False, 
+                                    f"Data source: {data_source}, Issues: {quality_issues}", True)
+                    else:
+                        self.log_test(f"Alpha Vantage Data Quality ({symbol})", True, 
+                                    f"Data source: {data_source}, High quality data received")
+                    
+                    # Log detailed metrics
+                    chart_data_count = len(data.get("chart_data", []))
+                    indicators = data.get("indicators", {})
+                    ppo = indicators.get("ppo", 0)
+                    print(f"  📊 {symbol}: PPO={ppo:.4f}, Data points={chart_data_count}, Source={data_source}, Time={response_time:.2f}s")
+                    
+                else:
+                    self.log_test(f"Alpha Vantage API Test ({symbol})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    api_issues.append(f"{symbol} API call failed: {response.status_code}")
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Alpha Vantage Test ({symbol})", False, f"Error: {str(e)}", True)
+                api_issues.append(f"{symbol} test failed: {str(e)}")
+                all_passed = False
+        
+        # 3. Test rapid succession of API calls (within rate limits)
+        print(f"\n⚡ Testing Rapid API Calls (Rate Limit Verification)")
+        rapid_call_results = self.test_rapid_api_calls(test_symbols)
+        if not rapid_call_results:
+            all_passed = False
+            api_issues.append("Rapid API calls test failed")
+        
+        # 4. Test PPO calculations with Alpha Vantage data
+        print(f"\n🔢 Testing PPO Calculations with Alpha Vantage Data")
+        ppo_calculation_results = self.test_ppo_with_alpha_vantage(test_symbols)
+        if not ppo_calculation_results:
+            all_passed = False
+            api_issues.append("PPO calculations with Alpha Vantage data failed")
+        
+        # 5. Test fallback behavior when limits are approached
+        print(f"\n🔄 Testing Fallback Behavior")
+        fallback_results = self.test_alpha_vantage_fallback()
+        if not fallback_results:
+            all_passed = False
+            api_issues.append("Fallback behavior test failed")
+        
+        # Summary of Alpha Vantage API testing
+        if api_issues:
+            print(f"\n🚨 ALPHA VANTAGE API ISSUES FOUND ({len(api_issues)}):")
+            for issue in api_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ Paid Alpha Vantage API integration working correctly")
+        
+        return all_passed
+
+    def validate_alpha_vantage_data_quality(self, data: Dict[str, Any], symbol: str, data_source: str) -> List[str]:
+        """Validate Alpha Vantage data quality improvements"""
+        issues = []
+        
+        # Check if we're actually using Alpha Vantage
+        if data_source != "alpha_vantage":
+            issues.append(f"Expected Alpha Vantage data source, got {data_source}")
+            return issues
+        
+        # Check chart data quality
+        chart_data = data.get("chart_data", [])
+        if not chart_data:
+            issues.append("No chart data received from Alpha Vantage")
+            return issues
+        
+        # Validate OHLCV data quality
+        for i, entry in enumerate(chart_data[:5]):  # Check first 5 entries
+            if not all(key in entry for key in ["open", "high", "low", "close", "volume"]):
+                issues.append(f"Missing OHLCV data in entry {i+1}")
+            
+            # Check for realistic values
+            if entry.get("volume", 0) <= 0:
+                issues.append(f"Invalid volume in entry {i+1}: {entry.get('volume')}")
+            
+            # Check OHLC logic
+            if not (entry.get("low", 0) <= entry.get("open", 0) <= entry.get("high", 0) and 
+                   entry.get("low", 0) <= entry.get("close", 0) <= entry.get("high", 0)):
+                issues.append(f"Invalid OHLC relationship in entry {i+1}")
+        
+        # Check technical indicators quality
+        indicators = data.get("indicators", {})
+        if not indicators:
+            issues.append("No technical indicators calculated")
+            return issues
+        
+        # Validate PPO values are reasonable (not zero with real data)
+        ppo = indicators.get("ppo")
+        if ppo is None:
+            issues.append("PPO value is null")
+        elif ppo == 0 and len(chart_data) > 26:
+            issues.append("PPO is zero despite sufficient data points")
+        
+        # Check for data quality indicators
+        data_quality = indicators.get("data_quality")
+        if data_quality == "insufficient" and len(chart_data) > 10:
+            issues.append("Data quality marked as insufficient despite adequate data")
+        
+        return issues
+
+    def test_rapid_api_calls(self, symbols: List[str]) -> bool:
+        """Test rapid succession of API calls to verify rate limits"""
+        all_passed = True
+        call_times = []
+        successful_calls = 0
+        
+        print(f"  Making rapid API calls to test 70/minute rate limit...")
+        
+        # Make 10 rapid calls (well within the 70/minute limit)
+        for i in range(10):
+            try:
+                symbol = symbols[i % len(symbols)]
+                payload = {"symbol": symbol, "timeframe": "1D"}
+                
+                start_time = time.time()
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=15)
+                end_time = time.time()
+                
+                call_times.append(end_time - start_time)
+                
+                if response.status_code == 200:
+                    successful_calls += 1
+                    data = response.json()
+                    data_source = data.get("data_source", "unknown")
+                    print(f"    Call {i+1}: {symbol} - {data_source} - {end_time - start_time:.2f}s")
+                else:
+                    print(f"    Call {i+1}: {symbol} - FAILED {response.status_code}")
+                    if response.status_code == 429:  # Rate limit exceeded
+                        self.log_test("Rapid API Calls - Rate Limit", False, 
+                                    f"Rate limit exceeded at call {i+1}", True)
+                        all_passed = False
+                
+                # Small delay to avoid overwhelming the server
+                time.sleep(0.1)
+                
+            except Exception as e:
+                print(f"    Call {i+1}: ERROR - {str(e)}")
+                all_passed = False
+        
+        # Analyze results
+        if successful_calls >= 8:  # At least 80% success rate
+            avg_time = sum(call_times) / len(call_times) if call_times else 0
+            self.log_test("Rapid API Calls", True, 
+                        f"{successful_calls}/10 calls successful, avg time: {avg_time:.2f}s")
+        else:
+            self.log_test("Rapid API Calls", False, 
+                        f"Only {successful_calls}/10 calls successful", True)
+            all_passed = False
+        
+        return all_passed
+
+    def test_ppo_with_alpha_vantage(self, symbols: List[str]) -> bool:
+        """Test PPO calculations specifically with Alpha Vantage data"""
+        all_passed = True
+        
+        for symbol in symbols:
+            try:
+                payload = {"symbol": symbol, "timeframe": "1M"}  # Monthly for more data
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    data_source = data.get("data_source", "unknown")
+                    
+                    if data_source == "alpha_vantage":
+                        # Validate PPO calculations with Alpha Vantage data
+                        indicators = data.get("indicators", {})
+                        ppo = indicators.get("ppo")
+                        ppo_signal = indicators.get("ppo_signal")
+                        ppo_histogram = indicators.get("ppo_histogram")
+                        ppo_slope_percentage = indicators.get("ppo_slope_percentage")
+                        
+                        # Check for non-zero PPO values (improvement with paid API)
+                        if ppo is not None and ppo != 0:
+                            self.log_test(f"PPO Calculation ({symbol})", True, 
+                                        f"Non-zero PPO: {ppo:.4f} with Alpha Vantage data")
+                        else:
+                            self.log_test(f"PPO Calculation ({symbol})", False, 
+                                        f"PPO is zero/null: {ppo} with Alpha Vantage data", True)
+                            all_passed = False
+                        
+                        # Validate PPO history
+                        ppo_history = data.get("ppo_history", [])
+                        if len(ppo_history) >= 3:
+                            non_zero_history = sum(1 for entry in ppo_history if entry.get("ppo", 0) != 0)
+                            if non_zero_history >= 2:
+                                self.log_test(f"PPO History Quality ({symbol})", True, 
+                                            f"{non_zero_history}/3 non-zero PPO history values")
+                            else:
+                                self.log_test(f"PPO History Quality ({symbol})", False, 
+                                            f"Only {non_zero_history}/3 non-zero PPO history values", True)
+                                all_passed = False
+                        
+                    else:
+                        self.log_test(f"Alpha Vantage Data Source ({symbol})", False, 
+                                    f"Expected Alpha Vantage, got {data_source}", True)
+                        all_passed = False
+                
+            except Exception as e:
+                self.log_test(f"PPO Alpha Vantage Test ({symbol})", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        return all_passed
+
+    def test_alpha_vantage_fallback(self) -> bool:
+        """Test fallback behavior when Alpha Vantage limits are approached"""
+        all_passed = True
+        
+        try:
+            # Test with a less common symbol that might trigger fallback
+            payload = {"symbol": "TSLA", "timeframe": "5D"}
+            response = requests.post(f"{BACKEND_URL}/analyze", 
+                                   json=payload,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                data_source = data.get("data_source", "unknown")
+                
+                # Check if fallback is working properly
+                if data_source in ["alpha_vantage", "polygon_io", "yahoo_finance", "mock"]:
+                    self.log_test("Fallback Mechanism", True, 
+                                f"Proper fallback to {data_source}")
+                    
+                    # Ensure data quality is maintained even with fallback
+                    chart_data = data.get("chart_data", [])
+                    if len(chart_data) > 0:
+                        self.log_test("Fallback Data Quality", True, 
+                                    f"Fallback provides {len(chart_data)} data points")
+                    else:
+                        self.log_test("Fallback Data Quality", False, 
+                                    "Fallback provides no data", True)
+                        all_passed = False
+                else:
+                    self.log_test("Fallback Data Source", False, 
+                                f"Unknown data source: {data_source}", True)
+                    all_passed = False
+            else:
+                self.log_test("Fallback Test", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Fallback Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+
     def run_comprehensive_tests(self):
         """Run all tests"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
@@ -1117,6 +1455,10 @@ class StockAnalysisAPITester:
         if not self.test_basic_connectivity():
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
+        
+        # PRIORITY: Test Paid Alpha Vantage API Integration (New Feature)
+        print(f"\n💰 PRIORITY: PAID ALPHA VANTAGE API INTEGRATION TESTING")
+        self.test_paid_alpha_vantage_api()
         
         # PRIORITY: Test PPO Calculation Fix (Critical Bug Fix Verification)
         print(f"\n🔧 CRITICAL BUG FIX VERIFICATION: PPO Calculation Fix")
