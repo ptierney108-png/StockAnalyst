@@ -234,14 +234,24 @@ const StockScreener = () => {
         earningsFilter
       };
 
-      // Generate filtered stocks using sophisticated data generator
-      const filteredStocks = StockDataGenerator.generateFilteredStocks(filterCriteria);
+      // Call backend API for screening with real Alpha Vantage data
+      const response = await api.screenStocks(filterCriteria);
       
-      setScanProgress(100);
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      setResults(filteredStocks);
-      setLastScanTime(Date.now() - startTime);
+      if (response && response.stocks) {
+        setScanProgress(100);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        setResults(response.stocks);
+        setLastScanTime(Date.now() - startTime);
+        setDataSourceInfo({
+          total_scanned: response.total_scanned || 0,
+          real_data_count: response.real_data_count || 0,
+          data_sources: response.data_sources || ['unknown'],
+          note: response.note || 'Data source information not available'
+        });
+      } else {
+        throw new Error('Invalid response from screening API');
+      }
       
     } catch (error) {
       console.error('Screening error:', error);
