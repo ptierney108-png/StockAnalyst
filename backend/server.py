@@ -223,35 +223,100 @@ def calculate_macd(prices: List[float], fast_period: int = 12, slow_period: int 
     return {"macd": macd, "signal": signal, "histogram": histogram}
 
 def calculate_technical_indicators(prices: List[float], timeframe: str = "1D") -> Dict[str, Any]:
-    """Calculate comprehensive technical indicators for different timeframes"""
-    if len(prices) < 20:
+    """Calculate comprehensive technical indicators for different timeframes with robust fallback handling"""
+    
+    # Determine minimum data requirements and fallback strategies
+    min_required_points = 26  # Standard PPO requirement (26-period EMA)
+    
+    if len(prices) < 5:
+        # Insufficient data for any meaningful calculation - return zeros
+        print(f"⚠️ Insufficient data points ({len(prices)}) for technical indicators - returning zero values")
         return {
-            "ppo_values": [0] * len(prices),
+            "ppo_values": [0] * max(len(prices), 3),  # Ensure at least 3 values for history
             "rsi": 50,
             "macd": 0,
             "sma_20": prices[-1] if prices else 0,
             "sma_50": prices[-1] if prices else 0,
-            "sma_200": prices[-1] if prices else 0
+            "sma_200": prices[-1] if prices else 0,
+            "data_quality": "insufficient",
+            "fallback_reason": f"Only {len(prices)} data points available (need 5+)"
         }
     
-    # Calculate PPO values for the entire series
-    ppo_values = []
-    for i in range(len(prices)):
-        if i < 26:  # Need at least 26 periods for PPO
-            ppo_values.append(0)
-        else:
-            subset_prices = prices[:i+1]
-            ppo_data = calculate_ppo(subset_prices)
-            ppo_values.append(ppo_data["ppo"])
+    # Adaptive PPO calculation based on available data
+    if len(prices) < min_required_points:
+        print(f"⚠️ Limited data points ({len(prices)}) for standard PPO - using adaptive calculation")
+        
+        # Use shorter periods for limited data (industry best practice)
+        adaptive_fast = min(5, len(prices) // 3)  # Adaptive fast period 
+        adaptive_slow = min(10, len(prices) // 2)  # Adaptive slow period
+        
+        # Ensure we have enough data for adaptive periods
+        adaptive_fast = max(2, adaptive_fast)
+        adaptive_slow = max(adaptive_fast + 1, adaptive_slow)
+        
+        print(f"📊 Using adaptive PPO periods: fast={adaptive_fast}, slow={adaptive_slow} instead of 12/26")
+        
+        # Calculate adaptive PPO values
+        ppo_values = []
+        for i in range(len(prices)):
+            if i < adaptive_slow:
+                # Use simple percentage change for early values
+                if i > 0:
+                    ppo_val = ((prices[i] - prices[0]) / prices[0]) * 100
+                else:
+                    ppo_val = 0
+            else:
+                subset_prices = prices[:i+1]
+                ppo_data = calculate_ppo(subset_prices, adaptive_fast, adaptive_slow)
+                ppo_val = ppo_data["ppo"]
+            ppo_values.append(ppo_val)
+        
+        data_quality = "adaptive"
+        fallback_reason = f"Adapted PPO calculation for {len(prices)} points (standard needs 26+)"
+        
+    else:
+        # Standard PPO calculation with sufficient data
+        ppo_values = []
+        for i in range(len(prices)):
+            if i < min_required_points:
+                # For early values with insufficient EMA data, use simple momentum
+                if i >= 12:  # At least 12 points for basic PPO
+                    subset_prices = prices[:i+1]
+                    ppo_data = calculate_ppo(subset_prices)
+                    ppo_val = ppo_data["ppo"]
+                elif i > 0:
+                    # Simple percentage change from start
+                    ppo_val = ((prices[i] - prices[0]) / prices[0]) * 100 * 0.5  # Scale down for early values
+                else:
+                    ppo_val = 0
+            else:
+                subset_prices = prices[:i+1]
+                ppo_data = calculate_ppo(subset_prices)
+                ppo_val = ppo_data["ppo"]
+            ppo_values.append(ppo_val)
+        
+        data_quality = "standard"
+        fallback_reason = None
+        print(f"✅ Standard PPO calculation with {len(prices)} data points")
     
-    return {
+    # Ensure we have at least 3 PPO values for history (required by frontend)
+    while len(ppo_values) < 3:
+        ppo_values.append(ppo_values[-1] if ppo_values else 0)
+    
+    result = {
         "ppo_values": ppo_values,
         "rsi": calculate_rsi(prices) or 50,
         "macd": calculate_macd(prices)["macd"],
-        "sma_20": calculate_sma(prices, 20) or prices[-1],
-        "sma_50": calculate_sma(prices, 50) or prices[-1],
-        "sma_200": calculate_sma(prices, 200) or prices[-1]
+        "sma_20": calculate_sma(prices, min(20, len(prices) - 1)) or prices[-1] if len(prices) > 1 else prices[0],
+        "sma_50": calculate_sma(prices, min(50, len(prices) - 1)) or prices[-1] if len(prices) > 1 else prices[0],
+        "sma_200": calculate_sma(prices, min(200, len(prices) - 1)) or prices[-1] if len(prices) > 1 else prices[0],
+        "data_quality": data_quality
     }
+    
+    if fallback_reason:
+        result["fallback_reason"] = fallback_reason
+    
+    return result
 
 async def get_fundamental_data(symbol: str) -> Dict[str, Any]:
     """Get fundamental data for a stock"""
