@@ -2850,8 +2850,12 @@ class StockAnalysisAPITester:
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
         
-        # HIGHEST PRIORITY: Test Critical Runtime Errors Fix (Review Request Focus)
-        print(f"\n🚨 HIGHEST PRIORITY: CRITICAL RUNTIME ERRORS FIX TESTING")
+        # HIGHEST PRIORITY: Test Critical DMI+ Value Variation (Review Request Focus)
+        print(f"\n🎯 HIGHEST PRIORITY: CRITICAL DMI+ VALUE VARIATION TEST")
+        critical_dmi_passed = self.test_dmi_value_variation_critical()
+        
+        # PRIORITY: Test Critical Runtime Errors Fix (Review Request Focus)
+        print(f"\n🚨 PRIORITY: CRITICAL RUNTIME ERRORS FIX TESTING")
         self.test_critical_runtime_errors_fix()
         
         # PRIORITY: Test Multiple Component Fixes (Review Request Focus)
