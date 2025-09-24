@@ -2587,6 +2587,259 @@ class StockAnalysisAPITester:
         
         return True
 
+    def test_dmi_value_variation_critical(self) -> bool:
+        """
+        CRITICAL TEST: DMI+ Value Variation Test
+        
+        Tests the specific user scenarios from review request:
+        1. Stock Analysis - Two Stock Entry Test (AAPL -> GOOGL)
+        2. Point Based Decision - Two Stock Entry Test (AAPL -> MSFT)  
+        3. DMI+ Value Variation Test (AAPL, GOOGL, MSFT sequence)
+        
+        Verifies:
+        - Both analyses complete successfully without errors
+        - DMI+ values are different between stocks (not stuck at static 26.0)
+        - No TypeError in responses and all fields properly formatted
+        - Values are realistic (0-100 range)
+        """
+        print(f"\n🎯 CRITICAL DMI+ VALUE VARIATION TESTING")
+        print("=" * 70)
+        print("Testing specific user scenarios from review request:")
+        print("1. Stock Analysis - Two Stock Entry Test (AAPL -> GOOGL)")
+        print("2. Point Based Decision - Two Stock Entry Test (AAPL -> MSFT)")
+        print("3. DMI+ Value Variation Test (AAPL, GOOGL, MSFT sequence)")
+        print("=" * 70)
+        
+        all_passed = True
+        critical_issues = []
+        dmi_values = {}
+        
+        # Test symbols as specified in review request
+        test_sequence = ["AAPL", "GOOGL", "MSFT"]
+        
+        # Test each symbol with 3M timeframe as specified
+        for i, symbol in enumerate(test_sequence):
+            print(f"\n📊 Testing {symbol} (Step {i+1}/3)")
+            
+            try:
+                payload = {"symbol": symbol, "timeframe": "3M"}
+                start_time = time.time()
+                
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                response_time = time.time() - start_time
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Validate response structure
+                    if not self.validate_critical_response_structure(data, symbol):
+                        critical_issues.append(f"{symbol}: Invalid response structure")
+                        all_passed = False
+                        continue
+                    
+                    # Extract DMI+ value
+                    indicators = data.get("indicators", {})
+                    dmi_plus = indicators.get("dmi_plus")
+                    
+                    if dmi_plus is None:
+                        critical_issues.append(f"{symbol}: DMI+ value is null")
+                        all_passed = False
+                        continue
+                    
+                    # Validate DMI+ is in realistic range (0-100)
+                    if not (0 <= dmi_plus <= 100):
+                        critical_issues.append(f"{symbol}: DMI+ value {dmi_plus} outside valid range (0-100)")
+                        all_passed = False
+                        continue
+                    
+                    # Store DMI+ value for comparison
+                    dmi_values[symbol] = dmi_plus
+                    
+                    # Log detailed results
+                    print(f"  ✅ {symbol}: DMI+ = {dmi_plus:.2f}, Response time: {response_time:.2f}s")
+                    
+                    # Validate no TypeError in response
+                    if self.check_for_type_errors(data, symbol):
+                        critical_issues.append(f"{symbol}: TypeError detected in response")
+                        all_passed = False
+                    
+                    # Validate all financial metrics are properly formatted
+                    if not self.validate_financial_metrics_formatting(data, symbol):
+                        critical_issues.append(f"{symbol}: Financial metrics formatting issues")
+                        all_passed = False
+                    
+                    self.log_test(f"DMI+ Analysis ({symbol})", True, 
+                                f"DMI+ = {dmi_plus:.2f}, Time: {response_time:.2f}s")
+                    
+                else:
+                    error_msg = f"HTTP {response.status_code}: {response.text}"
+                    critical_issues.append(f"{symbol}: API call failed - {error_msg}")
+                    all_passed = False
+                    self.log_test(f"DMI+ Analysis ({symbol})", False, error_msg, True)
+                    
+            except Exception as e:
+                error_msg = f"Exception: {str(e)}"
+                critical_issues.append(f"{symbol}: {error_msg}")
+                all_passed = False
+                self.log_test(f"DMI+ Analysis ({symbol})", False, error_msg, True)
+        
+        # Critical validation: DMI+ values must be different between stocks
+        print(f"\n🔍 CRITICAL VALIDATION: DMI+ Value Variation")
+        if len(dmi_values) >= 2:
+            unique_values = len(set(round(val, 1) for val in dmi_values.values()))
+            total_values = len(dmi_values)
+            
+            print(f"DMI+ Values Retrieved:")
+            for symbol, value in dmi_values.items():
+                print(f"  {symbol}: {value:.2f}")
+            
+            if unique_values == 1:
+                # All DMI+ values are the same - CRITICAL FAILURE
+                static_value = list(dmi_values.values())[0]
+                critical_issues.append(f"CRITICAL: All DMI+ values are identical ({static_value:.2f}) - values not updating between stocks")
+                all_passed = False
+                self.log_test("DMI+ Value Variation", False, 
+                            f"All DMI+ values stuck at {static_value:.2f} - CRITICAL BUG", True)
+            elif unique_values < total_values:
+                # Some values are the same
+                critical_issues.append(f"WARNING: Only {unique_values}/{total_values} unique DMI+ values - some duplication")
+                self.log_test("DMI+ Value Variation", False, 
+                            f"Only {unique_values}/{total_values} unique values - partial variation", True)
+                all_passed = False
+            else:
+                # All values are different - SUCCESS
+                self.log_test("DMI+ Value Variation", True, 
+                            f"All {total_values} DMI+ values are unique - proper variation confirmed")
+                print(f"  ✅ SUCCESS: All DMI+ values are different between stocks")
+        else:
+            critical_issues.append("Insufficient DMI+ values retrieved for comparison")
+            all_passed = False
+            self.log_test("DMI+ Value Variation", False, 
+                        "Could not retrieve enough DMI+ values for comparison", True)
+        
+        # Test specific scenarios from review request
+        print(f"\n🎯 SPECIFIC SCENARIO TESTING")
+        
+        # Scenario 1: Stock Analysis - AAPL then GOOGL
+        if "AAPL" in dmi_values and "GOOGL" in dmi_values:
+            aapl_dmi = dmi_values["AAPL"]
+            googl_dmi = dmi_values["GOOGL"]
+            difference = abs(aapl_dmi - googl_dmi)
+            
+            if difference > 0.1:  # Allow for small rounding differences
+                self.log_test("Stock Analysis Scenario (AAPL->GOOGL)", True, 
+                            f"DMI+ values differ: AAPL={aapl_dmi:.2f}, GOOGL={googl_dmi:.2f}, diff={difference:.2f}")
+                print(f"  ✅ Stock Analysis Test: AAPL ({aapl_dmi:.2f}) ≠ GOOGL ({googl_dmi:.2f})")
+            else:
+                critical_issues.append(f"Stock Analysis: AAPL and GOOGL have nearly identical DMI+ values")
+                all_passed = False
+                self.log_test("Stock Analysis Scenario (AAPL->GOOGL)", False, 
+                            f"DMI+ values too similar: AAPL={aapl_dmi:.2f}, GOOGL={googl_dmi:.2f}", True)
+        
+        # Scenario 2: Point Based Decision - AAPL then MSFT
+        if "AAPL" in dmi_values and "MSFT" in dmi_values:
+            aapl_dmi = dmi_values["AAPL"]
+            msft_dmi = dmi_values["MSFT"]
+            difference = abs(aapl_dmi - msft_dmi)
+            
+            if difference > 0.1:  # Allow for small rounding differences
+                self.log_test("Point Based Decision Scenario (AAPL->MSFT)", True, 
+                            f"DMI+ values differ: AAPL={aapl_dmi:.2f}, MSFT={msft_dmi:.2f}, diff={difference:.2f}")
+                print(f"  ✅ Point Based Decision Test: AAPL ({aapl_dmi:.2f}) ≠ MSFT ({msft_dmi:.2f})")
+            else:
+                critical_issues.append(f"Point Based Decision: AAPL and MSFT have nearly identical DMI+ values")
+                all_passed = False
+                self.log_test("Point Based Decision Scenario (AAPL->MSFT)", False, 
+                            f"DMI+ values too similar: AAPL={aapl_dmi:.2f}, MSFT={msft_dmi:.2f}", True)
+        
+        # Summary of critical testing
+        print(f"\n📋 CRITICAL TEST SUMMARY")
+        if critical_issues:
+            print(f"🚨 CRITICAL ISSUES FOUND ({len(critical_issues)}):")
+            for issue in critical_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"✅ ALL CRITICAL TESTS PASSED - DMI+ values properly vary between stocks")
+        
+        return all_passed
+
+    def validate_critical_response_structure(self, data: Dict[str, Any], symbol: str) -> bool:
+        """Validate critical response structure for DMI testing"""
+        critical_fields = ["symbol", "indicators"]
+        
+        for field in critical_fields:
+            if field not in data:
+                self.log_test(f"Critical Structure ({symbol})", False, 
+                            f"Missing critical field: {field}", True)
+                return False
+        
+        # Validate indicators structure
+        indicators = data.get("indicators", {})
+        if "dmi_plus" not in indicators:
+            self.log_test(f"Critical Structure ({symbol})", False, 
+                        "Missing dmi_plus in indicators", True)
+            return False
+        
+        return True
+
+    def check_for_type_errors(self, data: Dict[str, Any], symbol: str) -> bool:
+        """Check for TypeError indicators in response data"""
+        # Convert response to string and check for common TypeError patterns
+        response_str = json.dumps(data, default=str)
+        
+        type_error_patterns = [
+            "undefined.toFixed",
+            "null.toFixed", 
+            "NaN.toFixed",
+            "TypeError",
+            "Cannot read property",
+            "Cannot read properties of undefined",
+            "Cannot read properties of null"
+        ]
+        
+        for pattern in type_error_patterns:
+            if pattern in response_str:
+                self.log_test(f"TypeError Check ({symbol})", False, 
+                            f"Found TypeError pattern: {pattern}", True)
+                return True
+        
+        return False
+
+    def validate_financial_metrics_formatting(self, data: Dict[str, Any], symbol: str) -> bool:
+        """Validate all financial metrics are properly formatted"""
+        issues = []
+        
+        # Check main financial fields
+        financial_fields = ["current_price", "price_change", "price_change_percent", "volume"]
+        for field in financial_fields:
+            value = data.get(field)
+            if value is None:
+                issues.append(f"{field} is null")
+            elif not isinstance(value, (int, float)):
+                issues.append(f"{field} is not numeric: {type(value)}")
+        
+        # Check indicators formatting
+        indicators = data.get("indicators", {})
+        indicator_fields = ["ppo", "ppo_signal", "ppo_histogram", "dmi_plus", "dmi_minus", "adx", "rsi"]
+        for field in indicator_fields:
+            value = indicators.get(field)
+            if value is None:
+                issues.append(f"indicators.{field} is null")
+            elif not isinstance(value, (int, float)):
+                issues.append(f"indicators.{field} is not numeric: {type(value)}")
+        
+        if issues:
+            self.log_test(f"Financial Metrics Formatting ({symbol})", False, 
+                        f"Issues: {issues}", True)
+            return False
+        else:
+            self.log_test(f"Financial Metrics Formatting ({symbol})", True, 
+                        "All financial metrics properly formatted")
+            return True
+
     def run_comprehensive_tests(self):
         """Run all tests with priority on critical runtime errors fix"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
