@@ -3968,6 +3968,325 @@ class StockAnalysisAPITester:
         
         return issues
 
+    def test_scanner_filtering_logic_fix(self) -> bool:
+        """
+        CRITICAL SCANNER FILTERING LOGIC FIX TESTING
+        
+        Tests the specific filtering criteria fix reported by the user:
+        - Price Range: Under $100
+        - DMI Range: Min 20, Max 60  
+        - PPO Slope: Min 5%
+        - PPO Hook Pattern: All Stocks
+        
+        Validates that filtering criteria are properly applied and no stocks
+        violating the criteria appear in results.
+        """
+        print(f"\n🎯 CRITICAL SCANNER FILTERING LOGIC FIX TESTING")
+        print("=" * 70)
+        print("Testing exact user criteria from review request:")
+        print("• Price Range: Under $100")
+        print("• DMI Range: Min 20, Max 60")
+        print("• PPO Slope: Min 5%")
+        print("• PPO Hook Pattern: All Stocks")
+        
+        all_passed = True
+        filtering_issues = []
+        
+        # Test the exact user criteria from the review request
+        user_criteria = {
+            "price_filter": {"type": "under", "under": 100},
+            "dmi_filter": {"min": 20, "max": 60},
+            "ppo_slope_filter": {"threshold": 5},
+            "ppo_hook_filter": "all",
+            "sector_filter": "all",
+            "optionable_filter": "all",
+            "earnings_filter": "all"
+        }
+        
+        try:
+            print(f"\n📊 Testing Scanner with Exact User Criteria")
+            start_time = time.time()
+            
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=user_criteria,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            response_time = time.time() - start_time
+            
+            if response.status_code == 200:
+                data = response.json()
+                stocks = data.get("stocks", [])
+                total_found = data.get("results_found", 0)
+                
+                print(f"✅ Scanner Response: {total_found} stocks found in {response_time:.2f}s")
+                
+                # Validate each stock against the filtering criteria
+                validation_results = self.validate_exact_filtering_criteria(stocks, user_criteria)
+                
+                if validation_results["violations"]:
+                    filtering_issues.extend(validation_results["violations"])
+                    all_passed = False
+                    
+                    print(f"\n🚨 FILTERING VIOLATIONS DETECTED:")
+                    for violation in validation_results["violations"]:
+                        print(f"  ❌ {violation}")
+                        self.log_test("Scanner Filtering Violation", False, violation, True)
+                else:
+                    print(f"\n✅ ALL FILTERING CRITERIA PROPERLY APPLIED")
+                    self.log_test("Scanner Filtering Logic", True, 
+                                f"All {len(stocks)} stocks meet filtering criteria")
+                
+                # Log detailed results for debugging
+                print(f"\n📋 DETAILED FILTERING RESULTS:")
+                print(f"  • Total stocks scanned: {data.get('total_scanned', 'N/A')}")
+                print(f"  • Stocks meeting criteria: {total_found}")
+                print(f"  • Price violations: {validation_results['price_violations']}")
+                print(f"  • DMI violations: {validation_results['dmi_violations']}")
+                print(f"  • PPO slope violations: {validation_results['ppo_violations']}")
+                
+                # Test debug logging is working
+                if self.validate_debug_logging(data):
+                    self.log_test("Debug Logging", True, "Filter decisions logged correctly")
+                else:
+                    self.log_test("Debug Logging", False, "Debug logging not working", True)
+                    all_passed = False
+                
+            else:
+                self.log_test("Scanner Filtering API", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                filtering_issues.append(f"API call failed: {response.status_code}")
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Scanner Filtering Test", False, f"Error: {str(e)}", True)
+            filtering_issues.append(f"Test execution failed: {str(e)}")
+            all_passed = False
+        
+        # Test additional edge cases
+        print(f"\n🔬 Testing Additional Filtering Edge Cases")
+        edge_case_results = self.test_filtering_edge_cases()
+        if not edge_case_results:
+            all_passed = False
+            filtering_issues.append("Edge case testing failed")
+        
+        # Test different filter combinations
+        print(f"\n🎛️ Testing Different Filter Combinations")
+        combination_results = self.test_filter_combinations()
+        if not combination_results:
+            all_passed = False
+            filtering_issues.append("Filter combination testing failed")
+        
+        # Summary of filtering logic testing
+        if filtering_issues:
+            print(f"\n🚨 SCANNER FILTERING ISSUES FOUND ({len(filtering_issues)}):")
+            for issue in filtering_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ Scanner filtering logic working correctly - all criteria properly applied")
+        
+        return all_passed
+
+    def validate_exact_filtering_criteria(self, stocks: List[Dict], criteria: Dict) -> Dict[str, Any]:
+        """Validate stocks against exact filtering criteria from user report"""
+        results = {
+            "violations": [],
+            "price_violations": 0,
+            "dmi_violations": 0,
+            "ppo_violations": 0
+        }
+        
+        price_filter = criteria.get("price_filter", {})
+        dmi_filter = criteria.get("dmi_filter", {})
+        ppo_filter = criteria.get("ppo_slope_filter", {})
+        
+        for stock in stocks:
+            symbol = stock.get("symbol", "UNKNOWN")
+            
+            # Validate Price Filter: Under $100
+            if price_filter.get("type") == "under":
+                max_price = price_filter.get("under", 100)
+                stock_price = stock.get("price", 0)
+                
+                if stock_price > max_price:
+                    violation = f"{symbol}: Price ${stock_price:.2f} exceeds filter ${max_price} (CRITICAL: Price filter violated)"
+                    results["violations"].append(violation)
+                    results["price_violations"] += 1
+            
+            # Validate DMI Filter: Min 20, Max 60 (using ADX as per backend implementation)
+            dmi_min = dmi_filter.get("min", 20)
+            dmi_max = dmi_filter.get("max", 60)
+            stock_adx = stock.get("adx", 0)
+            
+            if not (dmi_min <= stock_adx <= dmi_max):
+                violation = f"{symbol}: ADX {stock_adx:.2f} outside range {dmi_min}-{dmi_max} (CRITICAL: DMI filter violated)"
+                results["violations"].append(violation)
+                results["dmi_violations"] += 1
+            
+            # Validate PPO Slope Filter: Min 5% (positive slopes only after fix)
+            ppo_threshold = ppo_filter.get("threshold", 5)
+            stock_ppo_slope = stock.get("ppo_slope_percentage", 0)
+            
+            # After the fix, only positive slopes above threshold should pass
+            if stock_ppo_slope < ppo_threshold:
+                violation = f"{symbol}: PPO Slope {stock_ppo_slope:.2f}% below threshold {ppo_threshold}% (CRITICAL: PPO slope filter violated)"
+                results["violations"].append(violation)
+                results["ppo_violations"] += 1
+        
+        return results
+
+    def validate_debug_logging(self, data: Dict[str, Any]) -> bool:
+        """Validate that debug logging for filter decisions is working"""
+        # Check if response includes debug information or filter decision logs
+        debug_info = data.get("debug_info", {})
+        filter_decisions = data.get("filter_decisions", [])
+        
+        # The fix should include debug logging - check for its presence
+        if debug_info or filter_decisions:
+            return True
+        
+        # Alternative: Check if response includes detailed filter information
+        filters_applied = data.get("filters_applied", {})
+        if filters_applied and len(filters_applied) > 0:
+            return True
+        
+        return False
+
+    def test_filtering_edge_cases(self) -> bool:
+        """Test edge cases for filtering logic"""
+        all_passed = True
+        
+        edge_cases = [
+            {
+                "name": "Very Restrictive Filters",
+                "filters": {
+                    "price_filter": {"type": "under", "under": 50},
+                    "dmi_filter": {"min": 25, "max": 35},
+                    "ppo_slope_filter": {"threshold": 10}
+                },
+                "expected_behavior": "Should return few or no results"
+            },
+            {
+                "name": "Boundary Values",
+                "filters": {
+                    "price_filter": {"type": "under", "under": 100.00},
+                    "dmi_filter": {"min": 20.0, "max": 60.0},
+                    "ppo_slope_filter": {"threshold": 5.0}
+                },
+                "expected_behavior": "Should handle exact boundary values correctly"
+            },
+            {
+                "name": "Wide Range Filters",
+                "filters": {
+                    "price_filter": {"type": "under", "under": 1000},
+                    "dmi_filter": {"min": 0, "max": 100},
+                    "ppo_slope_filter": {"threshold": 0}
+                },
+                "expected_behavior": "Should return many results with wide criteria"
+            }
+        ]
+        
+        for case in edge_cases:
+            try:
+                print(f"  Testing: {case['name']}")
+                
+                response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                       json=case["filters"],
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    stocks = data.get("stocks", [])
+                    
+                    # Validate filtering is still working correctly
+                    validation_results = self.validate_exact_filtering_criteria(stocks, case["filters"])
+                    
+                    if validation_results["violations"]:
+                        self.log_test(f"Edge Case: {case['name']}", False, 
+                                    f"Filtering violations: {len(validation_results['violations'])}", True)
+                        all_passed = False
+                    else:
+                        self.log_test(f"Edge Case: {case['name']}", True, 
+                                    f"Found {len(stocks)} stocks, all meeting criteria")
+                else:
+                    self.log_test(f"Edge Case API: {case['name']}", False, 
+                                f"HTTP {response.status_code}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Edge Case: {case['name']}", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        return all_passed
+
+    def test_filter_combinations(self) -> bool:
+        """Test different combinations of filters"""
+        all_passed = True
+        
+        combinations = [
+            {
+                "name": "Price Only",
+                "filters": {"price_filter": {"type": "under", "under": 100}},
+            },
+            {
+                "name": "DMI Only", 
+                "filters": {"dmi_filter": {"min": 20, "max": 60}},
+            },
+            {
+                "name": "PPO Slope Only",
+                "filters": {"ppo_slope_filter": {"threshold": 5}},
+            },
+            {
+                "name": "Price + DMI",
+                "filters": {
+                    "price_filter": {"type": "under", "under": 100},
+                    "dmi_filter": {"min": 20, "max": 60}
+                },
+            },
+            {
+                "name": "All Three Filters",
+                "filters": {
+                    "price_filter": {"type": "under", "under": 100},
+                    "dmi_filter": {"min": 20, "max": 60},
+                    "ppo_slope_filter": {"threshold": 5}
+                },
+            }
+        ]
+        
+        for combo in combinations:
+            try:
+                print(f"  Testing: {combo['name']}")
+                
+                response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                       json=combo["filters"],
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    stocks = data.get("stocks", [])
+                    
+                    # Validate filtering logic for this combination
+                    validation_results = self.validate_exact_filtering_criteria(stocks, combo["filters"])
+                    
+                    if validation_results["violations"]:
+                        self.log_test(f"Filter Combo: {combo['name']}", False, 
+                                    f"Violations: {len(validation_results['violations'])}", True)
+                        all_passed = False
+                    else:
+                        self.log_test(f"Filter Combo: {combo['name']}", True, 
+                                    f"Found {len(stocks)} stocks, filtering correct")
+                else:
+                    self.log_test(f"Filter Combo API: {combo['name']}", False, 
+                                f"HTTP {response.status_code}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Filter Combo: {combo['name']}", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        return all_passed
+
     def run_comprehensive_tests(self):
         """Run all tests with priority on dashboard navigation fix and data source transparency"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
