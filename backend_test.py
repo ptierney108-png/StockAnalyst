@@ -3226,7 +3226,7 @@ class StockAnalysisAPITester:
             return False
 
     def run_comprehensive_tests(self):
-        """Run all tests with priority on critical runtime errors fix"""
+        """Run all tests with priority on critical fixes verification"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
         print("=" * 60)
         
@@ -3235,8 +3235,12 @@ class StockAnalysisAPITester:
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
         
-        # HIGHEST PRIORITY: Test Critical DMI+ Value Variation (Review Request Focus)
-        print(f"\n🎯 HIGHEST PRIORITY: CRITICAL DMI+ VALUE VARIATION TEST")
+        # HIGHEST PRIORITY: Test the three critical fixes from review request
+        print(f"\n🎯 HIGHEST PRIORITY: CRITICAL FIXES VERIFICATION")
+        critical_fixes_passed = self.test_critical_fixes_verification()
+        
+        # PRIORITY: Test Critical DMI+ Value Variation (Review Request Focus)
+        print(f"\n🎯 PRIORITY: CRITICAL DMI+ VALUE VARIATION TEST")
         critical_dmi_passed = self.test_dmi_value_variation_critical()
         
         # PRIORITY: Test Critical Runtime Errors Fix (Review Request Focus)
