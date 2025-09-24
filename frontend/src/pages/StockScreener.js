@@ -868,6 +868,9 @@ const StockScreener = () => {
                             <div className="text-xs text-gray-400">
                               Last: {stock.last_earnings ? new Date(stock.last_earnings).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
                             </div>
+                            <div className="text-xs text-orange-500 italic">
+                              📊 Simulated
+                            </div>
                           </>
                         ) : (
                           <div className="text-xs text-gray-400 italic">
