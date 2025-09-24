@@ -2330,11 +2330,20 @@ async def screen_stocks(filters: ScreenerFilters):
             if filters.price_filter:
                 price_filter = filters.price_filter
                 if price_filter.get("type") == "under":
-                    if stock["price"] > price_filter.get("under", 50):
+                    max_price = price_filter.get("under", 50)
+                    if stock["price"] > max_price:
+                        print(f"❌ {stock['symbol']} filtered out: Price ${stock['price']:.2f} > ${max_price}")
                         continue
+                    else:
+                        print(f"✅ {stock['symbol']} price filter passed: ${stock['price']:.2f} <= ${max_price}")
                 elif price_filter.get("type") == "range":
-                    if not (price_filter.get("min", 0) <= stock["price"] <= price_filter.get("max", 1000)):
+                    price_min = price_filter.get("min", 0)
+                    price_max = price_filter.get("max", 1000)
+                    if not (price_min <= stock["price"] <= price_max):
+                        print(f"❌ {stock['symbol']} filtered out: Price ${stock['price']:.2f} not in range ${price_min}-${price_max}")
                         continue
+                    else:
+                        print(f"✅ {stock['symbol']} price filter passed: ${stock['price']:.2f} in range ${price_min}-${price_max}")
             
             # DMI filter (20-60 range as specified) - using ADX as the DMI strength indicator
             if filters.dmi_filter:
