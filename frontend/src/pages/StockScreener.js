@@ -21,6 +21,7 @@ import StockDataGenerator from '../utils/stockDataGenerator';
 import { TechnicalAnalysisEngine } from '../utils/technicalAnalysis';
 import { TableSkeleton } from '../components/LoadingSkeleton';
 import { StockScreenerErrorBoundary } from '../components/ErrorBoundary';
+import api from '../services/api';
 
 
 const StockScreener = () => {
