@@ -1842,9 +1842,14 @@ class StockAnalysisAPITester:
                                     "Using real Alpha Vantage market data")
                     
                     # Log market data details
-                    stocks_count = len(data.get("stocks", []))
-                    data_sources = data.get("data_sources", [])
-                    print(f"  📊 {endpoint_name}: {stocks_count} stocks, Sources: {data_sources}")
+                    if isinstance(data, list):
+                        stocks_count = len(data)
+                        data_sources = [stock.get("data_source", "unknown") for stock in data[:3]]
+                        print(f"  📊 {endpoint_name}: {stocks_count} stocks, Sources: {set(data_sources)}")
+                    else:
+                        stocks_count = len(data.get("stocks", []))
+                        data_sources = data.get("data_sources", [])
+                        print(f"  📊 {endpoint_name}: {stocks_count} stocks, Sources: {data_sources}")
                     
                 else:
                     self.log_test(f"Market Endpoint ({endpoint_name})", False, 
