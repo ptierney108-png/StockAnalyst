@@ -53,15 +53,22 @@ const StockAnalysis = () => {
   });
 
   const handleAnalyze = () => {
+    console.log('🔍 handleAnalyze called with inputSymbol:', inputSymbol);
     if (inputSymbol.trim()) {
       const newSymbol = inputSymbol.toUpperCase();
+      console.log('✅ Setting symbol to:', newSymbol);
       setSymbol(newSymbol);
       setInputSymbol('');
+      
+      // Force refetch by invalidating the query cache
+      refetch();
       
       // Update URL parameter to match the new symbol to avoid conflicts
       const newUrl = new URL(window.location);
       newUrl.searchParams.set('symbol', newSymbol);
       window.history.pushState({}, '', newUrl);
+    } else {
+      console.log('❌ inputSymbol is empty or whitespace');
     }
   };
 
