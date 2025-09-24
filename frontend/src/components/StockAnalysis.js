@@ -53,8 +53,14 @@ const StockAnalysis = () => {
 
   const handleAnalyze = () => {
     if (inputSymbol.trim()) {
-      setSymbol(inputSymbol.toUpperCase());
+      const newSymbol = inputSymbol.toUpperCase();
+      setSymbol(newSymbol);
       setInputSymbol('');
+      
+      // Update URL parameter to match the new symbol to avoid conflicts
+      const newUrl = new URL(window.location);
+      newUrl.searchParams.set('symbol', newSymbol);
+      window.history.pushState({}, '', newUrl);
     }
   };
 
