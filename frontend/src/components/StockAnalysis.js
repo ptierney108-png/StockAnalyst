@@ -52,21 +52,14 @@ const StockAnalysis = () => {
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
   });
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = () => {
     console.log('🔍 handleAnalyze called with inputSymbol:', inputSymbol);
     if (inputSymbol.trim()) {
       const newSymbol = inputSymbol.toUpperCase();
       console.log('✅ Setting symbol to:', newSymbol);
       
-      // Set symbol state first
+      // Simply set the symbol - React Query will automatically refetch due to queryKey dependency
       setSymbol(newSymbol);
-      
-      // Wait for state to update, then force refetch
-      setTimeout(() => {
-        console.log('🔄 Forcing refetch for symbol:', newSymbol);
-        refetch();
-      }, 100);
-      
       setInputSymbol('');
       
       // Update URL parameter to match the new symbol
