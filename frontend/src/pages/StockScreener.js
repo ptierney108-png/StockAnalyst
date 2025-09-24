@@ -779,8 +779,8 @@ const StockScreener = () => {
                           ADX: {stock.adx?.toFixed(1) || 'N/A'}
                         </div>
                         <div className="text-xs space-x-1">
-                          <span className="text-green-600">+{stock.diPlus?.toFixed(1) || 'N/A'}</span>
-                          <span className="text-red-600">-{stock.diMinus?.toFixed(1) || 'N/A'}</span>
+                          <span className="text-green-600">+{(stock.di_plus || 0).toFixed(1)}</span>
+                          <span className="text-red-600">-{(stock.di_minus || 0).toFixed(1)}</span>
                         </div>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-center">
