@@ -4557,6 +4557,10 @@ class StockAnalysisAPITester:
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
         
+        # HIGHEST PRIORITY: Test PPO Hook Pattern Filtering (Current Review Request Focus)
+        print(f"\n🎯 HIGHEST PRIORITY: PPO HOOK PATTERN FILTERING TEST")
+        self.test_ppo_hook_pattern_filtering()
+        
         # HIGHEST PRIORITY: Test Scanner Filtering Logic Fix (Review Request Focus)
         print(f"\n🎯 HIGHEST PRIORITY: SCANNER FILTERING LOGIC FIX")
         self.test_scanner_filtering_logic_fix()
