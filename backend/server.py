@@ -2045,8 +2045,8 @@ async def screen_stocks(filters: ScreenerFilters):
         for stock_info in stock_symbols:
             symbol = stock_info["symbol"]
             try:
-                # Use the same function that individual analysis uses (with Alpha Vantage)
-                analysis_data = await get_advanced_stock_data(symbol, "1D")
+                # Use 3M timeframe for better historical data for PPO calculations
+                analysis_data = await get_advanced_stock_data(symbol, "3M")
                 
                 if analysis_data and analysis_data.get("current_price"):
                     # Convert analysis data to screener format
