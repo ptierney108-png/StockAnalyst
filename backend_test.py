@@ -1447,6 +1447,308 @@ class StockAnalysisAPITester:
         
         return all_passed
 
+    def test_stock_screener_real_data_fix(self) -> bool:
+        """
+        COMPREHENSIVE STOCK SCREENER REAL DATA FIX TESTING
+        
+        Tests the specific fix where stock screener now uses real Alpha Vantage data 
+        instead of demo data. Validates:
+        1. /screener/scan endpoint returns real market data
+        2. data_source field shows "alpha_vantage" instead of "mock"
+        3. PPO values are calculated from real price data
+        4. Prices match current market prices (not demo prices)
+        5. Filtering still works correctly with real data
+        6. Response includes data source transparency
+        """
+        print(f"\n🔧 COMPREHENSIVE STOCK SCREENER REAL DATA FIX TESTING")
+        print("=" * 70)
+        
+        all_passed = True
+        fix_issues = []
+        
+        # Test the specific filters mentioned in the review request
+        test_filters = {
+            "price_filter": {"type": "under", "under": 500},
+            "dmi_filter": {"min": 15, "max": 65}
+        }
+        
+        print(f"📊 Testing /screener/scan with filters: {test_filters}")
+        
+        try:
+            start_time = time.time()
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=test_filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=60)  # Longer timeout for real API calls
+            response_time = time.time() - start_time
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Validate the fix implementation
+                fix_validation_issues = self.validate_screener_real_data_fix(data, test_filters)
+                
+                if fix_validation_issues:
+                    fix_issues.extend(fix_validation_issues)
+                    all_passed = False
+                    self.log_test("Stock Screener Real Data Fix", False, 
+                                f"Issues found: {fix_validation_issues}", True)
+                else:
+                    stocks_found = data.get("results_found", 0)
+                    real_data_count = data.get("real_data_count", 0)
+                    data_sources = data.get("data_sources", {})
+                    
+                    self.log_test("Stock Screener Real Data Fix", True, 
+                                f"Found {stocks_found} stocks with {real_data_count} real data sources in {response_time:.2f}s")
+                    
+                    # Log data source breakdown
+                    if data_sources:
+                        print(f"  📊 Data sources: {data_sources}")
+                
+                # Test additional scenarios
+                additional_tests_passed = self.test_screener_real_data_scenarios()
+                if not additional_tests_passed:
+                    all_passed = False
+                    
+            else:
+                self.log_test("Stock Screener Real Data Fix API", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                fix_issues.append(f"API call failed: {response.status_code}")
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Stock Screener Real Data Fix", False, f"Error: {str(e)}", True)
+            fix_issues.append(f"Test execution failed: {str(e)}")
+            all_passed = False
+        
+        # Summary of real data fix testing
+        if fix_issues:
+            print(f"\n🚨 STOCK SCREENER REAL DATA FIX ISSUES FOUND ({len(fix_issues)}):")
+            for issue in fix_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ Stock screener real data fix working correctly - using Alpha Vantage instead of demo data")
+        
+        return all_passed
+
+    def validate_screener_real_data_fix(self, data: Dict[str, Any], filters: Dict[str, Any]) -> List[str]:
+        """Validate that the screener is using real Alpha Vantage data instead of demo data"""
+        issues = []
+        
+        # Check basic response structure
+        if not data.get("success"):
+            issues.append("Screener response indicates failure")
+            return issues
+        
+        stocks = data.get("stocks", [])
+        if not stocks:
+            issues.append("No stocks returned from screener")
+            return issues
+        
+        # Check for data source transparency (new feature)
+        data_sources = data.get("data_sources", {})
+        real_data_count = data.get("real_data_count", 0)
+        
+        if not data_sources:
+            issues.append("Missing data_sources field in response")
+        
+        if real_data_count == 0:
+            issues.append("No real data sources used - still using demo data")
+        
+        # Check individual stocks for real data indicators
+        alpha_vantage_count = 0
+        demo_data_count = 0
+        
+        for i, stock in enumerate(stocks[:10]):  # Check first 10 stocks
+            symbol = stock.get("symbol", f"Stock_{i}")
+            
+            # Check if stock has data source information
+            stock_data_source = stock.get("data_source", "unknown")
+            
+            if stock_data_source == "alpha_vantage":
+                alpha_vantage_count += 1
+                
+                # Validate real Alpha Vantage data characteristics
+                real_data_issues = self.validate_real_alpha_vantage_stock_data(stock, symbol)
+                if real_data_issues:
+                    issues.extend([f"{symbol}: {issue}" for issue in real_data_issues])
+                    
+            elif stock_data_source == "mock":
+                demo_data_count += 1
+            
+            # Check PPO values are realistic (not demo patterns)
+            ppo_values = stock.get("ppo_values", [])
+            if len(ppo_values) >= 3:
+                # Demo data often has very predictable patterns
+                if self.is_demo_ppo_pattern(ppo_values):
+                    issues.append(f"{symbol}: PPO values appear to be demo data pattern")
+            
+            # Check price realism
+            price = stock.get("price", 0)
+            if price > 0:
+                # Demo prices often follow predictable hash-based patterns
+                if self.is_demo_price_pattern(symbol, price):
+                    issues.append(f"{symbol}: Price ${price:.2f} appears to be demo data")
+        
+        # Validate data source distribution
+        total_stocks = len(stocks)
+        if alpha_vantage_count == 0 and total_stocks > 0:
+            issues.append("No stocks using Alpha Vantage data source")
+        elif alpha_vantage_count < total_stocks * 0.3:  # Less than 30% real data
+            issues.append(f"Only {alpha_vantage_count}/{total_stocks} stocks using Alpha Vantage (expected at least 30%)")
+        
+        # Check filtering still works with real data
+        filtering_issues = self.validate_real_data_filtering(stocks, filters)
+        if filtering_issues:
+            issues.extend(filtering_issues)
+        
+        return issues
+
+    def validate_real_alpha_vantage_stock_data(self, stock: Dict[str, Any], symbol: str) -> List[str]:
+        """Validate that stock data comes from real Alpha Vantage API"""
+        issues = []
+        
+        # Check for realistic price movements (Alpha Vantage provides real market data)
+        price = stock.get("price", 0)
+        if price <= 0:
+            issues.append("Invalid price value")
+            return issues
+        
+        # Check PPO values are non-zero and realistic
+        ppo_values = stock.get("ppo_values", [])
+        if len(ppo_values) >= 3:
+            if all(val == 0 for val in ppo_values):
+                issues.append("All PPO values are zero (possible calculation failure)")
+            elif all(abs(val) < 0.001 for val in ppo_values):
+                issues.append("PPO values too small (possible demo data)")
+        
+        # Check volume data is realistic
+        volume_today = stock.get("volume_today", 0)
+        if volume_today <= 0:
+            issues.append("Invalid volume data")
+        
+        # Check returns data exists and is realistic
+        returns = stock.get("returns", {})
+        if not returns:
+            issues.append("Missing returns data")
+        else:
+            # Real market data should have varied returns
+            return_values = list(returns.values())
+            if len(set(return_values)) == 1:  # All returns are identical
+                issues.append("Returns data appears artificial (all identical)")
+        
+        return issues
+
+    def is_demo_ppo_pattern(self, ppo_values: List[float]) -> bool:
+        """Check if PPO values follow demo data patterns"""
+        if len(ppo_values) < 3:
+            return False
+        
+        # Demo data often has very linear progressions
+        differences = [ppo_values[i+1] - ppo_values[i] for i in range(len(ppo_values)-1)]
+        
+        # Check if differences are too uniform (indicating generated data)
+        if len(set(round(diff, 4) for diff in differences)) == 1:
+            return True  # All differences are identical
+        
+        # Check for unrealistic precision (demo data often has many decimal places)
+        for val in ppo_values:
+            if abs(val) > 0 and len(str(abs(val)).split('.')[-1]) > 6:
+                return True  # Too many decimal places
+        
+        return False
+
+    def is_demo_price_pattern(self, symbol: str, price: float) -> bool:
+        """Check if price follows demo data hash-based patterns"""
+        # Demo data often uses hash(symbol) + base_price patterns
+        # This is a heuristic check for obvious demo patterns
+        
+        # Check if price is suspiciously close to hash-based calculation
+        base_price = 150.0
+        hash_component = hash(symbol) % 100
+        expected_demo_price = base_price + hash_component
+        
+        # If price is very close to this pattern, it might be demo data
+        if abs(price - expected_demo_price) < 1.0:
+            return True
+        
+        return False
+
+    def validate_real_data_filtering(self, stocks: List[Dict], filters: Dict[str, Any]) -> List[str]:
+        """Validate that filtering logic works correctly with real data"""
+        issues = []
+        
+        # Check price filtering
+        price_filter = filters.get("price_filter", {})
+        if price_filter and price_filter.get("type") == "under":
+            max_price = price_filter.get("under", 500)
+            
+            for stock in stocks:
+                price = stock.get("price", 0)
+                if price > max_price:
+                    issues.append(f"Stock {stock.get('symbol')} price ${price:.2f} exceeds filter ${max_price}")
+        
+        # Check DMI filtering
+        dmi_filter = filters.get("dmi_filter", {})
+        if dmi_filter:
+            dmi_min = dmi_filter.get("min", 15)
+            dmi_max = dmi_filter.get("max", 65)
+            
+            for stock in stocks:
+                adx = stock.get("adx", 0)
+                if not (dmi_min <= adx <= dmi_max):
+                    issues.append(f"Stock {stock.get('symbol')} ADX {adx:.2f} outside filter range {dmi_min}-{dmi_max}")
+        
+        return issues
+
+    def test_screener_real_data_scenarios(self) -> bool:
+        """Test additional scenarios for real data fix"""
+        all_passed = True
+        
+        # Test different filter combinations
+        test_scenarios = [
+            {
+                "name": "Restrictive Price Filter",
+                "filters": {
+                    "price_filter": {"type": "range", "min": 100, "max": 200},
+                    "dmi_filter": {"min": 20, "max": 50}
+                }
+            },
+            {
+                "name": "PPO Slope Filter",
+                "filters": {
+                    "price_filter": {"type": "under", "under": 300},
+                    "ppo_slope_filter": {"threshold": 2}
+                }
+            }
+        ]
+        
+        for scenario in test_scenarios:
+            try:
+                response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                       json=scenario["filters"],
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=45)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    stocks_found = data.get("results_found", 0)
+                    real_data_count = data.get("real_data_count", 0)
+                    
+                    self.log_test(f"Screener Real Data - {scenario['name']}", True, 
+                                f"Found {stocks_found} stocks, {real_data_count} with real data")
+                else:
+                    self.log_test(f"Screener Real Data - {scenario['name']}", False, 
+                                f"HTTP {response.status_code}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Screener Real Data - {scenario['name']}", False, 
+                            f"Error: {str(e)}", True)
+                all_passed = False
+        
+        return all_passed
+
     def run_comprehensive_tests(self):
         """Run all tests"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
