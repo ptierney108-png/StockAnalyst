@@ -14,7 +14,7 @@ const StockAnalysis = () => {
   
   const [symbol, setSymbol] = useState(urlSymbol || 'AAPL');
   const [inputSymbol, setInputSymbol] = useState('');
-  const [selectedTimeframe, setSelectedTimeframe] = useState('1D');
+  const [selectedTimeframe, setSelectedTimeframe] = useState('3M');
 
   // Available timeframes like professional trading platforms
   const timeframes = [
