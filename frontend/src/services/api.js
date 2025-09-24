@@ -147,6 +147,12 @@ const api = {
     const response = await apiClient.delete(`/watchlists/${watchlistId}/stocks/${symbol}`);
     return response.data;
   },
+
+  // Stock screening
+  screenStocks: async (filters) => {
+    const response = await apiClient.post('/screener/scan', filters);
+    return response.data;
+  },
 };
 
 export default api;
