@@ -843,6 +843,246 @@ class StockAnalysisAPITester:
         
         return issues
 
+    def validate_ppo_calculation_fix(self, data: Dict[str, Any], symbol: str, timeframe: str, data_source: str) -> List[str]:
+        """Validate the PPO calculation fix implementation"""
+        issues = []
+        
+        # Check main PPO indicators
+        indicators = data.get("indicators", {})
+        if not indicators:
+            issues.append("Missing indicators object")
+            return issues
+        
+        # Validate PPO values are non-zero (key fix requirement)
+        ppo = indicators.get("ppo")
+        ppo_signal = indicators.get("ppo_signal")
+        ppo_histogram = indicators.get("ppo_histogram")
+        ppo_slope_percentage = indicators.get("ppo_slope_percentage")
+        
+        if ppo is None:
+            issues.append("PPO value is null")
+        elif ppo == 0 and data_source in ["polygon_io", "yahoo_finance"]:
+            issues.append("PPO value is still zero with real API data (fix may not be working)")
+        
+        if ppo_signal is None:
+            issues.append("PPO signal is null")
+        elif ppo_signal == 0 and data_source in ["polygon_io", "yahoo_finance"]:
+            issues.append("PPO signal is still zero with real API data")
+        
+        if ppo_histogram is None:
+            issues.append("PPO histogram is null")
+        
+        # Check for data quality indicators (new feature)
+        data_quality = indicators.get("data_quality")
+        if data_quality is None:
+            issues.append("Missing data_quality indicator (new feature)")
+        elif data_quality not in ["standard", "adaptive", "insufficient"]:
+            issues.append(f"Invalid data_quality value: {data_quality}")
+        
+        # Check for fallback reason when adaptive calculation is used
+        fallback_reason = indicators.get("fallback_reason")
+        if data_quality == "adaptive" and not fallback_reason:
+            issues.append("Missing fallback_reason when adaptive calculation is used")
+        
+        # Validate PPO history with fix
+        ppo_history = data.get("ppo_history", [])
+        if not ppo_history:
+            issues.append("PPO history is empty")
+        elif len(ppo_history) < 3:
+            issues.append(f"PPO history incomplete: {len(ppo_history)} entries (expected 3)")
+        else:
+            # Check if PPO history values are reasonable (not all zero)
+            ppo_values = [entry.get("ppo", 0) for entry in ppo_history]
+            if all(val == 0 for val in ppo_values) and data_source in ["polygon_io", "yahoo_finance"]:
+                issues.append("All PPO history values are zero (adaptive calculation may not be working)")
+        
+        # Check chart data for reasonable PPO values
+        chart_data = data.get("chart_data", [])
+        if chart_data:
+            chart_ppo_values = [item.get("ppo", 0) for item in chart_data if "ppo" in item]
+            if len(chart_ppo_values) > 0:
+                # With the fix, we should have some non-zero PPO values even with limited data
+                non_zero_count = sum(1 for val in chart_ppo_values if val != 0)
+                if non_zero_count == 0 and data_source in ["polygon_io", "yahoo_finance"]:
+                    issues.append("All chart PPO values are zero (adaptive PPO calculation not working)")
+        
+        return issues
+
+    def validate_data_quality_indicators(self, data: Dict[str, Any], symbol: str, timeframe: str) -> bool:
+        """Validate new data quality indicators in response"""
+        indicators = data.get("indicators", {})
+        
+        # Check for data quality field
+        data_quality = indicators.get("data_quality")
+        if data_quality:
+            self.log_test(f"Data Quality Indicator ({symbol} {timeframe})", True, 
+                        f"Data quality: {data_quality}")
+            
+            # Check for PPO calculation note if adaptive
+            if data_quality == "adaptive":
+                fallback_reason = indicators.get("fallback_reason")
+                if fallback_reason:
+                    self.log_test(f"PPO Calculation Note ({symbol} {timeframe})", True, 
+                                f"Adaptive calculation note: {fallback_reason}")
+                    return True
+                else:
+                    self.log_test(f"PPO Calculation Note ({symbol} {timeframe})", False, 
+                                "Missing fallback reason for adaptive calculation")
+                    return False
+            return True
+        else:
+            self.log_test(f"Data Quality Indicator ({symbol} {timeframe})", False, 
+                        "Missing data_quality field in response")
+            return False
+
+    def validate_screener_ppo_fix(self, data: Dict[str, Any]) -> List[str]:
+        """Validate PPO fix in screener results"""
+        issues = []
+        stocks = data.get("stocks", [])
+        
+        if not stocks:
+            return ["No stocks in screener results"]
+        
+        zero_ppo_count = 0
+        total_stocks = len(stocks)
+        
+        for i, stock in enumerate(stocks[:10]):  # Check first 10 stocks
+            symbol = stock.get("symbol", f"Stock_{i}")
+            
+            # Check PPO values in screener results
+            ppo_values = stock.get("ppo_values", [])
+            if not ppo_values:
+                issues.append(f"{symbol}: Missing PPO values in screener")
+            elif len(ppo_values) != 3:
+                issues.append(f"{symbol}: PPO values should be 3 entries, got {len(ppo_values)}")
+            elif all(val == 0 for val in ppo_values):
+                zero_ppo_count += 1
+            
+            # Check PPO slope percentage
+            ppo_slope = stock.get("ppo_slope_percentage")
+            if ppo_slope is None:
+                issues.append(f"{symbol}: Missing PPO slope percentage in screener")
+        
+        # Check if too many stocks have zero PPO values (indicates fix not working)
+        if zero_ppo_count > total_stocks * 0.3:  # More than 30% have zero PPO
+            issues.append(f"Too many stocks ({zero_ppo_count}/{total_stocks}) have zero PPO values - fix may not be working")
+        
+        return issues
+
+    def test_ppo_edge_cases(self) -> bool:
+        """Test PPO calculation with very limited data scenarios"""
+        all_passed = True
+        
+        # Test with different timeframes that might have very limited data
+        edge_test_cases = [
+            {"symbol": "AAPL", "timeframe": "1D"},
+            {"symbol": "GOOGL", "timeframe": "5D"},
+            {"symbol": "MSFT", "timeframe": "1M"}
+        ]
+        
+        for test_case in edge_test_cases:
+            try:
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=test_case,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    chart_data = data.get("chart_data", [])
+                    indicators = data.get("indicators", {})
+                    
+                    # Test graceful handling of limited data
+                    if len(chart_data) < 26:  # Insufficient for standard PPO
+                        data_quality = indicators.get("data_quality")
+                        if data_quality == "adaptive":
+                            self.log_test(f"Edge Case Handling ({test_case['symbol']} {test_case['timeframe']})", True, 
+                                        f"Adaptive calculation with {len(chart_data)} data points")
+                        elif data_quality == "insufficient":
+                            ppo = indicators.get("ppo", 0)
+                            if ppo != 0:  # Should provide some fallback value
+                                self.log_test(f"Edge Case Handling ({test_case['symbol']} {test_case['timeframe']})", True, 
+                                            f"Fallback PPO value provided: {ppo}")
+                            else:
+                                self.log_test(f"Edge Case Handling ({test_case['symbol']} {test_case['timeframe']})", False, 
+                                            "No fallback PPO value with insufficient data", True)
+                                all_passed = False
+                        else:
+                            self.log_test(f"Edge Case Handling ({test_case['symbol']} {test_case['timeframe']})", False, 
+                                        f"Unexpected data quality: {data_quality} with {len(chart_data)} points", True)
+                            all_passed = False
+                    else:
+                        self.log_test(f"Edge Case Data ({test_case['symbol']} {test_case['timeframe']})", True, 
+                                    f"Sufficient data points: {len(chart_data)}")
+                else:
+                    self.log_test(f"Edge Case API ({test_case['symbol']} {test_case['timeframe']})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Edge Case Test ({test_case['symbol']} {test_case['timeframe']})", False, 
+                            f"Error: {str(e)}", True)
+                all_passed = False
+        
+        return all_passed
+
+    def test_adaptive_ppo_slope(self) -> bool:
+        """Test adaptive PPO slope calculations with limited data"""
+        all_passed = True
+        
+        test_symbols = ["AAPL", "GOOGL", "MSFT"]
+        
+        for symbol in test_symbols:
+            try:
+                payload = {"symbol": symbol, "timeframe": "1D"}
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    indicators = data.get("indicators", {})
+                    ppo_history = data.get("ppo_history", [])
+                    
+                    # Check if PPO slope calculation works with adaptive PPO values
+                    ppo_slope = indicators.get("ppo_slope")
+                    ppo_slope_percentage = indicators.get("ppo_slope_percentage")
+                    
+                    if ppo_slope is not None and ppo_slope_percentage is not None:
+                        # Validate slope calculation with PPO history
+                        if len(ppo_history) >= 3:
+                            today_ppo = ppo_history[-1].get("ppo", 0)
+                            yesterday_ppo = ppo_history[-2].get("ppo", 0)
+                            
+                            # Check if slope calculation is reasonable
+                            if abs(ppo_slope_percentage) > 1000:  # Unreasonably high slope
+                                self.log_test(f"Adaptive PPO Slope ({symbol})", False, 
+                                            f"Unreasonable slope: {ppo_slope_percentage}%", True)
+                                all_passed = False
+                            else:
+                                self.log_test(f"Adaptive PPO Slope ({symbol})", True, 
+                                            f"Reasonable slope: {ppo_slope_percentage:.2f}%")
+                        else:
+                            self.log_test(f"PPO Slope History ({symbol})", False, 
+                                        "Insufficient PPO history for slope calculation", True)
+                            all_passed = False
+                    else:
+                        self.log_test(f"PPO Slope Values ({symbol})", False, 
+                                    "Missing PPO slope values", True)
+                        all_passed = False
+                else:
+                    self.log_test(f"Adaptive Slope API ({symbol})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Adaptive Slope Test ({symbol})", False, 
+                            f"Error: {str(e)}", True)
+                all_passed = False
+        
+        return all_passed
+
     def validate_insufficient_data_handling(self, data: Dict[str, Any], data_points: int) -> bool:
         """Validate how system handles insufficient data for PPO calculation"""
         indicators = data.get("indicators", {})
