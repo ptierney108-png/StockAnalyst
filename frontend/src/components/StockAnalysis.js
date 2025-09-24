@@ -29,12 +29,13 @@ const StockAnalysis = () => {
     { label: 'All', value: 'All', description: 'All Time' }
   ];
 
-  // Update symbol when URL parameter changes
+  // Update symbol when URL parameter changes, but don't interfere with manual input
   useEffect(() => {
-    if (urlSymbol && urlSymbol !== symbol) {
+    if (urlSymbol && urlSymbol !== symbol && !inputSymbol.trim()) {
+      // Only auto-update if user hasn't entered anything manually
       setSymbol(urlSymbol.toUpperCase());
     }
-  }, [urlSymbol, symbol]);
+  }, [urlSymbol, symbol, inputSymbol]);
 
   const {
     data: analysisData,
