@@ -2287,7 +2287,9 @@ async def screen_stocks(filters: ScreenerFilters):
                         "last_earnings": last_earnings,
                         "next_earnings": next_earnings,
                         "days_to_earnings": days_to_earnings,
-                        "data_source": analysis_data.get("data_source", "alpha_vantage")
+                        "data_source": analysis_data.get("data_source", "alpha_vantage"),
+                        "options_data_source": "simulated" if has_options_data else None,
+                        "earnings_data_source": "simulated" if has_earnings_data else None
                     }
                     
                     all_stocks.append(stock_data)
