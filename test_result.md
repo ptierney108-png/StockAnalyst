@@ -261,10 +261,8 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Critical runtime errors and data issues fix"
-  stuck_tasks:
-    - "Critical runtime errors and data issues fix"
+  current_focus: []
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
