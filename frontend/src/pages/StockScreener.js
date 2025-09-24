@@ -265,15 +265,28 @@ const StockScreener = () => {
 
   // Sorting function
   const handleSort = (key) => {
-    let direction = 'asc';
+    const direction = sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc';
+    
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
       direction = 'desc';
     }
     setSortConfig({ key, direction });
-
+    
     const sortedData = [...results].sort((a, b) => {
-      if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
-      if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
+      let aValue, bValue;
+      
+      // Handle nested properties like 'returns.1d'
+      if (key.includes('.')) {
+        const [parent, child] = key.split('.');
+        aValue = a[parent]?.[child] || 0;
+        bValue = b[parent]?.[child] || 0;
+      } else {
+        aValue = a[key];
+        bValue = b[key];
+      }
+      
+      if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return direction === 'asc' ? 1 : -1;
       return 0;
     });
     setResults(sortedData);
