@@ -64,6 +64,15 @@ function App() {
                     <StockScreener />
                   </Suspense>
                 } />
+                <Route path="/batch-screener" element={
+                  <Suspense fallback={
+                    <div className="max-w-7xl mx-auto px-6 py-8">
+                      <TableSkeleton rows={10} cols={8} />
+                    </div>
+                  }>
+                    <BatchScreener />
+                  </Suspense>
+                } />
                 <Route path="/point-decision" element={<PointBasedDecision />} />
                 <Route path="/stock/:symbol" element={<StockDetail />} />
                 <Route path="/portfolio" element={<Portfolio />} />
