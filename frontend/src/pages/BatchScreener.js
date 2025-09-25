@@ -167,6 +167,16 @@ const BatchScreener = () => {
       setBatchProcessing(true);
       setBatchResults([]);
       setBatchProgress(null);
+      setPartialResults([]);
+      
+      // Phase 2: Enhanced scanning options
+      const totalStocks = getTotalStocksCount();
+      const estimatedTime = getEstimatedScanTime();
+      
+      // For large scans (>1000 stocks), enable partial results automatically
+      if (totalStocks > 1000 || estimatedTime > 15) {
+        setShowPartialResults(true);
+      }
       
       const filterCriteria = {
         indices: selectedIndices,
