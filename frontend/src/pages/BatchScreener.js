@@ -382,14 +382,17 @@ const BatchScreener = () => {
                 <TrendingUp className="h-4 w-4 mr-1 text-blue-600" />
                 <label className="font-medium text-gray-700">PPO Slope %</label>
               </div>
-              <input
-                type="number"
-                step="0.1"
-                placeholder="Minimum Slope %"
-                value={ppoSlopeThreshold}
-                onChange={(e) => setPpoSlopeThreshold(Number(e.target.value))}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Minimum Slope %</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  placeholder="e.g., 5.0"
+                  value={ppoSlopeThreshold}
+                  onChange={(e) => setPpoSlopeThreshold(Number(e.target.value))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
             </div>
 
             {/* PPO Hook Pattern */}
