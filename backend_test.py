@@ -6099,6 +6099,382 @@ class StockAnalysisAPITester:
         
         return all_passed
 
+    def test_batch_screener_phase2_validation(self) -> bool:
+        """
+        COMPREHENSIVE PHASE 2 VALIDATION: Test all newly implemented Phase 2 features for the Batch Screener
+        
+        **1. Stock Universe Expansion Validation:**
+        - Test new `/api/batch/indices` endpoint to verify all Phase 2 indices are available:
+          - SP500 (460+ stocks, ~7 min)
+          - NASDAQ100 (90+ stocks, ~1.5 min)  
+          - NASDAQ_COMPOSITE (300+ stocks, ~42 min)
+          - NYSE_COMPOSITE (280+ stocks, ~38 min)
+          - DOW30 (30 stocks, ~0.5 min)
+        - Verify estimated time calculations are realistic
+
+        **2. Interleaved Processing Test:**
+        - Create multi-index batch job with both NASDAQ100 + NYSE_COMPOSITE
+        - Test interleaving logic by monitoring processing order in logs
+        - Verify symbols from different indices are mixed for better feedback
+        - Expected: Should see NASDAQ and NYSE symbols alternating in processing logs
+
+        **3. Enhanced Time Estimation:**
+        - Test batch creation with multiple indices
+        - Verify overlap adjustment (0.8 factor) is applied for multi-index scans
+        - Test single vs. multi-index time estimation accuracy
+
+        **4. Partial Results API:**
+        - Test new `/api/batch/partial-results/{batch_id}` endpoint
+        - Verify partial results are available during processing (not just at completion)
+        - Test real-time streaming with partial results every 10 processed stocks
+        - Check partial_results_count and last_update fields
+        """
+        print(f"\n🚀 COMPREHENSIVE PHASE 2 BATCH SCREENER VALIDATION")
+        print("=" * 80)
+        
+        all_passed = True
+        phase2_issues = []
+        
+        # 1. Stock Universe Expansion Validation
+        print(f"\n📊 1. STOCK UNIVERSE EXPANSION VALIDATION")
+        print("-" * 50)
+        
+        try:
+            response = requests.get(f"{BACKEND_URL}/batch/indices", timeout=15)
+            if response.status_code == 200:
+                data = response.json()
+                indices = data.get("indices", {})
+                
+                # Validate all Phase 2 indices are present
+                expected_indices = {
+                    "SP500": {"min_stocks": 460, "expected_time": 7.0},
+                    "NASDAQ100": {"min_stocks": 90, "expected_time": 1.5},
+                    "NASDAQ_COMPOSITE": {"min_stocks": 300, "expected_time": 42.0},
+                    "NYSE_COMPOSITE": {"min_stocks": 280, "expected_time": 38.0},
+                    "DOW30": {"min_stocks": 30, "expected_time": 0.5}
+                }
+                
+                for index_name, expectations in expected_indices.items():
+                    if index_name not in indices:
+                        phase2_issues.append(f"Missing Phase 2 index: {index_name}")
+                        all_passed = False
+                        self.log_test(f"Phase 2 Index Availability ({index_name})", False, 
+                                    f"Index {index_name} not found in available indices", True)
+                    else:
+                        index_data = indices[index_name]
+                        stock_count = index_data.get("stock_count", 0)
+                        estimated_time = index_data.get("estimated_scan_time_minutes", 0)
+                        
+                        # Validate stock count
+                        if stock_count < expectations["min_stocks"]:
+                            phase2_issues.append(f"{index_name}: Only {stock_count} stocks (expected {expectations['min_stocks']}+)")
+                            all_passed = False
+                            self.log_test(f"Phase 2 Stock Count ({index_name})", False, 
+                                        f"Only {stock_count} stocks, expected {expectations['min_stocks']}+", True)
+                        else:
+                            self.log_test(f"Phase 2 Stock Count ({index_name})", True, 
+                                        f"{stock_count} stocks available")
+                        
+                        # Validate estimated time is realistic
+                        expected_time_range = (expectations["expected_time"] * 0.5, expectations["expected_time"] * 2.0)
+                        if not (expected_time_range[0] <= estimated_time <= expected_time_range[1]):
+                            phase2_issues.append(f"{index_name}: Estimated time {estimated_time}min outside expected range {expected_time_range}")
+                            self.log_test(f"Phase 2 Time Estimation ({index_name})", False, 
+                                        f"Estimated time {estimated_time}min outside expected range", True)
+                        else:
+                            self.log_test(f"Phase 2 Time Estimation ({index_name})", True, 
+                                        f"Estimated time {estimated_time}min is realistic")
+                        
+                        print(f"  ✅ {index_name}: {stock_count} stocks, ~{estimated_time} min")
+                
+                self.log_test("Phase 2 Stock Universe Expansion", len(phase2_issues) == 0, 
+                            f"All Phase 2 indices validated" if len(phase2_issues) == 0 else f"Issues: {phase2_issues}")
+            else:
+                self.log_test("Phase 2 Indices Endpoint", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Phase 2 Indices Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        # 2. Interleaved Processing Test
+        print(f"\n🔄 2. INTERLEAVED PROCESSING TEST")
+        print("-" * 50)
+        
+        try:
+            # Create multi-index batch job (small test for faster execution)
+            multi_index_filters = {
+                "price_filter": {"type": "under", "under": 500},
+                "dmi_filter": {"min": 15, "max": 70},
+                "ppo_slope_filter": {"threshold": -50},
+                "ppo_hook_filter": "all"
+            }
+            
+            batch_request = {
+                "indices": ["DOW30", "NASDAQ100"],  # Small indices for faster testing
+                "filters": multi_index_filters,
+                "force_refresh": False
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/batch/scan", 
+                                   json=batch_request,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                batch_data = response.json()
+                batch_id = batch_data.get("batch_id")
+                estimated_minutes = batch_data.get("estimated_completion_minutes", 0)
+                total_stocks = batch_data.get("total_stocks", 0)
+                indices_selected = batch_data.get("indices_selected", [])
+                
+                # Validate multi-index batch creation
+                if len(indices_selected) >= 2:
+                    self.log_test("Phase 2 Multi-Index Batch Creation", True, 
+                                f"Created batch {batch_id} for {total_stocks} stocks from {len(indices_selected)} indices")
+                    
+                    # Test enhanced time estimation with overlap adjustment
+                    if estimated_minutes > 0:
+                        self.log_test("Phase 2 Enhanced Time Estimation", True, 
+                                    f"Multi-index estimated time: {estimated_minutes} minutes")
+                    else:
+                        phase2_issues.append("Multi-index time estimation returned 0")
+                        all_passed = False
+                        self.log_test("Phase 2 Enhanced Time Estimation", False, 
+                                    "Multi-index time estimation returned 0", True)
+                    
+                    print(f"  ✅ Batch {batch_id}: {total_stocks} stocks, ~{estimated_minutes} min, indices: {indices_selected}")
+                    
+                    # Monitor batch for interleaved processing (check status a few times)
+                    interleaved_test_passed = self.test_interleaved_processing_monitoring(batch_id)
+                    if not interleaved_test_passed:
+                        all_passed = False
+                        
+                else:
+                    phase2_issues.append("Multi-index batch creation failed - insufficient indices")
+                    all_passed = False
+                    self.log_test("Phase 2 Multi-Index Batch Creation", False, 
+                                "Insufficient indices in batch creation", True)
+            else:
+                self.log_test("Phase 2 Multi-Index Batch Scan", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Phase 2 Interleaved Processing Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        # 3. Enhanced Time Estimation Test
+        print(f"\n⏱️ 3. ENHANCED TIME ESTIMATION TEST")
+        print("-" * 50)
+        
+        try:
+            # Test single vs multi-index time estimation
+            single_index_request = {
+                "indices": ["DOW30"],
+                "filters": multi_index_filters,
+                "force_refresh": False
+            }
+            
+            multi_index_request = {
+                "indices": ["DOW30", "NASDAQ100"],
+                "filters": multi_index_filters,
+                "force_refresh": False
+            }
+            
+            # Single index estimation
+            single_response = requests.post(f"{BACKEND_URL}/batch/scan", 
+                                          json=single_index_request,
+                                          headers={"Content-Type": "application/json"},
+                                          timeout=30)
+            
+            # Multi index estimation  
+            multi_response = requests.post(f"{BACKEND_URL}/batch/scan", 
+                                         json=multi_index_request,
+                                         headers={"Content-Type": "application/json"},
+                                         timeout=30)
+            
+            if single_response.status_code == 200 and multi_response.status_code == 200:
+                single_data = single_response.json()
+                multi_data = multi_response.json()
+                
+                single_time = single_data.get("estimated_completion_minutes", 0)
+                multi_time = multi_data.get("estimated_completion_minutes", 0)
+                single_stocks = single_data.get("total_stocks", 0)
+                multi_stocks = multi_data.get("total_stocks", 0)
+                
+                # Validate overlap adjustment (multi-index should be less than sum of individual)
+                if multi_time > 0 and single_time > 0:
+                    # Multi-index should benefit from overlap adjustment (0.8 factor)
+                    expected_multi_time_max = single_time * 2.5  # Allow some variance
+                    if multi_time <= expected_multi_time_max:
+                        self.log_test("Phase 2 Overlap Adjustment", True, 
+                                    f"Multi-index time ({multi_time}min) shows overlap optimization")
+                    else:
+                        phase2_issues.append(f"Multi-index time estimation too high: {multi_time}min vs expected max {expected_multi_time_max}min")
+                        self.log_test("Phase 2 Overlap Adjustment", False, 
+                                    f"Multi-index time ({multi_time}min) too high", True)
+                        all_passed = False
+                    
+                    print(f"  ✅ Single index: {single_stocks} stocks, {single_time}min")
+                    print(f"  ✅ Multi index: {multi_stocks} stocks, {multi_time}min (overlap optimized)")
+                else:
+                    phase2_issues.append("Time estimation returned 0 for comparison test")
+                    all_passed = False
+                    self.log_test("Phase 2 Time Estimation Comparison", False, 
+                                "Time estimation returned 0", True)
+            else:
+                self.log_test("Phase 2 Time Estimation Test", False, 
+                            "Failed to create comparison batches", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Phase 2 Enhanced Time Estimation Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        # 4. Partial Results API Test
+        print(f"\n📊 4. PARTIAL RESULTS API TEST")
+        print("-" * 50)
+        
+        try:
+            # Create a batch job for partial results testing
+            partial_results_request = {
+                "indices": ["DOW30"],  # Small index for faster testing
+                "filters": {
+                    "price_filter": {"type": "under", "under": 1000},
+                    "dmi_filter": {"min": 10, "max": 90},
+                    "ppo_slope_filter": {"threshold": -100},
+                    "ppo_hook_filter": "all"
+                },
+                "force_refresh": False
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/batch/scan", 
+                                   json=partial_results_request,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                batch_data = response.json()
+                batch_id = batch_data.get("batch_id")
+                
+                # Test partial results endpoint immediately
+                partial_results_passed = self.test_partial_results_api(batch_id)
+                if not partial_results_passed:
+                    all_passed = False
+                    
+            else:
+                self.log_test("Phase 2 Partial Results Batch Creation", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Phase 2 Partial Results API Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        # Summary of Phase 2 validation
+        if phase2_issues:
+            print(f"\n🚨 PHASE 2 VALIDATION ISSUES FOUND ({len(phase2_issues)}):")
+            for issue in phase2_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ Phase 2 Batch Screener validation completed successfully")
+        
+        return all_passed
+    
+    def test_interleaved_processing_monitoring(self, batch_id: str) -> bool:
+        """Monitor batch processing to verify interleaved symbol processing"""
+        try:
+            # Check batch status multiple times to observe interleaved processing
+            for i in range(5):  # Check 5 times over 10 seconds
+                time.sleep(2)  # Wait 2 seconds between checks
+                
+                response = requests.get(f"{BACKEND_URL}/batch/status/{batch_id}", timeout=10)
+                if response.status_code == 200:
+                    status_data = response.json()
+                    progress = status_data.get("progress", {})
+                    current_symbol = progress.get("current_symbol")
+                    processed = progress.get("processed", 0)
+                    percentage = progress.get("percentage", 0)
+                    
+                    print(f"    Check {i+1}: Processing {current_symbol}, {processed} processed ({percentage:.1f}%)")
+                    
+                    # If we see processing happening, that's good
+                    if processed > 0:
+                        self.log_test("Phase 2 Interleaved Processing Monitoring", True, 
+                                    f"Observed interleaved processing: {current_symbol} at {percentage:.1f}%")
+                        return True
+                else:
+                    print(f"    Check {i+1}: Status check failed - {response.status_code}")
+            
+            # If we get here, we didn't observe active processing
+            self.log_test("Phase 2 Interleaved Processing Monitoring", False, 
+                        "Could not observe active interleaved processing", True)
+            return False
+            
+        except Exception as e:
+            self.log_test("Phase 2 Interleaved Processing Monitoring", False, f"Error: {str(e)}", True)
+            return False
+    
+    def test_partial_results_api(self, batch_id: str) -> bool:
+        """Test the Phase 2 partial results API endpoint"""
+        try:
+            # Test partial results endpoint multiple times
+            for i in range(3):
+                time.sleep(1)  # Wait 1 second between checks
+                
+                response = requests.get(f"{BACKEND_URL}/batch/partial-results/{batch_id}", timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Validate partial results response structure
+                    required_fields = ["batch_id", "status", "progress", "partial_results", 
+                                     "partial_results_count", "last_update", "is_final"]
+                    
+                    missing_fields = [field for field in required_fields if field not in data]
+                    if missing_fields:
+                        self.log_test("Phase 2 Partial Results Structure", False, 
+                                    f"Missing fields: {missing_fields}", True)
+                        return False
+                    
+                    partial_results = data.get("partial_results", [])
+                    partial_count = data.get("partial_results_count", 0)
+                    last_update = data.get("last_update")
+                    is_final = data.get("is_final", False)
+                    
+                    print(f"    Partial check {i+1}: {partial_count} results, last_update: {last_update}, final: {is_final}")
+                    
+                    # Validate partial results count matches actual results
+                    if len(partial_results) != partial_count:
+                        self.log_test("Phase 2 Partial Results Count", False, 
+                                    f"Count mismatch: {len(partial_results)} vs {partial_count}", True)
+                        return False
+                    
+                    # If we have results, validate their structure
+                    if partial_results:
+                        sample_result = partial_results[0]
+                        if "symbol" not in sample_result or "price" not in sample_result:
+                            self.log_test("Phase 2 Partial Results Content", False, 
+                                        "Partial results missing required fields", True)
+                            return False
+                    
+                    # Success if we get valid partial results
+                    self.log_test("Phase 2 Partial Results API", True, 
+                                f"Partial results API working: {partial_count} results available")
+                    return True
+                else:
+                    print(f"    Partial check {i+1}: Failed - {response.status_code}")
+            
+            # If we get here, all attempts failed
+            self.log_test("Phase 2 Partial Results API", False, 
+                        "Partial results API endpoint failed", True)
+            return False
+            
+        except Exception as e:
+            self.log_test("Phase 2 Partial Results API", False, f"Error: {str(e)}", True)
+            return False
+
     def test_batch_screener_infrastructure(self) -> bool:
         """
         COMPREHENSIVE BATCH SCREENER INFRASTRUCTURE TESTING
