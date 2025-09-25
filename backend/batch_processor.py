@@ -121,23 +121,70 @@ class BatchProcessor:
             'average_processing_time': 0.0
         }
     
-    def create_batch_job(self, symbols: List[str], filters: Dict[str, Any]) -> str:
-        """Create a new batch processing job"""
+    def create_batch_job(self, symbols: List[str], filters: Dict[str, Any], indices: List[str] = None) -> str:
+        """Create a new batch processing job with interleaved processing support"""
         job_id = str(uuid.uuid4())
+        
+        # Interleave symbols from different indices for better user feedback
+        if indices and len(indices) > 1:
+            interleaved_symbols = self._interleave_symbols_by_index(symbols, indices)
+        else:
+            interleaved_symbols = symbols
         
         job = BatchJob(
             id=job_id,
-            symbols=symbols,
+            symbols=interleaved_symbols,
             filters=filters,
             status=BatchStatus.PENDING,
             created_at=datetime.utcnow()
         )
         
+        # Add metadata for Phase 2 features
+        job.metadata = {
+            'indices': indices or ['UNKNOWN'],
+            'original_order': symbols != interleaved_symbols,
+            'interleaved': indices and len(indices) > 1,
+            'partial_results_enabled': True
+        }
+        
         self.jobs[job_id] = job
         self.stats['total_jobs'] += 1
         
-        logger.info(f"Created batch job {job_id} for {len(symbols)} stocks")
+        logger.info(f"Created batch job {job_id} for {len(symbols)} stocks from indices: {indices}")
         return job_id
+    
+    def _interleave_symbols_by_index(self, symbols: List[str], indices: List[str]) -> List[str]:
+        """
+        Interleave symbols from different indices to provide faster user feedback
+        Instead of processing all SP500 then all NASDAQ, mix them for better progress distribution
+        """
+        from stock_universe import get_stock_universe
+        
+        # Group symbols by their source index
+        index_groups = {}
+        symbol_to_index = {}
+        
+        for index in indices:
+            index_symbols = set(get_stock_universe(index))
+            index_groups[index] = [s for s in symbols if s in index_symbols]
+            for symbol in index_groups[index]:
+                symbol_to_index[symbol] = index
+        
+        # Interleave symbols from different indices
+        interleaved = []
+        max_len = max(len(group) for group in index_groups.values()) if index_groups else 0
+        
+        for i in range(max_len):
+            for index in indices:
+                if i < len(index_groups.get(index, [])):
+                    interleaved.append(index_groups[index][i])
+        
+        # Add any remaining symbols not found in specific indices
+        remaining = [s for s in symbols if s not in symbol_to_index]
+        interleaved.extend(remaining)
+        
+        logger.info(f"Interleaved {len(symbols)} symbols from {len(indices)} indices for better feedback")
+        return interleaved
     
     async def start_batch_job(self, job_id: str, process_function: Callable) -> bool:
         """Start processing a batch job"""
