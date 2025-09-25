@@ -5371,6 +5371,10 @@ class StockAnalysisAPITester:
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
         
+        # CRITICAL PRIORITY: Test Hook Filtering Parameter Mismatch Fix (Current Review Request Focus)
+        print(f"\n🎯 CRITICAL PRIORITY: HOOK FILTERING PARAMETER MISMATCH FIX")
+        self.test_hook_filtering_parameter_mismatch_fix()
+        
         # HIGHEST PRIORITY: Test DMI and Hook Pattern Filtering Fix (Current Review Request Focus)
         print(f"\n🎯 HIGHEST PRIORITY: DMI AND HOOK PATTERN FILTERING FIX")
         self.test_dmi_hook_pattern_filtering_fix()
