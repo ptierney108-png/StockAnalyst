@@ -388,6 +388,7 @@ metadata:
 
 test_plan:
   current_focus:
+    - "Scanner Results Display Issue - Frontend Investigation"
     - "Scanner DMI and Hook Pattern Display Issues"
   stuck_tasks: []
   test_all: false
