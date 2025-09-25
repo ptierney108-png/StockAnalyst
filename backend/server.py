@@ -1916,6 +1916,58 @@ class ScreenerFilters(BaseModel):
     optionable_filter: Optional[str] = "all"
     earnings_filter: Optional[str] = "all"
 
+# Batch Processing Models
+class BatchScanRequest(BaseModel):
+    indices: List[str] = Field(default=["SP500"], description="Stock indices to scan (SP500, NASDAQ100, NYSE100, DOW30)")
+    filters: ScreenerFilters = Field(default_factory=ScreenerFilters)
+    force_refresh: bool = Field(default=False, description="Force fresh API calls instead of using cache")
+
+class BatchScanResponse(BaseModel):
+    batch_id: str
+    message: str
+    estimated_completion_minutes: int
+    total_stocks: int
+    indices_selected: List[str]
+
+class BatchStatusResponse(BaseModel):
+    batch_id: str
+    status: str
+    progress: Dict[str, Any]
+    results_count: int
+    error: Optional[str] = None
+    estimated_completion: Optional[str] = None
+
+class BatchResultsResponse(BaseModel):
+    batch_id: str
+    status: str
+    total_results: int
+    results: List[Dict[str, Any]]
+    scan_metadata: Dict[str, Any]
+
+# Batch Processing Initialization
+@app.on_event("startup")
+async def startup_event():
+    """Initialize batch processing components on startup"""
+    try:
+        # Initialize cache manager
+        await cache_manager.initialize()
+        
+        # Clean up old jobs
+        batch_processor.cleanup_old_jobs(max_age_hours=24)
+        
+        logging.info("Batch processing system initialized successfully")
+    except Exception as e:
+        logging.error(f"Failed to initialize batch processing: {e}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up resources on shutdown"""
+    try:
+        await cache_manager.close()
+        logging.info("Batch processing system shutdown complete")
+    except Exception as e:
+        logging.error(f"Error during batch processing shutdown: {e}")
+
 def generate_comprehensive_stock_data(symbol: str, base_price: float, volatility: float = 0.025) -> Dict[str, Any]:
     """Generate comprehensive stock data with all required fields for screener"""
     
