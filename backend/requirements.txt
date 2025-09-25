@@ -1,9 +1,11 @@
 aiohappyeyeballs==2.6.1
 aiohttp==3.12.15
+aioredis==2.0.1
 aiosignal==1.4.0
 alpha_vantage==3.0.0
 annotated-types==0.7.0
 anyio==4.10.0
+async-timeout==5.0.1
 attrs==25.3.0
 beautifulsoup4==4.13.5
 black==25.9.0
@@ -100,6 +102,7 @@ python-multipart==0.0.20
 pytokens==0.1.10
 pytz==2025.2
 PyYAML==6.0.2
+redis==6.4.0
 referencing==0.36.2
 regex==2025.9.18
 requests==2.32.5
