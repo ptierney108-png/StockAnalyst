@@ -14,6 +14,7 @@ const Watchlist = lazy(() => import('./pages/Watchlist'));
 const Market = lazy(() => import('./pages/Market'));
 const StockAnalysis = lazy(() => import('./components/StockAnalysis'));
 const StockScreener = lazy(() => import('./pages/StockScreener'));
+const BatchScreener = lazy(() => import('./pages/BatchScreener'));
 const PointBasedDecision = lazy(() => import('./pages/PointBasedDecision'));
 
 const queryClient = new QueryClient({
