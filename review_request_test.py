@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 
 # Configuration
-BACKEND_URL = "https://stockwise-116.preview.emergentagent.com/api"
+BACKEND_URL = "https://stockwise-platform.preview.emergentagent.com/api"
 
 class ReviewRequestTester:
     def __init__(self):

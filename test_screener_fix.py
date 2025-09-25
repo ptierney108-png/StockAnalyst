@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://stockwise-116.preview.emergentagent.com/api"
+BACKEND_URL = "https://stockwise-platform.preview.emergentagent.com/api"
 
 def test_stock_screener_real_data_fix():
     """Test the stock screener real data fix"""

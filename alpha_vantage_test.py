@@ -9,7 +9,7 @@ import json
 import time
 from datetime import datetime
 
-BACKEND_URL = "https://stockwise-116.preview.emergentagent.com/api"
+BACKEND_URL = "https://stockwise-platform.preview.emergentagent.com/api"
 TEST_SYMBOLS = ["AAPL", "GOOGL", "MSFT"]
 
 def test_api_status():
