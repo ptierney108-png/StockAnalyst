@@ -84,11 +84,13 @@ const BatchScreener = () => {
     loadAvailableIndices();
   }, []);
 
-  // Poll batch progress
+  // Poll batch progress with Phase 2 partial results support
   useEffect(() => {
     let progressInterval;
+    let partialResultsInterval;
     
     if (currentBatchId && isProcessing) {
+      // Main progress polling (every 2 seconds)
       progressInterval = setInterval(async () => {
         try {
           const progress = await api.getBatchStatus(currentBatchId);
@@ -98,22 +100,42 @@ const BatchScreener = () => {
             setBatchProcessing(false);
             await loadBatchResults(currentBatchId);
             setLastScanTime(Date.now());
+            setShowPartialResults(false); // Hide partial results when complete
           } else if (progress.status === 'failed') {
             setBatchProcessing(false);
             setError(progress.error || 'Batch processing failed');
+            setShowPartialResults(false);
           }
         } catch (error) {
           console.error('Failed to get batch progress:', error);
         }
-      }, 2000); // Poll every 2 seconds
+      }, 2000);
+
+      // Phase 2: Partial results polling (every 5 seconds for real-time feedback)
+      if (showPartialResults) {
+        partialResultsInterval = setInterval(async () => {
+          try {
+            const partialData = await api.getBatchPartialResults(currentBatchId);
+            if (partialData.partial_results && partialData.partial_results.length > 0) {
+              setPartialResults(partialData.partial_results);
+              setLastPartialUpdate(partialData.last_update);
+            }
+          } catch (error) {
+            console.error('Failed to get partial results:', error);
+          }
+        }, 5000);
+      }
     }
     
     return () => {
       if (progressInterval) {
         clearInterval(progressInterval);
       }
+      if (partialResultsInterval) {
+        clearInterval(partialResultsInterval);
+      }
     };
-  }, [currentBatchId, isProcessing]);
+  }, [currentBatchId, isProcessing, showPartialResults]);
 
   const loadAvailableIndices = async () => {
     try {
