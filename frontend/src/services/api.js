@@ -153,6 +153,41 @@ const api = {
     const response = await apiClient.post('/screener/scan', filters);
     return response.data;
   },
+
+  // Batch Processing APIs
+  getBatchIndices: async () => {
+    const response = await apiClient.get('/batch/indices');
+    return response.data;
+  },
+
+  startBatchScan: async (scanRequest) => {
+    const response = await apiClient.post('/batch/scan', scanRequest, {
+      timeout: 60000 // Longer timeout for batch start
+    });
+    return response.data;
+  },
+
+  getBatchStatus: async (batchId) => {
+    const response = await apiClient.get(`/batch/status/${batchId}`);
+    return response.data;
+  },
+
+  getBatchResults: async (batchId) => {
+    const response = await apiClient.get(`/batch/results/${batchId}`, {
+      timeout: 60000 // Longer timeout for large result sets
+    });
+    return response.data;
+  },
+
+  cancelBatchJob: async (batchId) => {
+    const response = await apiClient.delete(`/batch/cancel/${batchId}`);
+    return response.data;
+  },
+
+  getBatchStats: async () => {
+    const response = await apiClient.get('/batch/stats');
+    return response.data;
+  },
 };
 
 export default api;
