@@ -414,6 +414,15 @@ class BatchProcessor:
         job = self.jobs[job_id]
         return job.results if job.status == BatchStatus.COMPLETED else None
     
+    def get_job_partial_results(self, job_id: str) -> Optional[List[Dict[str, Any]]]:
+        """Phase 2: Get partial results of a running or completed batch job"""
+        if job_id not in self.jobs:
+            return None
+        
+        job = self.jobs[job_id]
+        # Return current results even if job is still running
+        return job.results if hasattr(job, 'results') and job.results else []
+    
     def cancel_job(self, job_id: str) -> bool:
         """Cancel a running or pending job"""
         if job_id not in self.jobs:
