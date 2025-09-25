@@ -385,20 +385,26 @@ const BatchScreener = () => {
                 />
               </div>
               <div className="space-y-2">
-                <input
-                  type="number"
-                  placeholder="Minimum DMI"
-                  value={dmiMin}
-                  onChange={(e) => setDmiMin(Number(e.target.value))}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <input
-                  type="number"
-                  placeholder="Maximum DMI"
-                  value={dmiMax}
-                  onChange={(e) => setDmiMax(Number(e.target.value))}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Minimum DMI</label>
+                  <input
+                    type="number"
+                    placeholder="e.g., 20"
+                    value={dmiMin}
+                    onChange={(e) => setDmiMin(Number(e.target.value))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Maximum DMI</label>
+                  <input
+                    type="number"
+                    placeholder="e.g., 60"
+                    value={dmiMax}
+                    onChange={(e) => setDmiMax(Number(e.target.value))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
               </div>
             </div>
 
