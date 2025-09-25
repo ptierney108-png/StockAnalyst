@@ -249,7 +249,7 @@ export class StockDataGenerator {
     if (!ppoSlopeFilter || ppoSlopeFilter.threshold === undefined) return stocks;
     
     return stocks.filter(stock => {
-      return Math.abs(stock.ppoSlope) >= ppoSlopeFilter.threshold;
+      return stock.ppoSlope >= ppoSlopeFilter.threshold;
     });
   }
 
