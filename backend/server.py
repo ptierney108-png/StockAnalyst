@@ -2843,13 +2843,6 @@ def convert_to_batch_format(analysis_data: Dict[str, Any], symbol: str) -> Dict[
     try:
         indicators = analysis_data.get("indicators", {})
         
-        # Debug logging to understand the data structure
-        logger.info(f"🔧 BATCH DEBUG - Converting {symbol}: indicators keys = {list(indicators.keys()) if indicators else 'EMPTY'}")
-        if indicators:
-            dmi_plus = indicators.get("dmi_plus", "MISSING")
-            ppo_slope = indicators.get("ppo_slope_percentage", "MISSING")
-            logger.info(f"🔧 BATCH DEBUG - {symbol}: dmi_plus={dmi_plus}, ppo_slope_percentage={ppo_slope}")
-        
         # Get PPO values for hook detection
         ppo_history = analysis_data.get("ppo_history", [])
         ppo_3_days = []
