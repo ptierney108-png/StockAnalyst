@@ -2346,16 +2346,17 @@ async def screen_stocks(filters: ScreenerFilters):
                     else:
                         print(f"✅ {stock['symbol']} price filter passed: ${stock['price']:.2f} in range ${price_min}-${price_max}")
             
-            # DMI filter (20-60 range as specified) - using ADX as the DMI strength indicator
+            # DMI filter (20-60 range as specified) - using actual DMI composite value
             if filters.dmi_filter:
                 dmi_min = filters.dmi_filter.get("min", 20)
                 dmi_max = filters.dmi_filter.get("max", 60)
-                # Use ADX as the DMI strength indicator (standard practice)
-                if not (dmi_min <= stock["adx"] <= dmi_max):
-                    print(f"❌ {stock['symbol']} filtered out: ADX {stock['adx']:.1f} not in range {dmi_min}-{dmi_max}")
+                # Use actual DMI value (composite of DI+ and DI-) for filtering
+                dmi_value = stock["dmi"]
+                if not (dmi_min <= dmi_value <= dmi_max):
+                    print(f"❌ {stock['symbol']} filtered out: DMI {dmi_value:.1f} not in range {dmi_min}-{dmi_max}")
                     continue
                 else:
-                    print(f"✅ {stock['symbol']} DMI filter passed: ADX {stock['adx']:.1f} in range {dmi_min}-{dmi_max}")
+                    print(f"✅ {stock['symbol']} DMI filter passed: DMI {dmi_value:.1f} in range {dmi_min}-{dmi_max}")
             
             # PPO slope filter (minimum threshold specified) - can be positive or negative
             if filters.ppo_slope_filter:
