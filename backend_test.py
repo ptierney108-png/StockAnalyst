@@ -8,7 +8,7 @@ import requests
 import json
 import time
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 # Configuration
 BACKEND_URL = "https://stockwise-platform.preview.emergentagent.com/api"
