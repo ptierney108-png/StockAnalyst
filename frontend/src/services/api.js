@@ -188,6 +188,12 @@ const api = {
     const response = await apiClient.get('/batch/stats');
     return response.data;
   },
+
+  // Phase 2: Partial Results API
+  getBatchPartialResults: async (batchId) => {
+    const response = await apiClient.get(`/batch/partial-results/${batchId}`);
+    return response.data;
+  },
 };
 
 export default api;
