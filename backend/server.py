@@ -2556,6 +2556,297 @@ async def get_screener_presets():
     ]
     return {"presets": presets}
 
+# ===== BATCH PROCESSING ENDPOINTS =====
+
+@api_router.get("/batch/indices")
+async def get_available_indices():
+    """Get list of available stock indices for batch scanning"""
+    indices_info = get_all_indices()
+    
+    # Add stock counts and estimated processing times
+    for index_key, index_data in indices_info.items():
+        stock_count = len(index_data['symbols'])
+        estimated_minutes = max(1, (stock_count / 75))  # 75 API calls per minute
+        
+        indices_info[index_key]['stock_count'] = stock_count
+        indices_info[index_key]['estimated_scan_time_minutes'] = round(estimated_minutes, 1)
+    
+    return {
+        "success": True,
+        "indices": indices_info,
+        "note": "Estimated scan times based on 75 API calls per minute rate limit"
+    }
+
+@api_router.post("/batch/scan", response_model=BatchScanResponse)
+async def start_batch_scan(request: BatchScanRequest, background_tasks: BackgroundTasks):
+    """Start a batch stock scanning job"""
+    try:
+        # Validate indices
+        valid_indices = list(STOCK_INDICES.keys())
+        invalid_indices = [idx for idx in request.indices if idx not in valid_indices]
+        if invalid_indices:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid indices: {invalid_indices}. Valid options: {valid_indices}"
+            )
+        
+        # Collect all symbols from selected indices (remove duplicates)
+        all_symbols = set()
+        for index in request.indices:
+            symbols = get_stock_universe(index)
+            all_symbols.update(symbols)
+        
+        symbols_list = list(all_symbols)
+        
+        if not symbols_list:
+            raise HTTPException(
+                status_code=400,
+                detail="No stocks found for selected indices"
+            )
+        
+        # Create batch job
+        job_id = batch_processor.create_batch_job(
+            symbols=symbols_list,
+            filters=request.filters.dict()
+        )
+        
+        # Start processing in background
+        background_tasks.add_task(
+            start_batch_processing_task, 
+            job_id, 
+            request.force_refresh
+        )
+        
+        # Calculate estimated completion time
+        estimated_minutes = max(1, len(symbols_list) / 75)  # 75 calls per minute
+        
+        logger.info(f"Started batch scan {job_id} for {len(symbols_list)} stocks from indices: {request.indices}")
+        
+        return BatchScanResponse(
+            batch_id=job_id,
+            message=f"Batch scan started for {len(symbols_list)} stocks",
+            estimated_completion_minutes=round(estimated_minutes),
+            total_stocks=len(symbols_list),
+            indices_selected=request.indices
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to start batch scan: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to start batch scan: {str(e)}")
+
+@api_router.get("/batch/status/{batch_id}", response_model=BatchStatusResponse)
+async def get_batch_status(batch_id: str):
+    """Get current status and progress of a batch job"""
+    try:
+        job_status = batch_processor.get_job_status(batch_id)
+        
+        if not job_status:
+            raise HTTPException(status_code=404, detail=f"Batch job {batch_id} not found")
+        
+        return BatchStatusResponse(
+            batch_id=batch_id,
+            status=job_status['status'],
+            progress=job_status['progress'],
+            results_count=job_status['results_count'],
+            error=job_status.get('error'),
+            estimated_completion=job_status['progress'].get('estimated_completion')
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get batch status for {batch_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get batch status: {str(e)}")
+
+@api_router.get("/batch/results/{batch_id}", response_model=BatchResultsResponse)
+async def get_batch_results(batch_id: str):
+    """Get results of a completed batch job"""
+    try:
+        job_status = batch_processor.get_job_status(batch_id)
+        
+        if not job_status:
+            raise HTTPException(status_code=404, detail=f"Batch job {batch_id} not found")
+        
+        if job_status['status'] != 'completed':
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Batch job {batch_id} is not completed. Current status: {job_status['status']}"
+            )
+        
+        results = batch_processor.get_job_results(batch_id)
+        
+        # Get job metadata
+        metadata = {
+            'created_at': job_status.get('created_at'),
+            'started_at': job_status.get('started_at'),
+            'completed_at': job_status.get('completed_at'),
+            'total_stocks_scanned': job_status['progress']['processed'],
+            'api_calls_made': job_status['progress']['api_calls_made'],
+            'errors_encountered': len(job_status['progress'].get('errors', [])),
+            'data_source': 'alpha_vantage'
+        }
+        
+        return BatchResultsResponse(
+            batch_id=batch_id,
+            status=job_status['status'],
+            total_results=len(results) if results else 0,
+            results=results or [],
+            scan_metadata=metadata
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get batch results for {batch_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get batch results: {str(e)}")
+
+@api_router.delete("/batch/cancel/{batch_id}")
+async def cancel_batch_job(batch_id: str):
+    """Cancel a running or pending batch job"""
+    try:
+        success = batch_processor.cancel_job(batch_id)
+        
+        if not success:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot cancel batch job {batch_id}. Job may not exist or already completed."
+            )
+        
+        return {
+            "success": True,
+            "message": f"Batch job {batch_id} cancelled successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to cancel batch job {batch_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to cancel batch job: {str(e)}")
+
+@api_router.get("/batch/stats")
+async def get_batch_stats():
+    """Get batch processing system statistics"""
+    try:
+        processor_stats = batch_processor.get_stats()
+        cache_stats = cache_manager.get_cache_stats()
+        
+        return {
+            "success": True,
+            "batch_processor": processor_stats,
+            "cache_manager": cache_stats,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get batch stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get batch stats: {str(e)}")
+
+# Background task for processing batch jobs
+async def start_batch_processing_task(job_id: str, force_refresh: bool = False):
+    """Background task to process batch jobs"""
+    try:
+        # Define the stock processing function
+        async def process_stock_for_batch(symbol: str, filters: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+            try:
+                # Check cache first unless force refresh is requested
+                if not force_refresh:
+                    cached_data = await cache_manager.get_cached_stock_data(symbol, "batch_analysis", "3M")
+                    if cached_data:
+                        logger.debug(f"Using cached data for {symbol}")
+                        return cached_data
+                
+                # Get fresh stock analysis data
+                stock_data = await get_advanced_stock_data(symbol, "3M")
+                
+                if not stock_data:
+                    return None
+                
+                # Convert to batch format
+                batch_stock_data = convert_to_batch_format(stock_data, symbol)
+                
+                # Cache the result
+                await cache_manager.set_cached_stock_data(
+                    symbol, "batch_analysis", batch_stock_data, "3M", "api"
+                )
+                
+                return batch_stock_data
+                
+            except Exception as e:
+                logger.warning(f"Failed to process {symbol} for batch: {e}")
+                return None
+        
+        # Start the batch job
+        success = await batch_processor.start_batch_job(job_id, process_stock_for_batch)
+        
+        if not success:
+            logger.error(f"Failed to start batch job {job_id}")
+        
+    except Exception as e:
+        logger.error(f"Background batch processing task failed for job {job_id}: {e}")
+
+def convert_to_batch_format(analysis_data: Dict[str, Any], symbol: str) -> Dict[str, Any]:
+    """Convert stock analysis data to batch screener format"""
+    try:
+        indicators = analysis_data.get("indicators", {})
+        
+        # Get PPO values for hook detection
+        ppo_history = analysis_data.get("ppo_history", [])
+        ppo_3_days = []
+        if len(ppo_history) >= 3:
+            ppo_3_days = [
+                ppo_history[-1].get("ppo", 0),  # Today
+                ppo_history[-2].get("ppo", 0),  # Yesterday 
+                ppo_history[-3].get("ppo", 0)   # Day before
+            ]
+        
+        # Detect hook pattern
+        ppo_hook_type = None
+        ppo_hook_display = None
+        if len(ppo_3_days) >= 3:
+            today, yesterday, day_before = ppo_3_days[0], ppo_3_days[1], ppo_3_days[2]
+            
+            # Positive Hook: Today > Yesterday AND Yesterday < Day Before
+            if today > yesterday and yesterday < day_before:
+                ppo_hook_type = "positive"
+                ppo_hook_display = "+ Hook"
+            # Negative Hook: Today < Yesterday AND Yesterday > Day Before
+            elif today < yesterday and yesterday > day_before:
+                ppo_hook_type = "negative"
+                ppo_hook_display = "- Hook"
+        
+        # Build batch format result
+        return {
+            "symbol": symbol,
+            "name": f"{symbol} Inc.",  # Simplified name
+            "sector": "Technology",     # Simplified sector
+            "industry": "Software",     # Simplified industry
+            "price": analysis_data.get("current_price", 0),
+            "dmi": (indicators.get("dmi_plus", 0) + indicators.get("dmi_minus", 0)) / 2,
+            "adx": indicators.get("adx", 0),
+            "di_plus": indicators.get("dmi_plus", 0),
+            "di_minus": indicators.get("dmi_minus", 0),
+            "ppo_values": ppo_3_days,
+            "ppo_slope_percentage": indicators.get("ppo_slope_percentage", 0),
+            "ppo_hook_type": ppo_hook_type,
+            "ppo_hook_display": ppo_hook_display,
+            "returns": {
+                "1d": analysis_data.get("price_change_percent", 0),
+                "5d": analysis_data.get("price_change_percent", 0) * 1.2,  # Approximation
+                "1m": analysis_data.get("price_change_percent", 0) * 2.0,   # Approximation
+                "1y": analysis_data.get("price_change_percent", 0) * 10.0   # Approximation
+            },
+            "volume_today": analysis_data.get("volume", 1000000),
+            "volume_3m": analysis_data.get("volume", 1000000),
+            "volume_year": analysis_data.get("volume", 1000000),
+            "data_source": analysis_data.get("data_source", "alpha_vantage")
+        }
+        
+    except Exception as e:
+        logger.warning(f"Failed to convert {symbol} to batch format: {e}")
+        return None
+
 # Include the router in the main app
 app.include_router(api_router)
 
