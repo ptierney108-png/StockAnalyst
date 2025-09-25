@@ -5361,6 +5361,315 @@ class StockAnalysisAPITester:
         
         return issues
 
+    def test_critical_permissive_filtering_debug(self) -> bool:
+        """
+        CRITICAL DEBUG TEST: User's extremely permissive screening criteria returning no results
+        
+        Tests the exact user criteria from screenshot:
+        - Price Filter: "Under specific amount" with Maximum Price = $500
+        - DMI Range: Minimum DMI = 20, Maximum DMI = 60  
+        - PPO Slope: Minimum Slope % = -100.1% (extremely permissive)
+        - PPO Hook Pattern: "Both Hooks (+HOOK or -HOOK)"
+        
+        These criteria should return many results but user reports getting NONE.
+        """
+        print(f"\n🚨 CRITICAL DEBUG TEST: PERMISSIVE FILTERING RETURNING NO RESULTS")
+        print("=" * 80)
+        
+        all_passed = True
+        debug_issues = []
+        
+        # Exact user criteria from screenshot
+        user_criteria = {
+            "price_filter": {"type": "under", "under": 500},
+            "dmi_filter": {"min": 20, "max": 60},
+            "ppo_slope_filter": {"threshold": -100.1},
+            "ppo_hook_filter": "both"
+        }
+        
+        print(f"🎯 Testing EXACT user criteria:")
+        print(f"   • Price: Under $500 (extremely permissive)")
+        print(f"   • DMI Range: 20-60 (moderate range)")
+        print(f"   • PPO Slope: -100.1% minimum (should allow almost any slope)")
+        print(f"   • Hook Pattern: Both Hooks (should include +HOOK and -HOOK)")
+        print(f"   • Expected: 15-20+ stocks from ~70 stock universe")
+        print(f"   • User Reports: 0 results (CRITICAL BUG)")
+        
+        try:
+            start_time = time.time()
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=user_criteria,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            response_time = time.time() - start_time
+            
+            if response.status_code == 200:
+                data = response.json()
+                results_found = data.get("results_found", 0)
+                total_scanned = data.get("total_scanned", 0)
+                stocks = data.get("stocks", [])
+                
+                print(f"\n📊 SCREENING RESULTS:")
+                print(f"   • Total Scanned: {total_scanned}")
+                print(f"   • Results Found: {results_found}")
+                print(f"   • Response Time: {response_time:.2f}s")
+                
+                # CRITICAL: If no results with such permissive criteria, this is a major bug
+                if results_found == 0:
+                    debug_issues.append("CRITICAL: Zero results with extremely permissive criteria")
+                    self.log_test("Critical Permissive Filtering", False, 
+                                f"Zero results with permissive criteria - major filtering bug", True)
+                    all_passed = False
+                    
+                    # Debug each filter step individually
+                    print(f"\n🔍 DEBUGGING INDIVIDUAL FILTER STEPS:")
+                    self.debug_individual_filters(user_criteria)
+                    
+                elif results_found < 5:
+                    debug_issues.append(f"Suspiciously low results: {results_found} (expected 15-20+)")
+                    self.log_test("Critical Permissive Filtering", False, 
+                                f"Only {results_found} results with permissive criteria - possible filtering issue", True)
+                    all_passed = False
+                else:
+                    self.log_test("Critical Permissive Filtering", True, 
+                                f"Found {results_found} results with permissive criteria")
+                
+                # Validate each returned stock meets the criteria
+                if stocks:
+                    print(f"\n🔬 VALIDATING RETURNED STOCKS:")
+                    validation_issues = self.validate_permissive_criteria_results(stocks, user_criteria)
+                    if validation_issues:
+                        debug_issues.extend(validation_issues)
+                        all_passed = False
+                
+                # Test stock universe validation
+                print(f"\n🌐 VALIDATING STOCK UNIVERSE:")
+                universe_issues = self.validate_stock_universe(data)
+                if universe_issues:
+                    debug_issues.extend(universe_issues)
+                    all_passed = False
+                
+            else:
+                debug_issues.append(f"API Error: HTTP {response.status_code}")
+                self.log_test("Critical Permissive Filtering API", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            debug_issues.append(f"Exception: {str(e)}")
+            self.log_test("Critical Permissive Filtering", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        # Summary of critical debug findings
+        if debug_issues:
+            print(f"\n🚨 CRITICAL DEBUG ISSUES FOUND ({len(debug_issues)}):")
+            for issue in debug_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ Permissive filtering working correctly")
+        
+        return all_passed
+    
+    def debug_individual_filters(self, user_criteria: Dict[str, Any]) -> None:
+        """Debug each filter individually to find where stocks are being eliminated"""
+        
+        # Test with no filters (baseline)
+        print(f"\n  🔍 Step 1: Testing with NO FILTERS (baseline)")
+        try:
+            no_filters = {}
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=no_filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                baseline_count = data.get("results_found", 0)
+                print(f"    ✅ Baseline (no filters): {baseline_count} stocks")
+            else:
+                print(f"    ❌ Baseline test failed: {response.status_code}")
+        except Exception as e:
+            print(f"    ❌ Baseline test error: {str(e)}")
+        
+        # Test price filter only
+        print(f"\n  🔍 Step 2: Testing PRICE FILTER only (under $500)")
+        try:
+            price_only = {"price_filter": user_criteria["price_filter"]}
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=price_only,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                price_count = data.get("results_found", 0)
+                print(f"    ✅ Price filter only: {price_count} stocks")
+                if price_count == 0:
+                    print(f"    🚨 CRITICAL: Price filter eliminating ALL stocks!")
+            else:
+                print(f"    ❌ Price filter test failed: {response.status_code}")
+        except Exception as e:
+            print(f"    ❌ Price filter test error: {str(e)}")
+        
+        # Test DMI filter only
+        print(f"\n  🔍 Step 3: Testing DMI FILTER only (20-60)")
+        try:
+            dmi_only = {"dmi_filter": user_criteria["dmi_filter"]}
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=dmi_only,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                dmi_count = data.get("results_found", 0)
+                print(f"    ✅ DMI filter only: {dmi_count} stocks")
+                if dmi_count == 0:
+                    print(f"    🚨 CRITICAL: DMI filter eliminating ALL stocks!")
+            else:
+                print(f"    ❌ DMI filter test failed: {response.status_code}")
+        except Exception as e:
+            print(f"    ❌ DMI filter test error: {str(e)}")
+        
+        # Test PPO slope filter only
+        print(f"\n  🔍 Step 4: Testing PPO SLOPE FILTER only (-100.1%)")
+        try:
+            ppo_slope_only = {"ppo_slope_filter": user_criteria["ppo_slope_filter"]}
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=ppo_slope_only,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                ppo_count = data.get("results_found", 0)
+                print(f"    ✅ PPO slope filter only: {ppo_count} stocks")
+                if ppo_count == 0:
+                    print(f"    🚨 CRITICAL: PPO slope filter eliminating ALL stocks!")
+            else:
+                print(f"    ❌ PPO slope filter test failed: {response.status_code}")
+        except Exception as e:
+            print(f"    ❌ PPO slope filter test error: {str(e)}")
+        
+        # Test hook filter only
+        print(f"\n  🔍 Step 5: Testing HOOK FILTER only (both hooks)")
+        try:
+            hook_only = {"ppo_hook_filter": user_criteria["ppo_hook_filter"]}
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=hook_only,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                hook_count = data.get("results_found", 0)
+                print(f"    ✅ Hook filter only: {hook_count} stocks")
+                if hook_count == 0:
+                    print(f"    🚨 CRITICAL: Hook filter eliminating ALL stocks!")
+            else:
+                print(f"    ❌ Hook filter test failed: {response.status_code}")
+        except Exception as e:
+            print(f"    ❌ Hook filter test error: {str(e)}")
+        
+        # Test combinations to isolate the problematic filter
+        print(f"\n  🔍 Step 6: Testing FILTER COMBINATIONS")
+        combinations = [
+            ({"price_filter": user_criteria["price_filter"], "dmi_filter": user_criteria["dmi_filter"]}, "Price + DMI"),
+            ({"price_filter": user_criteria["price_filter"], "ppo_slope_filter": user_criteria["ppo_slope_filter"]}, "Price + PPO Slope"),
+            ({"price_filter": user_criteria["price_filter"], "ppo_hook_filter": user_criteria["ppo_hook_filter"]}, "Price + Hook"),
+            ({"dmi_filter": user_criteria["dmi_filter"], "ppo_slope_filter": user_criteria["ppo_slope_filter"]}, "DMI + PPO Slope"),
+        ]
+        
+        for combo_filter, combo_name in combinations:
+            try:
+                response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                       json=combo_filter,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                if response.status_code == 200:
+                    data = response.json()
+                    combo_count = data.get("results_found", 0)
+                    print(f"    ✅ {combo_name}: {combo_count} stocks")
+                else:
+                    print(f"    ❌ {combo_name} test failed: {response.status_code}")
+            except Exception as e:
+                print(f"    ❌ {combo_name} test error: {str(e)}")
+    
+    def validate_permissive_criteria_results(self, stocks: List[Dict], criteria: Dict[str, Any]) -> List[str]:
+        """Validate that returned stocks actually meet the permissive criteria"""
+        issues = []
+        
+        price_filter = criteria.get("price_filter", {})
+        dmi_filter = criteria.get("dmi_filter", {})
+        ppo_slope_filter = criteria.get("ppo_slope_filter", {})
+        hook_filter = criteria.get("ppo_hook_filter")
+        
+        for i, stock in enumerate(stocks[:10]):  # Check first 10 stocks
+            symbol = stock.get("symbol", f"Stock_{i}")
+            
+            # Validate price filter (under $500)
+            price = stock.get("price", 0)
+            if price_filter.get("type") == "under":
+                max_price = price_filter.get("under", 500)
+                if price > max_price:
+                    issues.append(f"{symbol}: Price ${price:.2f} exceeds filter ${max_price}")
+            
+            # Validate DMI filter (20-60)
+            dmi = stock.get("dmi", 0)  # Check if using 'dmi' field
+            adx = stock.get("adx", 0)   # Or 'adx' field
+            dmi_value = dmi if dmi > 0 else adx  # Use whichever is available
+            
+            if dmi_filter:
+                dmi_min = dmi_filter.get("min", 20)
+                dmi_max = dmi_filter.get("max", 60)
+                if not (dmi_min <= dmi_value <= dmi_max):
+                    issues.append(f"{symbol}: DMI/ADX {dmi_value:.2f} outside range {dmi_min}-{dmi_max}")
+            
+            # Validate PPO slope filter (-100.1% minimum - extremely permissive)
+            ppo_slope = stock.get("ppo_slope_percentage", 0)
+            if ppo_slope_filter:
+                threshold = ppo_slope_filter.get("threshold", -100.1)
+                if ppo_slope < threshold:
+                    issues.append(f"{symbol}: PPO slope {ppo_slope:.2f}% below threshold {threshold}%")
+            
+            # Validate hook filter (both hooks should include any hook pattern)
+            if hook_filter == "both":
+                hook_type = stock.get("ppo_hook_type")
+                if hook_type not in ["positive", "negative", "+HOOK", "-HOOK"]:
+                    # This might be acceptable if stock has no clear hook pattern
+                    pass  # Don't flag as error for "both" filter
+        
+        return issues
+    
+    def validate_stock_universe(self, data: Dict[str, Any]) -> List[str]:
+        """Validate the stock universe size and data generation"""
+        issues = []
+        
+        total_scanned = data.get("total_scanned", 0)
+        
+        # Check if we have the expected ~70 stock universe
+        if total_scanned < 50:
+            issues.append(f"Stock universe too small: {total_scanned} stocks (expected ~70)")
+        elif total_scanned > 100:
+            issues.append(f"Stock universe unexpectedly large: {total_scanned} stocks")
+        
+        # Check if data generation is working
+        stocks = data.get("stocks", [])
+        if stocks:
+            # Sample a few stocks to check data quality
+            sample_stock = stocks[0]
+            required_fields = ["symbol", "price", "dmi", "adx", "ppo_slope_percentage", "ppo_values"]
+            missing_fields = [field for field in required_fields if field not in sample_stock]
+            
+            if missing_fields:
+                issues.append(f"Sample stock missing fields: {missing_fields}")
+            
+            # Check for realistic data ranges
+            price = sample_stock.get("price", 0)
+            if price <= 0 or price > 10000:
+                issues.append(f"Unrealistic stock price: ${price}")
+            
+            ppo_values = sample_stock.get("ppo_values", [])
+            if not ppo_values or len(ppo_values) != 3:
+                issues.append(f"Invalid PPO values structure: {ppo_values}")
+        
+        return issues
+
     def run_comprehensive_tests(self):
         """Run all tests with priority on scanner filtering logic fix from review request"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
