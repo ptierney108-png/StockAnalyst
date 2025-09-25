@@ -51,6 +51,27 @@ const BatchScreener = () => {
   const [lastScanTime, setLastScanTime] = useState(null);
   const [forceRefresh, setForceRefresh] = useState(false);
   const [error, setError] = useState(null);
+  const [showTooltip, setShowTooltip] = useState(null);
+
+  // Tooltip component for filter explanations
+  const Tooltip = ({ id, title, content }) => (
+    <div className="relative inline-block">
+      <button
+        className="ml-1 text-gray-400 hover:text-gray-600"
+        onMouseEnter={() => setShowTooltip(id)}
+        onMouseLeave={() => setShowTooltip(null)}
+      >
+        <Info className="h-3 w-3" />
+      </button>
+      {showTooltip === id && (
+        <div className="absolute z-10 w-64 p-3 text-sm bg-gray-900 text-white rounded-lg shadow-lg -top-2 left-6">
+          <div className="font-semibold mb-1">{title}</div>
+          <div className="text-gray-300">{content}</div>
+          <div className="absolute top-2 -left-1 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+        </div>
+      )}
+    </div>
+  );
 
   // Load available indices on component mount
   useEffect(() => {
