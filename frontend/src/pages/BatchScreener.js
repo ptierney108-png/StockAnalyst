@@ -209,6 +209,22 @@ const BatchScreener = () => {
       'Volume Today', 'Volume 3M', 'Data Source'
     ];
 
+    // Function to safely format hook pattern for CSV
+    const formatHookPattern = (hookDisplay) => {
+      if (!hookDisplay) return 'No Hook';
+      
+      // Clean the hook pattern and make it Excel-safe
+      let cleanHook = String(hookDisplay).trim();
+      
+      // Replace problematic characters that Excel interprets as formulas
+      cleanHook = cleanHook.replace(/^\+/, 'Positive ');  // + Hook -> Positive Hook
+      cleanHook = cleanHook.replace(/^-/, 'Negative ');    // - Hook -> Negative Hook
+      cleanHook = cleanHook.replace(/^=/, 'Equals ');      // Any = signs
+      cleanHook = cleanHook.replace(/^@/, 'At ');          // Any @ signs
+      
+      return cleanHook || 'No Hook';
+    };
+
     const csvContent = [
       headers.join(','),
       ...batchResults.map(stock => [
@@ -224,7 +240,7 @@ const BatchScreener = () => {
         stock.ppo_values?.[1]?.toFixed(4) || '0',
         stock.ppo_values?.[2]?.toFixed(4) || '0',
         stock.ppo_slope_percentage?.toFixed(2) || '0',
-        `"${(stock.ppo_hook_display || 'No Hook').replace(/"/g, '""')}"`, // Properly escape and quote hook pattern
+        `"${formatHookPattern(stock.ppo_hook_display)}"`, // Excel-safe hook pattern
         stock.returns?.['1d']?.toFixed(2) || '0',
         stock.returns?.['5d']?.toFixed(2) || '0', 
         stock.returns?.['1m']?.toFixed(2) || '0',
