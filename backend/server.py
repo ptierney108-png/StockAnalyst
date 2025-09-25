@@ -1588,11 +1588,11 @@ async def analyze_stock_get(symbol: str, timeframe: str = "3M"):
             ppo_day_before = ppo_values[-3]
             ppo_slope_data = calculate_ppo_slope(ppo_today, ppo_yesterday, ppo_day_before)
         elif len(ppo_values) >= 2:
-            # Simplified slope with 2 values
+            # Simplified slope with 2 values - without absolute values
             ppo_today = ppo_values[-1]
             ppo_yesterday = ppo_values[-2]
             if ppo_yesterday != 0:
-                slope = (ppo_today - ppo_yesterday) / abs(ppo_yesterday)
+                slope = (ppo_today - ppo_yesterday) / ppo_yesterday
                 ppo_slope_data = {"slope": slope, "slope_percentage": slope * 100}
         
         # Calculate proper PPO signal and histogram from the latest PPO values
