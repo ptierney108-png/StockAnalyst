@@ -2420,10 +2420,10 @@ async def screen_stocks(filters: ScreenerFilters):
                         hook_type = "negative"
                     
                     # Apply hook filter
-                    if filters.ppo_hook_filter == "+HOOK" and not positive_hook:
+                    if filters.ppo_hook_filter == "positive" and not positive_hook:
                         print(f"❌ {stock['symbol']} filtered out: No positive hook pattern (PPO: {today:.3f}, {yesterday:.3f}, {day_before:.3f})")
                         continue
-                    elif filters.ppo_hook_filter == "-HOOK" and not negative_hook:
+                    elif filters.ppo_hook_filter == "negative" and not negative_hook:
                         print(f"❌ {stock['symbol']} filtered out: No negative hook pattern (PPO: {today:.3f}, {yesterday:.3f}, {day_before:.3f})")
                         continue
                     elif filters.ppo_hook_filter == "both" and not (positive_hook or negative_hook):
