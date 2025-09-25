@@ -7061,6 +7061,10 @@ class StockAnalysisAPITester:
         print(f"\n🔧 CRITICAL BUG FIX VERIFICATION: PPO Calculation Fix")
         self.test_ppo_calculation_fix()
         
+        # *** NEW: Test Phase 2 Batch Screener Validation (COMPREHENSIVE PHASE 2 VALIDATION) ***
+        print(f"\n🚀 COMPREHENSIVE PHASE 2 VALIDATION: BATCH SCREENER")
+        self.test_batch_screener_phase2_validation()
+        
         # NEW: Test Batch Screener Infrastructure (Current Review Request Focus)
         print(f"\n🚀 NEW FEATURE: BATCH SCREENER INFRASTRUCTURE TESTING")
         self.test_batch_screener_infrastructure()
