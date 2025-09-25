@@ -431,6 +431,11 @@ const BatchScreener = () => {
               <div className="flex items-center mb-2">
                 <BarChart3 className="h-4 w-4 mr-1 text-orange-600" />
                 <label className="font-medium text-gray-700">PPO Hook Pattern</label>
+                <Tooltip 
+                  id="batch-hook-tooltip"
+                  title="PPO Hook Patterns"
+                  content="Detects reversal patterns in PPO momentum. Positive Hook (+): Today > Yesterday AND Yesterday < Day Before (upward reversal). Negative Hook (-): Today < Yesterday AND Yesterday > Day Before (downward reversal)."
+                />
               </div>
               <select
                 value={ppoHookFilter}
