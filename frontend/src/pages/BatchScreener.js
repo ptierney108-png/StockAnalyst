@@ -224,7 +224,7 @@ const BatchScreener = () => {
         stock.ppo_values?.[1]?.toFixed(4) || '0',
         stock.ppo_values?.[2]?.toFixed(4) || '0',
         stock.ppo_slope_percentage?.toFixed(2) || '0',
-        stock.ppo_hook_display || '',
+        `"${stock.ppo_hook_display || 'No Hook'}"`, // Properly quote the hook pattern
         stock.returns?.['1d']?.toFixed(2) || '0',
         stock.returns?.['5d']?.toFixed(2) || '0', 
         stock.returns?.['1m']?.toFixed(2) || '0',
