@@ -2296,6 +2296,8 @@ async def screen_stocks(filters: ScreenerFilters):
                         "di_minus": dmi_minus,
                         "ppo_values": ppo_3_days,  # 3-day historical data: [Today, Yesterday, Day Before]
                         "ppo_slope_percentage": ppo_slope_percentage,
+                        "ppo_hook_type": ppo_hook_type,
+                        "ppo_hook_display": ppo_hook_display,
                         "returns": returns,
                         "volume_today": int(volume_today),
                         "volume_3m": volume_3m,
