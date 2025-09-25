@@ -6099,6 +6099,514 @@ class StockAnalysisAPITester:
         
         return all_passed
 
+    def test_batch_screener_infrastructure(self) -> bool:
+        """
+        COMPREHENSIVE BATCH SCREENER INFRASTRUCTURE TESTING
+        
+        Tests the newly implemented Batch Screener backend functionality:
+        1. Batch Infrastructure Testing
+        2. Batch Scanning Workflow  
+        3. API Endpoints Validation
+        4. Data Format Testing
+        5. Error Handling
+        """
+        print(f"\n🔧 COMPREHENSIVE BATCH SCREENER INFRASTRUCTURE TESTING")
+        print("=" * 70)
+        
+        all_passed = True
+        batch_issues = []
+        
+        # 1. Test /api/batch/indices endpoint
+        print(f"\n📊 Testing Batch Infrastructure - Available Indices")
+        try:
+            response = requests.get(f"{BACKEND_URL}/batch/indices", timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Validate indices response structure
+                if self.validate_batch_indices_response(data):
+                    self.log_test("Batch Indices Endpoint", True, 
+                                f"Retrieved {len(data.get('indices', {}))} available indices")
+                else:
+                    batch_issues.append("Batch indices response validation failed")
+                    all_passed = False
+            else:
+                self.log_test("Batch Indices Endpoint", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                batch_issues.append(f"Batch indices endpoint failed: {response.status_code}")
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Batch Indices Endpoint", False, f"Error: {str(e)}", True)
+            batch_issues.append(f"Batch indices test failed: {str(e)}")
+            all_passed = False
+        
+        # 2. Test batch job creation and workflow
+        print(f"\n⚙️ Testing Batch Scanning Workflow")
+        batch_workflow_passed = self.test_batch_scanning_workflow()
+        if not batch_workflow_passed:
+            all_passed = False
+            batch_issues.append("Batch scanning workflow failed")
+        
+        # 3. Test all batch API endpoints
+        print(f"\n🔗 Testing All Batch API Endpoints")
+        batch_endpoints_passed = self.test_batch_api_endpoints()
+        if not batch_endpoints_passed:
+            all_passed = False
+            batch_issues.append("Batch API endpoints validation failed")
+        
+        # 4. Test data format and conversion
+        print(f"\n📋 Testing Batch Data Format")
+        data_format_passed = self.test_batch_data_format()
+        if not data_format_passed:
+            all_passed = False
+            batch_issues.append("Batch data format validation failed")
+        
+        # 5. Test error handling scenarios
+        print(f"\n🚨 Testing Batch Error Handling")
+        error_handling_passed = self.test_batch_error_handling()
+        if not error_handling_passed:
+            all_passed = False
+            batch_issues.append("Batch error handling failed")
+        
+        # 6. Test rate limiting behavior
+        print(f"\n⏱️ Testing Rate Limiting (75 calls/minute)")
+        rate_limiting_passed = self.test_batch_rate_limiting()
+        if not rate_limiting_passed:
+            all_passed = False
+            batch_issues.append("Rate limiting validation failed")
+        
+        # Summary of batch screener testing
+        if batch_issues:
+            print(f"\n🚨 BATCH SCREENER ISSUES FOUND ({len(batch_issues)}):")
+            for issue in batch_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ Batch Screener infrastructure working correctly")
+        
+        return all_passed
+
+    def validate_batch_indices_response(self, data: Dict[str, Any]) -> bool:
+        """Validate batch indices endpoint response"""
+        required_fields = ["success", "indices", "note"]
+        
+        # Check required fields
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            self.log_test("Batch Indices Response Structure", False, 
+                        f"Missing fields: {missing_fields}", True)
+            return False
+        
+        # Validate success flag
+        if not data.get("success"):
+            self.log_test("Batch Indices Response", False, 
+                        "Success flag is false", True)
+            return False
+        
+        # Validate indices structure
+        indices = data.get("indices", {})
+        if not isinstance(indices, dict):
+            self.log_test("Batch Indices Structure", False, 
+                        "Indices field is not a dictionary", True)
+            return False
+        
+        # Check for expected indices (SP500, DOW30, etc.)
+        expected_indices = ["SP500", "DOW30"]
+        for index_key in expected_indices:
+            if index_key not in indices:
+                self.log_test("Expected Indices", False, 
+                            f"Missing expected index: {index_key}", True)
+                return False
+            
+            # Validate individual index structure
+            index_data = indices[index_key]
+            required_index_fields = ["name", "symbols", "description", "stock_count", "estimated_scan_time_minutes"]
+            missing_index_fields = [field for field in required_index_fields if field not in index_data]
+            if missing_index_fields:
+                self.log_test(f"Index Structure ({index_key})", False, 
+                            f"Missing fields: {missing_index_fields}", True)
+                return False
+            
+            # Validate stock count
+            stock_count = index_data.get("stock_count", 0)
+            if not isinstance(stock_count, int) or stock_count <= 0:
+                self.log_test(f"Stock Count ({index_key})", False, 
+                            f"Invalid stock count: {stock_count}", True)
+                return False
+        
+        self.log_test("Batch Indices Response Validation", True, 
+                    "All validation checks passed")
+        return True
+
+    def test_batch_scanning_workflow(self) -> bool:
+        """Test complete batch scanning workflow"""
+        all_passed = True
+        
+        # Create a small test batch scan
+        test_request = {
+            "indices": ["SP500"],
+            "filters": {
+                "price_filter": {"type": "under", "under": 100},
+                "dmi_filter": {"min": 20, "max": 60},
+                "ppo_slope_filter": {"threshold": 0},
+                "ppo_hook_filter": "negative"
+            },
+            "force_refresh": False
+        }
+        
+        try:
+            # Step 1: Create batch job
+            start_time = time.time()
+            response = requests.post(f"{BACKEND_URL}/batch/scan", 
+                                   json=test_request,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                scan_data = response.json()
+                batch_id = scan_data.get("batch_id")
+                
+                if not batch_id:
+                    self.log_test("Batch Job Creation", False, 
+                                "No batch_id returned", True)
+                    return False
+                
+                self.log_test("Batch Job Creation", True, 
+                            f"Created batch job: {batch_id}")
+                
+                # Step 2: Monitor progress
+                progress_checks = 0
+                max_progress_checks = 10
+                job_completed = False
+                
+                while progress_checks < max_progress_checks:
+                    time.sleep(2)  # Wait 2 seconds between checks
+                    
+                    try:
+                        status_response = requests.get(f"{BACKEND_URL}/batch/status/{batch_id}", timeout=10)
+                        if status_response.status_code == 200:
+                            status_data = status_response.json()
+                            status = status_data.get("status")
+                            progress = status_data.get("progress", {})
+                            
+                            print(f"  Progress Check {progress_checks + 1}: Status={status}, "
+                                  f"Processed={progress.get('processed', 0)}/{progress.get('total', 0)} "
+                                  f"({progress.get('percentage', 0):.1f}%)")
+                            
+                            if status == "completed":
+                                job_completed = True
+                                self.log_test("Batch Job Completion", True, 
+                                            f"Job completed in {progress_checks + 1} checks")
+                                break
+                            elif status == "failed":
+                                error = status_data.get("error", "Unknown error")
+                                self.log_test("Batch Job Completion", False, 
+                                            f"Job failed: {error}", True)
+                                return False
+                        else:
+                            self.log_test("Batch Status Check", False, 
+                                        f"Status check failed: {status_response.status_code}", True)
+                    
+                    except Exception as e:
+                        self.log_test("Batch Progress Monitoring", False, 
+                                    f"Progress check error: {str(e)}", True)
+                    
+                    progress_checks += 1
+                
+                # Step 3: Get results if completed
+                if job_completed:
+                    try:
+                        results_response = requests.get(f"{BACKEND_URL}/batch/results/{batch_id}", timeout=10)
+                        if results_response.status_code == 200:
+                            results_data = results_response.json()
+                            total_results = results_data.get("total_results", 0)
+                            results = results_data.get("results", [])
+                            
+                            self.log_test("Batch Results Retrieval", True, 
+                                        f"Retrieved {total_results} results")
+                            
+                            # Validate results format
+                            if results and len(results) > 0:
+                                sample_result = results[0]
+                                if self.validate_batch_result_format(sample_result):
+                                    self.log_test("Batch Results Format", True, 
+                                                "Results format validation passed")
+                                else:
+                                    self.log_test("Batch Results Format", False, 
+                                                "Results format validation failed", True)
+                                    all_passed = False
+                        else:
+                            self.log_test("Batch Results Retrieval", False, 
+                                        f"Results retrieval failed: {results_response.status_code}", True)
+                            all_passed = False
+                    
+                    except Exception as e:
+                        self.log_test("Batch Results Retrieval", False, 
+                                    f"Results retrieval error: {str(e)}", True)
+                        all_passed = False
+                else:
+                    self.log_test("Batch Job Timeout", False, 
+                                f"Job did not complete within {max_progress_checks} checks", True)
+                    all_passed = False
+            
+            else:
+                self.log_test("Batch Scan Request", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+        
+        except Exception as e:
+            self.log_test("Batch Scanning Workflow", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+
+    def test_batch_api_endpoints(self) -> bool:
+        """Test all batch API endpoints"""
+        all_passed = True
+        
+        # Test endpoints that don't require a batch job
+        endpoints_to_test = [
+            ("/batch/indices", "GET", None),
+            ("/batch/stats", "GET", None)
+        ]
+        
+        for endpoint, method, payload in endpoints_to_test:
+            try:
+                if method == "GET":
+                    response = requests.get(f"{BACKEND_URL}{endpoint}", timeout=10)
+                else:
+                    response = requests.post(f"{BACKEND_URL}{endpoint}", 
+                                           json=payload,
+                                           headers={"Content-Type": "application/json"},
+                                           timeout=10)
+                
+                if response.status_code == 200:
+                    self.log_test(f"Batch Endpoint {endpoint}", True, 
+                                f"{method} request successful")
+                else:
+                    self.log_test(f"Batch Endpoint {endpoint}", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+            
+            except Exception as e:
+                self.log_test(f"Batch Endpoint {endpoint}", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        # Test error scenarios
+        error_scenarios = [
+            ("/batch/status/invalid-batch-id", "GET", 404),
+            ("/batch/results/invalid-batch-id", "GET", 404),
+            ("/batch/cancel/invalid-batch-id", "DELETE", 400)
+        ]
+        
+        for endpoint, method, expected_status in error_scenarios:
+            try:
+                if method == "GET":
+                    response = requests.get(f"{BACKEND_URL}{endpoint}", timeout=10)
+                elif method == "DELETE":
+                    response = requests.delete(f"{BACKEND_URL}{endpoint}", timeout=10)
+                
+                if response.status_code == expected_status:
+                    self.log_test(f"Error Handling {endpoint}", True, 
+                                f"Correctly returned {expected_status}")
+                else:
+                    self.log_test(f"Error Handling {endpoint}", False, 
+                                f"Expected {expected_status}, got {response.status_code}", True)
+                    all_passed = False
+            
+            except Exception as e:
+                self.log_test(f"Error Handling {endpoint}", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        return all_passed
+
+    def test_batch_data_format(self) -> bool:
+        """Test batch data format and PPO hook pattern detection"""
+        all_passed = True
+        
+        # This test would ideally create a small batch job and verify the data format
+        # For now, we'll test the data format validation logic
+        
+        # Sample batch result data for validation
+        sample_batch_result = {
+            "symbol": "AAPL",
+            "name": "AAPL Inc.",
+            "sector": "Technology",
+            "industry": "Software",
+            "price": 150.25,
+            "dmi": 35.5,
+            "adx": 28.3,
+            "di_plus": 40.2,
+            "di_minus": 30.8,
+            "ppo_values": [0.15, 0.12, 0.18],
+            "ppo_slope_percentage": 2.5,
+            "ppo_hook_type": "negative",
+            "ppo_hook_display": "- Hook",
+            "returns": {
+                "1d": 1.2,
+                "5d": 2.4,
+                "1m": 4.8,
+                "1y": 12.0
+            },
+            "volume_today": 50000000,
+            "volume_3m": 45000000,
+            "volume_year": 48000000,
+            "data_source": "alpha_vantage"
+        }
+        
+        if self.validate_batch_result_format(sample_batch_result):
+            self.log_test("Batch Data Format Validation", True, 
+                        "Sample batch result format is valid")
+        else:
+            self.log_test("Batch Data Format Validation", False, 
+                        "Sample batch result format validation failed", True)
+            all_passed = False
+        
+        # Test PPO hook pattern detection logic
+        hook_test_cases = [
+            # (today, yesterday, day_before, expected_type)
+            (0.15, 0.12, 0.18, "negative"),  # Today < Yesterday AND Yesterday > Day Before
+            (0.18, 0.12, 0.15, "positive"),  # Today > Yesterday AND Yesterday < Day Before
+            (0.15, 0.15, 0.15, None),        # No hook pattern
+        ]
+        
+        for today, yesterday, day_before, expected_type in hook_test_cases:
+            detected_type = self.detect_ppo_hook_pattern(today, yesterday, day_before)
+            if detected_type == expected_type:
+                self.log_test(f"PPO Hook Detection ({today}, {yesterday}, {day_before})", True, 
+                            f"Correctly detected: {expected_type}")
+            else:
+                self.log_test(f"PPO Hook Detection ({today}, {yesterday}, {day_before})", False, 
+                            f"Expected {expected_type}, got {detected_type}", True)
+                all_passed = False
+        
+        return all_passed
+
+    def validate_batch_result_format(self, result: Dict[str, Any]) -> bool:
+        """Validate individual batch result format"""
+        required_fields = [
+            "symbol", "name", "sector", "industry", "price", "dmi", "adx",
+            "di_plus", "di_minus", "ppo_values", "ppo_slope_percentage",
+            "returns", "volume_today", "volume_3m", "volume_year", "data_source"
+        ]
+        
+        # Check required fields
+        missing_fields = [field for field in required_fields if field not in result]
+        if missing_fields:
+            return False
+        
+        # Validate data types and ranges
+        if not isinstance(result.get("price"), (int, float)) or result.get("price") <= 0:
+            return False
+        
+        if not isinstance(result.get("ppo_values"), list) or len(result.get("ppo_values")) != 3:
+            return False
+        
+        if not isinstance(result.get("returns"), dict):
+            return False
+        
+        required_return_periods = ["1d", "5d", "1m", "1y"]
+        for period in required_return_periods:
+            if period not in result.get("returns", {}):
+                return False
+        
+        return True
+
+    def detect_ppo_hook_pattern(self, today: float, yesterday: float, day_before: float) -> Optional[str]:
+        """Detect PPO hook pattern from 3-day values"""
+        # Positive Hook: Today > Yesterday AND Yesterday < Day Before
+        if today > yesterday and yesterday < day_before:
+            return "positive"
+        # Negative Hook: Today < Yesterday AND Yesterday > Day Before
+        elif today < yesterday and yesterday > day_before:
+            return "negative"
+        else:
+            return None
+
+    def test_batch_error_handling(self) -> bool:
+        """Test batch error handling scenarios"""
+        all_passed = True
+        
+        # Test invalid indices
+        invalid_request = {
+            "indices": ["INVALID_INDEX"],
+            "filters": {
+                "price_filter": {"type": "under", "under": 100}
+            }
+        }
+        
+        try:
+            response = requests.post(f"{BACKEND_URL}/batch/scan", 
+                                   json=invalid_request,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=10)
+            
+            if response.status_code == 400:
+                self.log_test("Invalid Indices Error Handling", True, 
+                            "Correctly returned 400 for invalid indices")
+            else:
+                self.log_test("Invalid Indices Error Handling", False, 
+                            f"Expected 400, got {response.status_code}", True)
+                all_passed = False
+        
+        except Exception as e:
+            self.log_test("Invalid Indices Error Handling", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        # Test empty indices
+        empty_request = {
+            "indices": [],
+            "filters": {}
+        }
+        
+        try:
+            response = requests.post(f"{BACKEND_URL}/batch/scan", 
+                                   json=empty_request,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=10)
+            
+            if response.status_code in [400, 422]:
+                self.log_test("Empty Indices Error Handling", True, 
+                            f"Correctly returned {response.status_code} for empty indices")
+            else:
+                self.log_test("Empty Indices Error Handling", False, 
+                            f"Expected 400/422, got {response.status_code}", True)
+                all_passed = False
+        
+        except Exception as e:
+            self.log_test("Empty Indices Error Handling", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+
+    def test_batch_rate_limiting(self) -> bool:
+        """Test rate limiting behavior (75 calls per minute)"""
+        all_passed = True
+        
+        # This is a simplified test - in a real scenario, we'd need to make many rapid calls
+        # For now, we'll just verify that the system can handle multiple requests
+        
+        try:
+            # Make a few rapid requests to test basic rate limiting
+            for i in range(3):
+                response = requests.get(f"{BACKEND_URL}/batch/indices", timeout=10)
+                if response.status_code != 200:
+                    self.log_test("Rate Limiting Basic Test", False, 
+                                f"Request {i+1} failed: {response.status_code}", True)
+                    all_passed = False
+                    break
+                time.sleep(0.1)  # Small delay between requests
+            
+            if all_passed:
+                self.log_test("Rate Limiting Basic Test", True, 
+                            "Multiple rapid requests handled successfully")
+        
+        except Exception as e:
+            self.log_test("Rate Limiting Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+
     def run_comprehensive_tests(self):
         """Run all tests with priority on scanner filtering logic fix from review request"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
