@@ -8,7 +8,6 @@ Implements multi-level caching strategy:
 
 import json
 import asyncio
-import aioredis
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
@@ -16,6 +15,14 @@ import logging
 import os
 
 logger = logging.getLogger(__name__)
+
+# Try to import aioredis, but handle gracefully if not available
+try:
+    import aioredis
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
+    logger.warning("aioredis not available, using in-memory cache only")
 
 @dataclass
 class CacheEntry:
@@ -45,7 +52,7 @@ class BatchCacheManager:
     """Multi-level caching manager for batch stock processing"""
     
     def __init__(self):
-        self.redis_client: Optional[aioredis.Redis] = None
+        self.redis_client = None
         self.memory_cache: Dict[str, CacheEntry] = {}
         self.cache_stats = {
             'hits': 0,
@@ -62,6 +69,10 @@ class BatchCacheManager:
         
     async def initialize(self):
         """Initialize Redis connection"""
+        if not REDIS_AVAILABLE:
+            logger.info("Redis not available, using in-memory cache only")
+            return
+            
         try:
             # Try to connect to Redis (will use default local Redis if available)
             redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
