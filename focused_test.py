@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://stockwise-platform.preview.emergentagent.com/api"
+BACKEND_URL = "https://market-scanner-27.preview.emergentagent.com/api"
 TEST_SYMBOLS = ["AAPL", "GOOGL", "MSFT"]
 
 def test_multiple_component_fixes():

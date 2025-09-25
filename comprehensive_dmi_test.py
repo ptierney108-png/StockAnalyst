@@ -9,7 +9,7 @@ import json
 import time
 
 # Configuration
-BACKEND_URL = "https://stockwise-platform.preview.emergentagent.com/api"
+BACKEND_URL = "https://market-scanner-27.preview.emergentagent.com/api"
 
 def test_comprehensive_dmi_scenarios():
     """Test all DMI+ scenarios from the review request"""

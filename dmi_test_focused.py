@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://stockwise-platform.preview.emergentagent.com/api"
+BACKEND_URL = "https://market-scanner-27.preview.emergentagent.com/api"
 
 def test_dmi_value_variation():
     """Test DMI+ value variation between different stocks"""

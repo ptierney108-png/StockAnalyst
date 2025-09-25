@@ -26,7 +26,7 @@ try:
     print("• PPO Slope: Min 5%")
     print()
     
-    response = requests.post("https://stockwise-platform.preview.emergentagent.com/api/screener/scan", 
+    response = requests.post("https://market-scanner-27.preview.emergentagent.com/api/screener/scan", 
                            json=user_criteria,
                            headers={"Content-Type": "application/json"},
                            timeout=30)

@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 
 # Configuration
-BACKEND_URL = "https://stockwise-platform.preview.emergentagent.com/api"
+BACKEND_URL = "https://market-scanner-27.preview.emergentagent.com/api"
 
 class UIBackendMatchingTester:
     def __init__(self):

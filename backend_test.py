@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 # Configuration
-BACKEND_URL = "https://stockwise-platform.preview.emergentagent.com/api"
+BACKEND_URL = "https://market-scanner-27.preview.emergentagent.com/api"
 TEST_SYMBOLS = ["AAPL", "GOOGL", "MSFT", "TSLA"]
 INVALID_SYMBOLS = ["INVALID", "FAKE123", ""]
 

@@ -11,7 +11,7 @@ import json
 import time
 from datetime import datetime
 
-BACKEND_URL = "https://stockwise-platform.preview.emergentagent.com/api"
+BACKEND_URL = "https://market-scanner-27.preview.emergentagent.com/api"
 
 def test_ppo_data_availability():
     """Test PPO data availability across different scenarios"""
