@@ -2656,10 +2656,11 @@ async def start_batch_scan(request: BatchScanRequest, background_tasks: Backgrou
                 detail="No stocks found for selected indices"
             )
         
-        # Create batch job
+        # Create batch job with Phase 2 interleaved processing
         job_id = batch_processor.create_batch_job(
             symbols=symbols_list,
-            filters=request.filters.dict()
+            filters=request.filters.dict(),
+            indices=request.indices  # Pass indices for interleaved processing
         )
         
         # Start processing in background
@@ -2669,10 +2670,17 @@ async def start_batch_scan(request: BatchScanRequest, background_tasks: Backgrou
             request.force_refresh
         )
         
-        # Calculate estimated completion time
-        estimated_minutes = max(1, len(symbols_list) / 75)  # 75 calls per minute
+        # Phase 2: Enhanced time estimation based on actual index data
+        total_estimated_minutes = 0
+        for index in request.indices:
+            index_data = STOCK_INDICES.get(index, {})
+            total_estimated_minutes += index_data.get('estimated_time_minutes', len(symbols_list) / 75)
         
-        logger.info(f"Started batch scan {job_id} for {len(symbols_list)} stocks from indices: {request.indices}")
+        # Adjust for overlapping stocks (reduce total time)
+        overlap_adjustment = 0.8 if len(request.indices) > 1 else 1.0
+        estimated_minutes = max(1, total_estimated_minutes * overlap_adjustment)
+        
+        logger.info(f"Started Phase 2 batch scan {job_id} for {len(symbols_list)} stocks from indices: {request.indices}")
         
         return BatchScanResponse(
             batch_id=job_id,
