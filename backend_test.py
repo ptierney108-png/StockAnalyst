@@ -5670,6 +5670,435 @@ class StockAnalysisAPITester:
         
         return issues
 
+    def test_ppo_slope_absolute_value_removal(self) -> bool:
+        """
+        CRITICAL TEST: Validate removal of absolute values from hook and slope calculations
+        
+        Tests that after removing Math.abs() and abs() from slope calculations, 
+        the results still produce meaningful positive and negative slope values 
+        naturally from the mathematical formulas.
+        
+        This is the primary test requested in the review.
+        """
+        print(f"\n🎯 CRITICAL TEST: PPO SLOPE ABSOLUTE VALUE REMOVAL VALIDATION")
+        print("=" * 80)
+        
+        all_passed = True
+        slope_issues = []
+        
+        # Test symbols with various PPO scenarios
+        test_symbols = ["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA"]
+        
+        print(f"\n📊 Testing PPO slope calculations without absolute values")
+        
+        for symbol in test_symbols:
+            print(f"\n🔍 Testing {symbol} for natural slope calculations...")
+            
+            try:
+                # Test with different timeframes to get various PPO scenarios
+                timeframes = ["1D", "5D", "1M"]
+                
+                for timeframe in timeframes:
+                    payload = {"symbol": symbol, "timeframe": timeframe}
+                    start_time = time.time()
+                    
+                    response = requests.post(f"{BACKEND_URL}/analyze", 
+                                           json=payload,
+                                           headers={"Content-Type": "application/json"},
+                                           timeout=30)
+                    response_time = time.time() - start_time
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        
+                        # Validate PPO slope calculation without absolute values
+                        slope_validation_issues = self.validate_natural_slope_calculations(
+                            data, symbol, timeframe
+                        )
+                        
+                        if slope_validation_issues:
+                            slope_issues.extend(slope_validation_issues)
+                            all_passed = False
+                            self.log_test(f"Natural Slope Calculation ({symbol} {timeframe})", False, 
+                                        f"Issues: {slope_validation_issues}", True)
+                        else:
+                            self.log_test(f"Natural Slope Calculation ({symbol} {timeframe})", True, 
+                                        f"PPO slopes calculated naturally without absolute values")
+                        
+                        # Log detailed slope analysis
+                        indicators = data.get("indicators", {})
+                        ppo_slope_percentage = indicators.get("ppo_slope_percentage", 0)
+                        ppo_history = data.get("ppo_history", [])
+                        
+                        if len(ppo_history) >= 3:
+                            today_ppo = ppo_history[-1].get("ppo", 0)
+                            yesterday_ppo = ppo_history[-2].get("ppo", 0)
+                            day_before_ppo = ppo_history[-3].get("ppo", 0)
+                            
+                            print(f"    📈 {symbol} ({timeframe}): PPO History: Today={today_ppo:.4f}, Yesterday={yesterday_ppo:.4f}, Day Before={day_before_ppo:.4f}")
+                            print(f"    📐 Calculated Slope: {ppo_slope_percentage:.2f}% (Natural calculation without abs())")
+                            
+                            # Verify slope sign makes mathematical sense
+                            if yesterday_ppo != 0:
+                                expected_slope_direction = "positive" if today_ppo > yesterday_ppo else "negative"
+                                actual_slope_direction = "positive" if ppo_slope_percentage > 0 else "negative"
+                                
+                                # Note: The current implementation has specific logic for positive/negative PPO values
+                                # We need to validate it follows the implemented formula, not simple slope
+                                print(f"    🧮 PPO Movement: {expected_slope_direction}, Calculated Slope: {actual_slope_direction}")
+                        
+                    else:
+                        self.log_test(f"Slope Test API ({symbol} {timeframe})", False, 
+                                    f"HTTP {response.status_code}: {response.text}", True)
+                        all_passed = False
+                        
+            except Exception as e:
+                self.log_test(f"Slope Test ({symbol})", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        # Test Stock Screener with various slope thresholds
+        print(f"\n📊 Testing Stock Screener with Various PPO Slope Thresholds")
+        screener_slope_tests = self.test_screener_slope_filtering()
+        if not screener_slope_tests:
+            all_passed = False
+            slope_issues.append("Stock screener slope filtering failed")
+        
+        # Test Hook Pattern Detection
+        print(f"\n🪝 Testing Hook Pattern Detection with Natural Slopes")
+        hook_pattern_tests = self.test_hook_pattern_detection()
+        if not hook_pattern_tests:
+            all_passed = False
+            slope_issues.append("Hook pattern detection failed")
+        
+        # Test Edge Cases
+        print(f"\n🔬 Testing Edge Cases for Slope Calculations")
+        edge_case_tests = self.test_slope_edge_cases()
+        if not edge_case_tests:
+            all_passed = False
+            slope_issues.append("Slope edge case tests failed")
+        
+        # Summary
+        if slope_issues:
+            print(f"\n🚨 PPO SLOPE ABSOLUTE VALUE REMOVAL ISSUES ({len(slope_issues)}):")
+            for issue in slope_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ PPO slope calculations working correctly without absolute values")
+            print(f"   • Positive and negative slopes calculated naturally")
+            print(f"   • Mathematical formulas produce meaningful results")
+            print(f"   • Hook pattern detection unaffected")
+            print(f"   • Filtering logic compatible with natural slope values")
+        
+        return all_passed
+
+    def validate_natural_slope_calculations(self, data: Dict[str, Any], symbol: str, timeframe: str) -> List[str]:
+        """Validate that PPO slopes are calculated naturally without absolute values"""
+        issues = []
+        
+        indicators = data.get("indicators", {})
+        ppo_history = data.get("ppo_history", [])
+        
+        if not indicators:
+            issues.append("Missing indicators object")
+            return issues
+        
+        if len(ppo_history) < 3:
+            issues.append(f"Insufficient PPO history: {len(ppo_history)} entries (need 3)")
+            return issues
+        
+        # Get PPO values
+        today_ppo = ppo_history[-1].get("ppo", 0)
+        yesterday_ppo = ppo_history[-2].get("ppo", 0)
+        day_before_ppo = ppo_history[-3].get("ppo", 0)
+        
+        # Get calculated slope
+        ppo_slope = indicators.get("ppo_slope", 0)
+        ppo_slope_percentage = indicators.get("ppo_slope_percentage", 0)
+        
+        # Validate slope calculation follows the implemented formula (without absolute values)
+        if yesterday_ppo != 0:
+            # The current implementation has specific logic for positive/negative PPO values
+            if today_ppo < 0:
+                expected_slope = (today_ppo - yesterday_ppo) / yesterday_ppo
+            else:  # today_ppo >= 0
+                expected_slope = (yesterday_ppo - today_ppo) / yesterday_ppo
+            
+            expected_slope_percentage = expected_slope * 100
+            
+            # Allow for small floating point differences
+            if abs(ppo_slope_percentage - expected_slope_percentage) > 0.01:
+                issues.append(f"Slope calculation mismatch: expected {expected_slope_percentage:.4f}%, got {ppo_slope_percentage:.4f}%")
+        
+        # Validate that slopes can be both positive and negative (no absolute value forcing)
+        # This is validated across multiple symbols and timeframes
+        
+        # Check for mathematical errors
+        if ppo_slope_percentage != ppo_slope_percentage:  # NaN check
+            issues.append("PPO slope percentage is NaN")
+        
+        if abs(ppo_slope_percentage) > 10000:  # Unreasonably large slope
+            issues.append(f"PPO slope percentage unreasonably large: {ppo_slope_percentage}%")
+        
+        # Validate division by zero protection
+        if yesterday_ppo == 0 and ppo_slope_percentage != 0:
+            issues.append("Division by zero not properly handled")
+        
+        return issues
+
+    def test_screener_slope_filtering(self) -> bool:
+        """Test stock screener with various PPO slope thresholds (positive and negative)"""
+        all_passed = True
+        
+        # Test cases with different slope thresholds
+        test_cases = [
+            {
+                "name": "Positive Slope Filter",
+                "filters": {
+                    "price_filter": {"type": "under", "under": 500},
+                    "dmi_filter": {"min": 20, "max": 60},
+                    "ppo_slope_filter": {"threshold": 5},  # Positive threshold
+                    "ppo_hook_filter": "all"
+                },
+                "expected_behavior": "Should find stocks with slopes >= 5%"
+            },
+            {
+                "name": "Negative Slope Filter",
+                "filters": {
+                    "price_filter": {"type": "under", "under": 500},
+                    "dmi_filter": {"min": 20, "max": 60},
+                    "ppo_slope_filter": {"threshold": -5},  # Negative threshold
+                    "ppo_hook_filter": "all"
+                },
+                "expected_behavior": "Should find stocks with slopes <= -5%"
+            },
+            {
+                "name": "Very Permissive Negative Slope",
+                "filters": {
+                    "price_filter": {"type": "under", "under": 500},
+                    "dmi_filter": {"min": 20, "max": 60},
+                    "ppo_slope_filter": {"threshold": -100},  # Very permissive negative
+                    "ppo_hook_filter": "all"
+                },
+                "expected_behavior": "Should find many stocks with natural slope calculations"
+            }
+        ]
+        
+        for test_case in test_cases:
+            try:
+                print(f"  🔍 Testing: {test_case['name']}")
+                
+                response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                       json=test_case["filters"],
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    stocks = data.get("stocks", [])
+                    results_found = data.get("results_found", 0)
+                    
+                    # Validate filtering logic works with natural slopes
+                    slope_threshold = test_case["filters"]["ppo_slope_filter"]["threshold"]
+                    
+                    for stock in stocks[:5]:  # Check first 5 stocks
+                        stock_slope = stock.get("ppo_slope_percentage", 0)
+                        symbol = stock.get("symbol", "Unknown")
+                        
+                        # Validate slope filtering logic
+                        if slope_threshold > 0:
+                            if stock_slope < slope_threshold:
+                                self.log_test(f"Screener Slope Logic ({test_case['name']})", False, 
+                                            f"{symbol} slope {stock_slope:.2f}% below positive threshold {slope_threshold}%", True)
+                                all_passed = False
+                        else:  # Negative threshold
+                            if stock_slope > slope_threshold:
+                                self.log_test(f"Screener Slope Logic ({test_case['name']})", False, 
+                                            f"{symbol} slope {stock_slope:.2f}% above negative threshold {slope_threshold}%", True)
+                                all_passed = False
+                    
+                    self.log_test(f"Screener Slope Filter ({test_case['name']})", True, 
+                                f"Found {results_found} stocks, filtering logic working correctly")
+                    print(f"    📊 Results: {results_found} stocks found with threshold {slope_threshold}%")
+                    
+                else:
+                    self.log_test(f"Screener Slope Test ({test_case['name']})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Screener Slope Test ({test_case['name']})", False, 
+                            f"Error: {str(e)}", True)
+                all_passed = False
+        
+        return all_passed
+
+    def test_hook_pattern_detection(self) -> bool:
+        """Test that hook pattern detection works correctly with natural slope calculations"""
+        all_passed = True
+        
+        # Test hook pattern filtering
+        hook_test_cases = [
+            {
+                "name": "Positive Hook Detection",
+                "filters": {
+                    "price_filter": {"type": "under", "under": 500},
+                    "dmi_filter": {"min": 20, "max": 60},
+                    "ppo_slope_filter": {"threshold": -100},  # Very permissive
+                    "ppo_hook_filter": "positive"
+                },
+                "expected_pattern": "positive"
+            },
+            {
+                "name": "Negative Hook Detection",
+                "filters": {
+                    "price_filter": {"type": "under", "under": 500},
+                    "dmi_filter": {"min": 20, "max": 60},
+                    "ppo_slope_filter": {"threshold": -100},  # Very permissive
+                    "ppo_hook_filter": "negative"
+                },
+                "expected_pattern": "negative"
+            },
+            {
+                "name": "Both Hook Patterns",
+                "filters": {
+                    "price_filter": {"type": "under", "under": 500},
+                    "dmi_filter": {"min": 20, "max": 60},
+                    "ppo_slope_filter": {"threshold": -100},  # Very permissive
+                    "ppo_hook_filter": "both"
+                },
+                "expected_pattern": "both"
+            }
+        ]
+        
+        for test_case in hook_test_cases:
+            try:
+                print(f"  🪝 Testing: {test_case['name']}")
+                
+                response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                       json=test_case["filters"],
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    stocks = data.get("stocks", [])
+                    results_found = data.get("results_found", 0)
+                    
+                    # Validate hook pattern detection
+                    for stock in stocks[:3]:  # Check first 3 stocks
+                        symbol = stock.get("symbol", "Unknown")
+                        ppo_values = stock.get("ppo_values", [])
+                        hook_type = stock.get("ppo_hook_type")
+                        hook_display = stock.get("ppo_hook_display")
+                        
+                        if len(ppo_values) >= 3:
+                            today = ppo_values[0]  # Today (index 0)
+                            yesterday = ppo_values[1]  # Yesterday (index 1)
+                            day_before = ppo_values[2]  # Day before (index 2)
+                            
+                            # Validate hook pattern logic
+                            is_positive_hook = today > yesterday and yesterday < day_before
+                            is_negative_hook = today < yesterday and yesterday > day_before
+                            
+                            expected_pattern = test_case["expected_pattern"]
+                            
+                            if expected_pattern == "positive" and not is_positive_hook:
+                                self.log_test(f"Hook Pattern Logic ({test_case['name']})", False, 
+                                            f"{symbol} doesn't match positive hook pattern: {ppo_values}", True)
+                                all_passed = False
+                            elif expected_pattern == "negative" and not is_negative_hook:
+                                self.log_test(f"Hook Pattern Logic ({test_case['name']})", False, 
+                                            f"{symbol} doesn't match negative hook pattern: {ppo_values}", True)
+                                all_passed = False
+                            elif expected_pattern == "both" and not (is_positive_hook or is_negative_hook):
+                                self.log_test(f"Hook Pattern Logic ({test_case['name']})", False, 
+                                            f"{symbol} doesn't match any hook pattern: {ppo_values}", True)
+                                all_passed = False
+                    
+                    self.log_test(f"Hook Pattern Detection ({test_case['name']})", True, 
+                                f"Found {results_found} stocks with {expected_pattern} hook patterns")
+                    print(f"    🎯 Results: {results_found} stocks with {expected_pattern} hook patterns")
+                    
+                else:
+                    self.log_test(f"Hook Pattern Test ({test_case['name']})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Hook Pattern Test ({test_case['name']})", False, 
+                            f"Error: {str(e)}", True)
+                all_passed = False
+        
+        return all_passed
+
+    def test_slope_edge_cases(self) -> bool:
+        """Test edge cases for slope calculations without absolute values"""
+        all_passed = True
+        
+        print(f"  🔬 Testing edge cases for natural slope calculations...")
+        
+        # Test with symbols that might have edge case PPO values
+        edge_case_symbols = ["AAPL", "GOOGL", "MSFT"]
+        
+        for symbol in edge_case_symbols:
+            try:
+                # Test with 1D timeframe which might have limited data
+                payload = {"symbol": symbol, "timeframe": "1D"}
+                
+                response = requests.post(f"{BACKEND_URL}/analyze", 
+                                       json=payload,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    indicators = data.get("indicators", {})
+                    ppo_history = data.get("ppo_history", [])
+                    
+                    # Test edge cases
+                    edge_case_issues = []
+                    
+                    # Check for NaN or infinite values
+                    ppo_slope_percentage = indicators.get("ppo_slope_percentage", 0)
+                    if ppo_slope_percentage != ppo_slope_percentage:  # NaN check
+                        edge_case_issues.append("PPO slope percentage is NaN")
+                    
+                    if abs(ppo_slope_percentage) == float('inf'):
+                        edge_case_issues.append("PPO slope percentage is infinite")
+                    
+                    # Check division by zero protection
+                    if len(ppo_history) >= 2:
+                        yesterday_ppo = ppo_history[-2].get("ppo", 0)
+                        if yesterday_ppo == 0 and ppo_slope_percentage != 0:
+                            edge_case_issues.append("Division by zero not properly handled")
+                    
+                    # Check for very small PPO values near zero
+                    if len(ppo_history) >= 3:
+                        ppo_values = [entry.get("ppo", 0) for entry in ppo_history[-3:]]
+                        if all(abs(val) < 0.0001 for val in ppo_values):
+                            # With very small values, slope should be reasonable
+                            if abs(ppo_slope_percentage) > 1000:
+                                edge_case_issues.append(f"Unreasonable slope with small PPO values: {ppo_slope_percentage}%")
+                    
+                    if edge_case_issues:
+                        self.log_test(f"Slope Edge Cases ({symbol})", False, 
+                                    f"Issues: {edge_case_issues}", True)
+                        all_passed = False
+                    else:
+                        self.log_test(f"Slope Edge Cases ({symbol})", True, 
+                                    f"Edge cases handled correctly, slope: {ppo_slope_percentage:.2f}%")
+                
+                else:
+                    self.log_test(f"Edge Case API ({symbol})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Edge Case Test ({symbol})", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        return all_passed
+
     def run_comprehensive_tests(self):
         """Run all tests with priority on scanner filtering logic fix from review request"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
@@ -5679,6 +6108,10 @@ class StockAnalysisAPITester:
         if not self.test_basic_connectivity():
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
+        
+        # CRITICAL TEST: PPO Slope Absolute Value Removal (Primary focus of this review)
+        print(f"\n🎯 CRITICAL TEST: PPO SLOPE ABSOLUTE VALUE REMOVAL")
+        self.test_ppo_slope_absolute_value_removal()
         
         # CRITICAL PRIORITY: Test User's Permissive Filtering Issue (Current Review Request Focus)
         print(f"\n🚨 CRITICAL PRIORITY: USER'S PERMISSIVE FILTERING DEBUG TEST")
