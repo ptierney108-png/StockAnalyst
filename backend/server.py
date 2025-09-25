@@ -2762,6 +2762,34 @@ async def get_batch_results(batch_id: str):
         logger.error(f"Failed to get batch results for {batch_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get batch results: {str(e)}")
 
+@api_router.get("/batch/partial-results/{batch_id}")
+async def get_batch_partial_results(batch_id: str):
+    """Phase 2: Get partial results of a running or completed batch job"""
+    try:
+        job_status = batch_processor.get_job_status(batch_id)
+        
+        if not job_status:
+            raise HTTPException(status_code=404, detail=f"Batch job {batch_id} not found")
+        
+        # Get current partial results (available even while job is running)
+        partial_results = batch_processor.get_job_partial_results(batch_id)
+        
+        return {
+            "batch_id": batch_id,
+            "status": job_status['status'],
+            "progress": job_status['progress'],
+            "partial_results": partial_results or [],
+            "partial_results_count": len(partial_results) if partial_results else 0,
+            "last_update": job_status['progress'].get('last_partial_update'),
+            "is_final": job_status['status'] in ['completed', 'failed', 'cancelled']
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get partial results for {batch_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get partial results: {str(e)}")
+
 @api_router.delete("/batch/cancel/{batch_id}")
 async def cancel_batch_job(batch_id: str):
     """Cancel a running or pending batch job"""
