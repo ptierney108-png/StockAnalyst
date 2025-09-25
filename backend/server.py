@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Query, BackgroundTasks
 from fastapi.middleware.gzip import GZipMiddleware
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -24,6 +24,11 @@ import json
 import math
 import numpy as np
 from emergentintegrations.llm import chat
+
+# Import batch processing modules
+from stock_universe import get_stock_universe, get_all_indices, get_total_stocks_count, STOCK_INDICES
+from batch_cache import cache_manager, BatchCacheManager
+from batch_processor import batch_processor, BatchProcessor, BatchStatus
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
