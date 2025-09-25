@@ -134,6 +134,18 @@ user_problem_statement: Fix routing issues where StockAnalysis.js was overwritte
           agent: "testing"
           comment: "✅ PAID ALPHA VANTAGE API INTEGRATION VALIDATED: All 4 core tests passed (100% success rate). API status correctly shows 70/minute limit for paid plan. Data quality excellent with Alpha Vantage as primary source returning 24-30 data points per timeframe. PPO calculations enhanced with non-zero values (AAPL: -0.091353, GOOGL: 5.059574, MSFT: -0.116919). Rapid API calls working within rate limits. Response performance excellent (0.28-0.33s cached, 17s fresh). Integration fully operational and providing significantly improved data quality."
 
+  - task: "Scanner DMI and Hook Pattern Display Issues"
+    implemented: false
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "CRITICAL SCANNER FILTERING ISSUES: User set criteria for Negative Hook (-HOOK) Only with Price $100-$600, DMI 20-60, PPO Slope 0% minimum but results don't match: (1) Results show DMI values below 20 (like 16.5) violating DMI filter, (2) Only 2 out of 5 results show hook patterns, others show no hooks despite negative hook filter, (3) Hook patterns display as generic 'Hook' without distinguishing positive vs negative. Scanner filtering logic fundamentally broken."
+
 backend:
 
   - task: "Scanner Filtering Logic Fix"
