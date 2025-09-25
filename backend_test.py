@@ -4547,6 +4547,473 @@ class StockAnalysisAPITester:
         
         return all_passed
 
+    def test_dmi_hook_pattern_filtering_fix(self) -> bool:
+        """
+        COMPREHENSIVE DMI AND HOOK PATTERN FILTERING FIX TESTING
+        
+        Tests the specific fixes for DMI filtering and hook pattern detection:
+        1. DMI Filter Validation - Test exact user criteria with DMI range 20-60
+        2. Hook Pattern Detection - Verify negative hook pattern filtering works
+        3. Hook Pattern Display - Check ppo_hook_type and ppo_hook_display fields
+        4. Comprehensive Testing - Test different hook filter combinations
+        5. Debug Validation - Verify debug logging shows actual DMI values
+        
+        Uses exact filter criteria from user's bug report:
+        - price_filter: {"type": "range", "min": 100, "max": 600}
+        - dmi_filter: {"min": 20, "max": 60}
+        - ppo_slope_filter: {"threshold": 0}
+        - ppo_hook_filter: "-HOOK"
+        """
+        print(f"\n🎯 COMPREHENSIVE DMI AND HOOK PATTERN FILTERING FIX TESTING")
+        print("=" * 70)
+        
+        all_passed = True
+        fix_issues = []
+        
+        # 1. Test DMI Filter Validation with exact user criteria
+        print(f"\n📊 Testing DMI Filter Validation (User's Exact Criteria)")
+        dmi_validation_passed = self.test_dmi_filter_validation()
+        if not dmi_validation_passed:
+            all_passed = False
+            fix_issues.append("DMI filter validation failed")
+        
+        # 2. Test Hook Pattern Detection
+        print(f"\n🎣 Testing Hook Pattern Detection")
+        hook_detection_passed = self.test_hook_pattern_detection()
+        if not hook_detection_passed:
+            all_passed = False
+            fix_issues.append("Hook pattern detection failed")
+        
+        # 3. Test Hook Pattern Display Enhancement
+        print(f"\n🏷️ Testing Hook Pattern Display Enhancement")
+        hook_display_passed = self.test_hook_pattern_display()
+        if not hook_display_passed:
+            all_passed = False
+            fix_issues.append("Hook pattern display enhancement failed")
+        
+        # 4. Test Comprehensive Hook Filter Combinations
+        print(f"\n🔄 Testing Comprehensive Hook Filter Combinations")
+        hook_combinations_passed = self.test_hook_filter_combinations()
+        if not hook_combinations_passed:
+            all_passed = False
+            fix_issues.append("Hook filter combinations failed")
+        
+        # 5. Test Debug Validation
+        print(f"\n🔍 Testing Debug Validation")
+        debug_validation_passed = self.test_debug_validation()
+        if not debug_validation_passed:
+            all_passed = False
+            fix_issues.append("Debug validation failed")
+        
+        # Summary of DMI and Hook Pattern fix testing
+        if fix_issues:
+            print(f"\n🚨 DMI AND HOOK PATTERN FIX ISSUES FOUND ({len(fix_issues)}):")
+            for issue in fix_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ DMI and Hook Pattern filtering fixes working correctly")
+        
+        return all_passed
+
+    def test_dmi_filter_validation(self) -> bool:
+        """Test DMI filter validation with user's exact criteria"""
+        all_passed = True
+        
+        # User's exact criteria from bug report
+        user_criteria = {
+            "price_filter": {"type": "range", "min": 100, "max": 600},
+            "dmi_filter": {"min": 20, "max": 60},
+            "ppo_slope_filter": {"threshold": 0},
+            "ppo_hook_filter": "-HOOK"
+        }
+        
+        try:
+            print(f"  🎯 Testing user's exact criteria: Price $100-$600, DMI 20-60, PPO Slope 0%+, Negative Hook Only")
+            
+            start_time = time.time()
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=user_criteria,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            response_time = time.time() - start_time
+            
+            if response.status_code == 200:
+                data = response.json()
+                stocks = data.get("stocks", [])
+                
+                print(f"    📈 Found {len(stocks)} stocks matching criteria in {response_time:.2f}s")
+                
+                # Validate DMI filtering - NO results should have DMI < 20 or DMI > 60
+                dmi_violations = []
+                hook_pattern_issues = []
+                
+                for stock in stocks:
+                    symbol = stock.get("symbol", "Unknown")
+                    
+                    # Check DMI value (should be composite DMI, not ADX)
+                    dmi_value = stock.get("dmi")  # Should use actual DMI composite value
+                    adx_value = stock.get("adx")  # For comparison
+                    
+                    if dmi_value is not None:
+                        if dmi_value < 20 or dmi_value > 60:
+                            dmi_violations.append(f"{symbol}: DMI={dmi_value:.2f} (outside 20-60 range)")
+                    
+                    # Check hook pattern fields
+                    ppo_hook_type = stock.get("ppo_hook_type")
+                    ppo_hook_display = stock.get("ppo_hook_display")
+                    
+                    if ppo_hook_type != "negative":
+                        hook_pattern_issues.append(f"{symbol}: ppo_hook_type='{ppo_hook_type}' (expected 'negative')")
+                    
+                    if ppo_hook_display != "- Hook":
+                        hook_pattern_issues.append(f"{symbol}: ppo_hook_display='{ppo_hook_display}' (expected '- Hook')")
+                    
+                    print(f"    📊 {symbol}: DMI={dmi_value}, ADX={adx_value}, Hook Type={ppo_hook_type}, Hook Display={ppo_hook_display}")
+                
+                # Report DMI violations (critical issue)
+                if dmi_violations:
+                    self.log_test("DMI Filter Validation", False, 
+                                f"DMI violations found: {dmi_violations}", True)
+                    all_passed = False
+                else:
+                    self.log_test("DMI Filter Validation", True, 
+                                f"All {len(stocks)} results have DMI values within 20-60 range")
+                
+                # Report hook pattern issues
+                if hook_pattern_issues:
+                    self.log_test("Hook Pattern Fields", False, 
+                                f"Hook pattern issues: {hook_pattern_issues}", True)
+                    all_passed = False
+                else:
+                    self.log_test("Hook Pattern Fields", True, 
+                                f"All {len(stocks)} results have correct negative hook pattern fields")
+                
+            else:
+                self.log_test("DMI Filter API Test", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("DMI Filter Validation Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+
+    def test_hook_pattern_detection(self) -> bool:
+        """Test hook pattern detection logic"""
+        all_passed = True
+        
+        # Test different hook pattern scenarios
+        hook_test_cases = [
+            {
+                "name": "Negative Hook Only",
+                "filters": {
+                    "price_filter": {"type": "range", "min": 100, "max": 600},
+                    "dmi_filter": {"min": 20, "max": 60},
+                    "ppo_slope_filter": {"threshold": 0},
+                    "ppo_hook_filter": "-HOOK"
+                },
+                "expected_hook_type": "negative"
+            },
+            {
+                "name": "Positive Hook Only", 
+                "filters": {
+                    "price_filter": {"type": "range", "min": 100, "max": 600},
+                    "dmi_filter": {"min": 20, "max": 60},
+                    "ppo_slope_filter": {"threshold": 0},
+                    "ppo_hook_filter": "+HOOK"
+                },
+                "expected_hook_type": "positive"
+            }
+        ]
+        
+        for test_case in hook_test_cases:
+            try:
+                print(f"  🎣 Testing {test_case['name']}")
+                
+                response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                       json=test_case["filters"],
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    stocks = data.get("stocks", [])
+                    
+                    print(f"    📈 Found {len(stocks)} stocks with {test_case['name']}")
+                    
+                    # Validate hook pattern detection
+                    hook_detection_issues = []
+                    
+                    for stock in stocks:
+                        symbol = stock.get("symbol", "Unknown")
+                        ppo_hook_type = stock.get("ppo_hook_type")
+                        ppo_values = stock.get("ppo_values", [])
+                        
+                        # Verify hook type matches expected
+                        if ppo_hook_type != test_case["expected_hook_type"]:
+                            hook_detection_issues.append(f"{symbol}: Expected {test_case['expected_hook_type']}, got {ppo_hook_type}")
+                        
+                        # Verify hook pattern logic with PPO values
+                        if len(ppo_values) >= 3:
+                            today, yesterday, day_before = ppo_values[0], ppo_values[1], ppo_values[2]
+                            
+                            if test_case["expected_hook_type"] == "negative":
+                                # Negative hook: TODAY < YESTERDAY AND YESTERDAY > DAY_BEFORE
+                                if not (today < yesterday and yesterday > day_before):
+                                    hook_detection_issues.append(f"{symbol}: PPO values {ppo_values} don't match negative hook pattern")
+                            elif test_case["expected_hook_type"] == "positive":
+                                # Positive hook: TODAY > YESTERDAY AND YESTERDAY < DAY_BEFORE
+                                if not (today > yesterday and yesterday < day_before):
+                                    hook_detection_issues.append(f"{symbol}: PPO values {ppo_values} don't match positive hook pattern")
+                        
+                        print(f"    📊 {symbol}: Hook Type={ppo_hook_type}, PPO={ppo_values}")
+                    
+                    if hook_detection_issues:
+                        self.log_test(f"Hook Detection ({test_case['name']})", False, 
+                                    f"Detection issues: {hook_detection_issues}", True)
+                        all_passed = False
+                    else:
+                        self.log_test(f"Hook Detection ({test_case['name']})", True, 
+                                    f"All {len(stocks)} results have correct hook pattern detection")
+                
+                else:
+                    self.log_test(f"Hook Detection API ({test_case['name']})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Hook Detection Test ({test_case['name']})", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        return all_passed
+
+    def test_hook_pattern_display(self) -> bool:
+        """Test hook pattern display enhancement with ppo_hook_type and ppo_hook_display fields"""
+        all_passed = True
+        
+        # Test that response includes proper hook pattern information
+        test_filters = {
+            "price_filter": {"type": "range", "min": 100, "max": 600},
+            "dmi_filter": {"min": 20, "max": 60},
+            "ppo_slope_filter": {"threshold": 0},
+            "ppo_hook_filter": "-HOOK"
+        }
+        
+        try:
+            print(f"  🏷️ Testing hook pattern display fields")
+            
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=test_filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                stocks = data.get("stocks", [])
+                
+                display_issues = []
+                
+                for stock in stocks:
+                    symbol = stock.get("symbol", "Unknown")
+                    
+                    # Check for new hook pattern fields
+                    ppo_hook_type = stock.get("ppo_hook_type")
+                    ppo_hook_display = stock.get("ppo_hook_display")
+                    
+                    # Validate field presence
+                    if ppo_hook_type is None:
+                        display_issues.append(f"{symbol}: Missing ppo_hook_type field")
+                    elif ppo_hook_type not in ["positive", "negative", "null"]:
+                        display_issues.append(f"{symbol}: Invalid ppo_hook_type value: {ppo_hook_type}")
+                    
+                    if ppo_hook_display is None:
+                        display_issues.append(f"{symbol}: Missing ppo_hook_display field")
+                    elif ppo_hook_display not in ["+ Hook", "- Hook", None]:
+                        display_issues.append(f"{symbol}: Invalid ppo_hook_display value: {ppo_hook_display}")
+                    
+                    # Validate consistency between type and display
+                    if ppo_hook_type == "negative" and ppo_hook_display != "- Hook":
+                        display_issues.append(f"{symbol}: Inconsistent negative hook display: type={ppo_hook_type}, display={ppo_hook_display}")
+                    elif ppo_hook_type == "positive" and ppo_hook_display != "+ Hook":
+                        display_issues.append(f"{symbol}: Inconsistent positive hook display: type={ppo_hook_type}, display={ppo_hook_display}")
+                    
+                    print(f"    🏷️ {symbol}: Type='{ppo_hook_type}', Display='{ppo_hook_display}'")
+                
+                if display_issues:
+                    self.log_test("Hook Pattern Display", False, 
+                                f"Display issues: {display_issues}", True)
+                    all_passed = False
+                else:
+                    self.log_test("Hook Pattern Display", True, 
+                                f"All {len(stocks)} results have correct hook pattern display fields")
+            
+            else:
+                self.log_test("Hook Display API Test", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Hook Display Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+
+    def test_hook_filter_combinations(self) -> bool:
+        """Test comprehensive hook filter combinations"""
+        all_passed = True
+        
+        # Test different hook filter combinations as specified in review request
+        hook_combinations = [
+            {
+                "name": "Negative Hook (-HOOK) Only",
+                "ppo_hook_filter": "-HOOK",
+                "expected_types": ["negative"]
+            },
+            {
+                "name": "Positive Hook (+HOOK) Only",
+                "ppo_hook_filter": "+HOOK", 
+                "expected_types": ["positive"]
+            },
+            {
+                "name": "Both Hooks",
+                "ppo_hook_filter": "BOTH",
+                "expected_types": ["positive", "negative"]
+            },
+            {
+                "name": "All Stocks (No Hook Filter)",
+                "ppo_hook_filter": "ALL",
+                "expected_types": ["positive", "negative", "null"]
+            }
+        ]
+        
+        for combination in hook_combinations:
+            try:
+                print(f"  🔄 Testing {combination['name']}")
+                
+                base_filters = {
+                    "price_filter": {"type": "range", "min": 100, "max": 600},
+                    "dmi_filter": {"min": 20, "max": 60},
+                    "ppo_slope_filter": {"threshold": 0}
+                }
+                
+                # Add hook filter if not "All Stocks"
+                if combination["ppo_hook_filter"] != "ALL":
+                    base_filters["ppo_hook_filter"] = combination["ppo_hook_filter"]
+                
+                response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                       json=base_filters,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    stocks = data.get("stocks", [])
+                    
+                    print(f"    📈 Found {len(stocks)} stocks for {combination['name']}")
+                    
+                    # Validate hook type distribution
+                    hook_type_counts = {}
+                    combination_issues = []
+                    
+                    for stock in stocks:
+                        symbol = stock.get("symbol", "Unknown")
+                        ppo_hook_type = stock.get("ppo_hook_type", "null")
+                        
+                        hook_type_counts[ppo_hook_type] = hook_type_counts.get(ppo_hook_type, 0) + 1
+                        
+                        # Validate hook type is in expected types
+                        if ppo_hook_type not in combination["expected_types"]:
+                            combination_issues.append(f"{symbol}: Unexpected hook type '{ppo_hook_type}' for {combination['name']}")
+                    
+                    print(f"    📊 Hook type distribution: {hook_type_counts}")
+                    
+                    if combination_issues:
+                        self.log_test(f"Hook Combination ({combination['name']})", False, 
+                                    f"Combination issues: {combination_issues}", True)
+                        all_passed = False
+                    else:
+                        self.log_test(f"Hook Combination ({combination['name']})", True, 
+                                    f"All {len(stocks)} results have expected hook types: {list(hook_type_counts.keys())}")
+                
+                else:
+                    self.log_test(f"Hook Combination API ({combination['name']})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Hook Combination Test ({combination['name']})", False, f"Error: {str(e)}", True)
+                all_passed = False
+        
+        return all_passed
+
+    def test_debug_validation(self) -> bool:
+        """Test debug validation - verify debug logging shows actual DMI values instead of ADX"""
+        all_passed = True
+        
+        # This test would ideally check backend logs, but since we can't access logs directly,
+        # we'll validate the response data to ensure DMI vs ADX distinction
+        
+        test_filters = {
+            "price_filter": {"type": "range", "min": 100, "max": 600},
+            "dmi_filter": {"min": 20, "max": 60},
+            "ppo_slope_filter": {"threshold": 0},
+            "ppo_hook_filter": "-HOOK"
+        }
+        
+        try:
+            print(f"  🔍 Testing debug validation (DMI vs ADX distinction)")
+            
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=test_filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                stocks = data.get("stocks", [])
+                
+                debug_issues = []
+                
+                for stock in stocks:
+                    symbol = stock.get("symbol", "Unknown")
+                    dmi_value = stock.get("dmi")  # Should be composite DMI value
+                    adx_value = stock.get("adx")  # Should be different from DMI
+                    di_plus = stock.get("di_plus")
+                    di_minus = stock.get("di_minus")
+                    
+                    # Validate that DMI and ADX are different values (not the same)
+                    if dmi_value is not None and adx_value is not None:
+                        if abs(dmi_value - adx_value) < 0.01:  # Essentially the same value
+                            debug_issues.append(f"{symbol}: DMI ({dmi_value}) and ADX ({adx_value}) are identical - may indicate DMI is using ADX value")
+                    
+                    # Validate DMI composite calculation if we have DI+ and DI-
+                    if di_plus is not None and di_minus is not None and dmi_value is not None:
+                        expected_dmi = (di_plus + di_minus) / 2
+                        if abs(dmi_value - expected_dmi) > 1.0:  # Allow some tolerance
+                            debug_issues.append(f"{symbol}: DMI ({dmi_value}) doesn't match expected composite (DI+={di_plus}, DI-={di_minus}, Expected={(di_plus + di_minus) / 2})")
+                    
+                    print(f"    🔍 {symbol}: DMI={dmi_value}, ADX={adx_value}, DI+={di_plus}, DI-={di_minus}")
+                
+                if debug_issues:
+                    self.log_test("Debug Validation", False, 
+                                f"Debug issues: {debug_issues}", True)
+                    all_passed = False
+                else:
+                    self.log_test("Debug Validation", True, 
+                                f"All {len(stocks)} results show proper DMI vs ADX distinction")
+            
+            else:
+                self.log_test("Debug Validation API Test", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Debug Validation Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+
     def run_comprehensive_tests(self):
         """Run all tests with priority on scanner filtering logic fix from review request"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
@@ -4556,6 +5023,10 @@ class StockAnalysisAPITester:
         if not self.test_basic_connectivity():
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
+        
+        # HIGHEST PRIORITY: Test DMI and Hook Pattern Filtering Fix (Current Review Request Focus)
+        print(f"\n🎯 HIGHEST PRIORITY: DMI AND HOOK PATTERN FILTERING FIX")
+        self.test_dmi_hook_pattern_filtering_fix()
         
         # HIGHEST PRIORITY: Test PPO Hook Pattern Filtering (Current Review Request Focus)
         print(f"\n🎯 HIGHEST PRIORITY: PPO HOOK PATTERN FILTERING TEST")
