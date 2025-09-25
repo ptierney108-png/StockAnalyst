@@ -2868,3 +2868,9 @@ logger = logging.getLogger(__name__)
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+    # Also clean up batch processing resources
+    try:
+        await cache_manager.close()
+        logging.info("Batch processing system shutdown complete")
+    except Exception as e:
+        logging.error(f"Error during batch processing shutdown: {e}")
