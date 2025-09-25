@@ -256,6 +256,9 @@ class BatchProcessor:
     def _passes_filters(self, stock_data: Dict[str, Any], filters: Dict[str, Any]) -> bool:
         """Check if stock data passes the specified filters"""
         try:
+            symbol = stock_data.get('symbol', 'UNKNOWN')
+            logger.debug(f"🔍 Filtering {symbol}: price={stock_data.get('price', 0)}, dmi={stock_data.get('dmi', 0)}, ppo_slope={stock_data.get('ppo_slope_percentage', 0)}, hook={stock_data.get('ppo_hook_type')}")
+            
             # Price filter
             if 'price_filter' in filters and filters['price_filter']:
                 price_filter = filters['price_filter']
@@ -264,11 +267,13 @@ class BatchProcessor:
                 if price_filter.get('type') == 'under':
                     max_price = price_filter.get('under', float('inf'))
                     if price > max_price:
+                        logger.debug(f"❌ {symbol} filtered out: Price {price} > {max_price}")
                         return False
                 elif price_filter.get('type') == 'range':
                     min_price = price_filter.get('min', 0)
                     max_price = price_filter.get('max', float('inf'))
                     if not (min_price <= price <= max_price):
+                        logger.debug(f"❌ {symbol} filtered out: Price {price} not in range {min_price}-{max_price}")
                         return False
             
             # DMI filter
@@ -278,6 +283,7 @@ class BatchProcessor:
                 dmi_min = dmi_filter.get('min', 0)
                 dmi_max = dmi_filter.get('max', 100)
                 if not (dmi_min <= dmi <= dmi_max):
+                    logger.debug(f"❌ {symbol} filtered out: DMI {dmi} not in range {dmi_min}-{dmi_max}")
                     return False
             
             # PPO Slope filter
@@ -286,6 +292,7 @@ class BatchProcessor:
                 slope = stock_data.get('ppo_slope_percentage', 0)
                 threshold = slope_filter.get('threshold', float('-inf'))
                 if slope < threshold:
+                    logger.debug(f"❌ {symbol} filtered out: PPO slope {slope} < {threshold}")
                     return False
             
             # PPO Hook filter
@@ -294,12 +301,16 @@ class BatchProcessor:
                 hook_type = stock_data.get('ppo_hook_type')
                 
                 if hook_filter == 'positive' and hook_type != 'positive':
+                    logger.debug(f"❌ {symbol} filtered out: Hook type {hook_type} != positive")
                     return False
                 elif hook_filter == 'negative' and hook_type != 'negative':
+                    logger.debug(f"❌ {symbol} filtered out: Hook type {hook_type} != negative")
                     return False
                 elif hook_filter == 'both' and hook_type not in ['positive', 'negative']:
+                    logger.debug(f"❌ {symbol} filtered out: Hook type {hook_type} not in [positive, negative]")
                     return False
             
+            logger.debug(f"✅ {symbol} passed all filters")
             return True
             
         except Exception as e:
