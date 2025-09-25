@@ -378,6 +378,11 @@ const BatchScreener = () => {
               <div className="flex items-center mb-2">
                 <Activity className="h-4 w-4 mr-1 text-purple-600" />
                 <label className="font-medium text-gray-700">DMI Range</label>
+                <Tooltip 
+                  id="batch-dmi-tooltip"
+                  title="Directional Movement Index (DMI)"
+                  content="DMI measures trend strength using 14-period calculations. Values above 25 indicate strong trends, while values below 20 suggest sideways movement. ADX shows overall trend strength."
+                />
               </div>
               <div className="space-y-2">
                 <input
