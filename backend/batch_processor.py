@@ -1,0 +1,375 @@
+"""
+In-Process Batch Queue System for Stock Processing
+Handles batch scanning jobs with progress tracking and rate limiting
+"""
+
+import asyncio
+import uuid
+from datetime import datetime, timedelta
+from typing import Dict, List, Any, Optional, Callable
+from enum import Enum
+from dataclasses import dataclass, asdict
+import logging
+import time
+import json
+
+logger = logging.getLogger(__name__)
+
+class BatchStatus(Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+@dataclass
+class BatchJob:
+    id: str
+    symbols: List[str]
+    filters: Dict[str, Any]
+    status: BatchStatus
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    progress: Dict[str, Any] = None
+    results: List[Dict[str, Any]] = None
+    error: Optional[str] = None
+    
+    def __post_init__(self):
+        if self.progress is None:
+            self.progress = {
+                'processed': 0,
+                'total': len(self.symbols),
+                'percentage': 0.0,
+                'current_symbol': None,
+                'estimated_completion': None,
+                'api_calls_made': 0,
+                'errors': []
+            }
+        if self.results is None:
+            self.results = []
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'symbols_count': len(self.symbols),
+            'filters': self.filters,
+            'status': self.status.value,
+            'created_at': self.created_at.isoformat(),
+            'started_at': self.started_at.isoformat() if self.started_at else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'progress': self.progress,
+            'results_count': len(self.results) if self.results else 0,
+            'error': self.error
+        }
+
+class RateLimiter:
+    """Rate limiter for API calls - 75 calls per minute"""
+    
+    def __init__(self, calls_per_minute: int = 75):
+        self.calls_per_minute = calls_per_minute
+        self.calls_per_second = calls_per_minute / 60.0
+        self.call_times: List[float] = []
+        self.lock = asyncio.Lock()
+    
+    async def acquire(self):
+        """Acquire permission to make an API call"""
+        async with self.lock:
+            now = time.time()
+            
+            # Remove calls older than 1 minute
+            cutoff_time = now - 60
+            self.call_times = [t for t in self.call_times if t > cutoff_time]
+            
+            # Check if we can make another call
+            if len(self.call_times) >= self.calls_per_minute:
+                # Calculate how long to wait
+                oldest_call = min(self.call_times)
+                wait_time = 60 - (now - oldest_call) + 0.1  # Add small buffer
+                logger.debug(f"Rate limit hit, waiting {wait_time:.2f} seconds")
+                await asyncio.sleep(wait_time)
+                return await self.acquire()  # Recursive call after waiting
+            
+            # Record this call
+            self.call_times.append(now)
+            
+            # Add small delay to spread calls evenly
+            if len(self.call_times) > 1:
+                await asyncio.sleep(1.0 / self.calls_per_second)
+
+class BatchProcessor:
+    """In-process batch processing system for stock scanning"""
+    
+    def __init__(self):
+        self.jobs: Dict[str, BatchJob] = {}
+        self.active_jobs: Dict[str, asyncio.Task] = {}
+        self.rate_limiter = RateLimiter(calls_per_minute=75)
+        self.max_concurrent_jobs = 1  # Process one batch at a time for now
+        
+        # Statistics
+        self.stats = {
+            'total_jobs': 0,
+            'completed_jobs': 0,
+            'failed_jobs': 0,
+            'total_stocks_processed': 0,
+            'total_api_calls': 0,
+            'average_processing_time': 0.0
+        }
+    
+    def create_batch_job(self, symbols: List[str], filters: Dict[str, Any]) -> str:
+        """Create a new batch processing job"""
+        job_id = str(uuid.uuid4())
+        
+        job = BatchJob(
+            id=job_id,
+            symbols=symbols,
+            filters=filters,
+            status=BatchStatus.PENDING,
+            created_at=datetime.utcnow()
+        )
+        
+        self.jobs[job_id] = job
+        self.stats['total_jobs'] += 1
+        
+        logger.info(f"Created batch job {job_id} for {len(symbols)} stocks")
+        return job_id
+    
+    async def start_batch_job(self, job_id: str, process_function: Callable) -> bool:
+        """Start processing a batch job"""
+        if job_id not in self.jobs:
+            logger.error(f"Job {job_id} not found")
+            return False
+        
+        job = self.jobs[job_id]
+        
+        if job.status != BatchStatus.PENDING:
+            logger.warning(f"Job {job_id} is not in pending status: {job.status}")
+            return False
+        
+        if len(self.active_jobs) >= self.max_concurrent_jobs:
+            logger.warning(f"Max concurrent jobs ({self.max_concurrent_jobs}) reached")
+            return False
+        
+        # Start the job
+        job.status = BatchStatus.RUNNING
+        job.started_at = datetime.utcnow()
+        
+        task = asyncio.create_task(self._process_batch_job(job, process_function))
+        self.active_jobs[job_id] = task
+        
+        logger.info(f"Started batch job {job_id}")
+        return True
+    
+    async def _process_batch_job(self, job: BatchJob, process_function: Callable):
+        """Process a batch job with progress tracking"""
+        try:
+            results = []
+            start_time = time.time()
+            
+            total_symbols = len(job.symbols)
+            processed_count = 0
+            api_call_count = 0
+            errors = []
+            
+            logger.info(f"Processing batch job {job.id} with {total_symbols} symbols")
+            
+            for i, symbol in enumerate(job.symbols):
+                try:
+                    # Update progress
+                    job.progress['current_symbol'] = symbol
+                    job.progress['processed'] = processed_count
+                    job.progress['percentage'] = (processed_count / total_symbols) * 100
+                    
+                    # Estimate completion time
+                    if processed_count > 0:
+                        elapsed_time = time.time() - start_time
+                        avg_time_per_stock = elapsed_time / processed_count
+                        remaining_stocks = total_symbols - processed_count
+                        estimated_seconds = remaining_stocks * avg_time_per_stock
+                        job.progress['estimated_completion'] = (
+                            datetime.utcnow() + timedelta(seconds=estimated_seconds)
+                        ).isoformat()
+                    
+                    # Rate limiting
+                    await self.rate_limiter.acquire()
+                    
+                    # Process the stock
+                    stock_data = await process_function(symbol, job.filters)
+                    api_call_count += 1
+                    
+                    if stock_data:
+                        # Apply filters to determine if stock should be included
+                        if self._passes_filters(stock_data, job.filters):
+                            results.append(stock_data)
+                    
+                    processed_count += 1
+                    job.progress['api_calls_made'] = api_call_count
+                    
+                    # Log progress every 50 stocks
+                    if processed_count % 50 == 0:
+                        logger.info(f"Batch {job.id}: Processed {processed_count}/{total_symbols} stocks")
+                
+                except Exception as e:
+                    error_msg = f"Error processing {symbol}: {str(e)}"
+                    logger.warning(error_msg)
+                    errors.append(error_msg)
+                    job.progress['errors'] = errors[-10:]  # Keep last 10 errors
+                    processed_count += 1
+                    continue
+            
+            # Job completed successfully
+            job.results = results
+            job.status = BatchStatus.COMPLETED
+            job.completed_at = datetime.utcnow()
+            job.progress['processed'] = processed_count
+            job.progress['percentage'] = 100.0
+            job.progress['current_symbol'] = None
+            
+            # Update statistics
+            processing_time = time.time() - start_time
+            self.stats['completed_jobs'] += 1
+            self.stats['total_stocks_processed'] += processed_count
+            self.stats['total_api_calls'] += api_call_count
+            self.stats['average_processing_time'] = (
+                (self.stats['average_processing_time'] * (self.stats['completed_jobs'] - 1) + processing_time) 
+                / self.stats['completed_jobs']
+            )
+            
+            logger.info(
+                f"Batch job {job.id} completed: {len(results)} results from {processed_count} stocks "
+                f"in {processing_time:.1f}s ({api_call_count} API calls)"
+            )
+        
+        except Exception as e:
+            # Job failed
+            job.status = BatchStatus.FAILED
+            job.error = str(e)
+            job.completed_at = datetime.utcnow()
+            self.stats['failed_jobs'] += 1
+            logger.error(f"Batch job {job.id} failed: {e}")
+        
+        finally:
+            # Clean up
+            if job.id in self.active_jobs:
+                del self.active_jobs[job.id]
+    
+    def _passes_filters(self, stock_data: Dict[str, Any], filters: Dict[str, Any]) -> bool:
+        """Check if stock data passes the specified filters"""
+        try:
+            # Price filter
+            if 'price_filter' in filters and filters['price_filter']:
+                price_filter = filters['price_filter']
+                price = stock_data.get('price', 0)
+                
+                if price_filter.get('type') == 'under':
+                    max_price = price_filter.get('under', float('inf'))
+                    if price > max_price:
+                        return False
+                elif price_filter.get('type') == 'range':
+                    min_price = price_filter.get('min', 0)
+                    max_price = price_filter.get('max', float('inf'))
+                    if not (min_price <= price <= max_price):
+                        return False
+            
+            # DMI filter
+            if 'dmi_filter' in filters and filters['dmi_filter']:
+                dmi_filter = filters['dmi_filter']
+                dmi = stock_data.get('dmi', 0)
+                dmi_min = dmi_filter.get('min', 0)
+                dmi_max = dmi_filter.get('max', 100)
+                if not (dmi_min <= dmi <= dmi_max):
+                    return False
+            
+            # PPO Slope filter
+            if 'ppo_slope_filter' in filters and filters['ppo_slope_filter']:
+                slope_filter = filters['ppo_slope_filter']
+                slope = stock_data.get('ppo_slope_percentage', 0)
+                threshold = slope_filter.get('threshold', float('-inf'))
+                if slope < threshold:
+                    return False
+            
+            # PPO Hook filter
+            if 'ppo_hook_filter' in filters and filters['ppo_hook_filter'] != 'all':
+                hook_filter = filters['ppo_hook_filter']
+                hook_type = stock_data.get('ppo_hook_type')
+                
+                if hook_filter == 'positive' and hook_type != 'positive':
+                    return False
+                elif hook_filter == 'negative' and hook_type != 'negative':
+                    return False
+                elif hook_filter == 'both' and hook_type not in ['positive', 'negative']:
+                    return False
+            
+            return True
+            
+        except Exception as e:
+            logger.warning(f"Filter evaluation error: {e}")
+            return False
+    
+    def get_job_status(self, job_id: str) -> Optional[Dict[str, Any]]:
+        """Get current status of a batch job"""
+        if job_id not in self.jobs:
+            return None
+        
+        return self.jobs[job_id].to_dict()
+    
+    def get_job_results(self, job_id: str) -> Optional[List[Dict[str, Any]]]:
+        """Get results of a completed batch job"""
+        if job_id not in self.jobs:
+            return None
+        
+        job = self.jobs[job_id]
+        return job.results if job.status == BatchStatus.COMPLETED else None
+    
+    def cancel_job(self, job_id: str) -> bool:
+        """Cancel a running or pending job"""
+        if job_id not in self.jobs:
+            return False
+        
+        job = self.jobs[job_id]
+        
+        if job.status in [BatchStatus.COMPLETED, BatchStatus.FAILED, BatchStatus.CANCELLED]:
+            return False
+        
+        # Cancel running task
+        if job_id in self.active_jobs:
+            task = self.active_jobs[job_id]
+            task.cancel()
+            del self.active_jobs[job_id]
+        
+        job.status = BatchStatus.CANCELLED
+        job.completed_at = datetime.utcnow()
+        
+        logger.info(f"Cancelled batch job {job_id}")
+        return True
+    
+    def cleanup_old_jobs(self, max_age_hours: int = 24):
+        """Clean up old completed/failed jobs"""
+        cutoff_time = datetime.utcnow() - timedelta(hours=max_age_hours)
+        
+        jobs_to_remove = [
+            job_id for job_id, job in self.jobs.items()
+            if job.completed_at and job.completed_at < cutoff_time
+            and job.status in [BatchStatus.COMPLETED, BatchStatus.FAILED, BatchStatus.CANCELLED]
+        ]
+        
+        for job_id in jobs_to_remove:
+            del self.jobs[job_id]
+        
+        if jobs_to_remove:
+            logger.info(f"Cleaned up {len(jobs_to_remove)} old batch jobs")
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get batch processing statistics"""
+        active_jobs_count = len(self.active_jobs)
+        pending_jobs_count = len([j for j in self.jobs.values() if j.status == BatchStatus.PENDING])
+        
+        return {
+            **self.stats,
+            'active_jobs': active_jobs_count,
+            'pending_jobs': pending_jobs_count,
+            'total_jobs_in_memory': len(self.jobs)
+        }
+
+# Global batch processor instance
+batch_processor = BatchProcessor()
