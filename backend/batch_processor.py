@@ -257,7 +257,13 @@ class BatchProcessor:
         """Check if stock data passes the specified filters"""
         try:
             symbol = stock_data.get('symbol', 'UNKNOWN')
-            logger.debug(f"🔍 Filtering {symbol}: price={stock_data.get('price', 0)}, dmi={stock_data.get('dmi', 0)}, ppo_slope={stock_data.get('ppo_slope_percentage', 0)}, hook={stock_data.get('ppo_hook_type')}")
+            
+            # Log filters being applied for first few stocks
+            if not hasattr(self, '_filter_debug_logged'):
+                logger.info(f"🔧 FILTER DEBUG - Applied filters: {json.dumps(filters, indent=2)}")
+                self._filter_debug_logged = True
+            
+            logger.info(f"🔍 Filtering {symbol}: price={stock_data.get('price', 0)}, dmi={stock_data.get('dmi', 0)}, ppo_slope={stock_data.get('ppo_slope_percentage', 0)}, hook={stock_data.get('ppo_hook_type')}")
             
             # Price filter
             if 'price_filter' in filters and filters['price_filter']:
