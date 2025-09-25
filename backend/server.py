@@ -2261,6 +2261,29 @@ async def screen_stocks(filters: ScreenerFilters):
                         next_earnings = (today + timedelta(days=days_to_next)).isoformat()
                         days_to_earnings = days_to_next
                     
+                    
+                    # Detect PPO Hook Pattern for display
+                    ppo_hook_type = None
+                    ppo_hook_display = None
+                    if len(ppo_3_days) >= 3:
+                        today = ppo_3_days[0]      # Most recent (index 0)
+                        yesterday = ppo_3_days[1]  # Yesterday (index 1) 
+                        day_before = ppo_3_days[2] # Day before (index 2)
+                        
+                        # Detect hook patterns
+                        # Positive Hook: Today > Yesterday AND Yesterday < Day Before (upward reversal)
+                        positive_hook = today > yesterday and yesterday < day_before
+                        
+                        # Negative Hook: Today < Yesterday AND Yesterday > Day Before (downward reversal)
+                        negative_hook = today < yesterday and yesterday > day_before
+                        
+                        if positive_hook:
+                            ppo_hook_type = "positive"
+                            ppo_hook_display = "+ Hook"
+                        elif negative_hook:
+                            ppo_hook_type = "negative"  
+                            ppo_hook_display = "- Hook"
+                    
                     stock_data = {
                         "symbol": symbol,
                         "name": stock_info["name"],
