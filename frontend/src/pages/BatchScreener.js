@@ -52,6 +52,12 @@ const BatchScreener = () => {
   const [forceRefresh, setForceRefresh] = useState(false);
   const [error, setError] = useState(null);
   const [showTooltip, setShowTooltip] = useState(null);
+  
+  // Phase 2: Enhanced state for partial results and comprehensive scanning
+  const [showPartialResults, setShowPartialResults] = useState(false);
+  const [partialResults, setPartialResults] = useState([]);
+  const [lastPartialUpdate, setLastPartialUpdate] = useState(null);
+  const [scanningMode, setScanningMode] = useState('comprehensive'); // 'comprehensive' or 'fast'
 
   // Tooltip component for filter explanations
   const Tooltip = ({ id, title, content }) => (
