@@ -211,37 +211,37 @@ DOW_30 = [
     "ACN", "LLY", "NEE", "DHR", "ABT", "ORCL", "CRM", "VZ", "ADBE", "MO"
 ]
 
-# Index definitions for batch processing
+# Index definitions for batch processing - Phase 2 Complete Coverage
 STOCK_INDICES = {
     "SP500": {
         "name": "S&P 500", 
         "symbols": SP500_SYMBOLS,
-        "description": "500 largest publicly traded companies in the US"
+        "description": "500 largest publicly traded companies in the US",
+        "estimated_time_minutes": 7.0
     },
     "NASDAQ100": {
         "name": "NASDAQ-100",
         "symbols": NASDAQ_100,
-        "description": "100 largest non-financial companies listed on NASDAQ"
+        "description": "100 largest non-financial companies listed on NASDAQ",
+        "estimated_time_minutes": 1.5
     },
     "NASDAQ_COMPOSITE": {
         "name": "NASDAQ Composite",
         "symbols": NASDAQ_COMPOSITE,
-        "description": "Comprehensive list of major NASDAQ-listed companies"
-    },
-    "NYSE100": {
-        "name": "NYSE Top 100", 
-        "symbols": NYSE_TOP_100,
-        "description": "100 largest companies listed on NYSE"
+        "description": "Comprehensive coverage of major NASDAQ-listed companies",
+        "estimated_time_minutes": 42.0
     },
     "NYSE_COMPOSITE": {
         "name": "NYSE Composite",
         "symbols": NYSE_COMPOSITE,
-        "description": "Comprehensive list of major NYSE-listed companies"
+        "description": "Comprehensive coverage of major NYSE-listed companies",
+        "estimated_time_minutes": 38.0
     },
     "DOW30": {
         "name": "Dow Jones Industrial Average",
         "symbols": DOW_30,
-        "description": "30 prominent companies representing various industries"
+        "description": "30 prominent companies representing various industries",
+        "estimated_time_minutes": 0.5
     }
 }
 
