@@ -222,19 +222,19 @@ export class TechnicalAnalysisEngine {
 
     // Conditional logic as specified:
     // When PPO < 0 use (today - yesterday)/yesterday
-    // When PPO > 0 use (yesterday - today)/yesterday
+    // Calculate slope without absolute values - let the math produce natural results
     if (today < 0) {
       if (yesterday !== 0) {
-        slope = ((today - yesterday) / Math.abs(yesterday)) * 100;
+        slope = ((today - yesterday) / yesterday) * 100;
       }
     } else if (today > 0) {
       if (yesterday !== 0) {
-        slope = ((yesterday - today) / Math.abs(yesterday)) * 100;
+        slope = ((yesterday - today) / yesterday) * 100;
       }
     } else {
       // PPO is exactly 0, calculate simple slope
       if (yesterday !== 0) {
-        slope = ((today - yesterday) / Math.abs(yesterday)) * 100;
+        slope = ((today - yesterday) / yesterday) * 100;
       }
     }
 
