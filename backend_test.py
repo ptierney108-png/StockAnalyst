@@ -6514,12 +6514,12 @@ class StockAnalysisAPITester:
 
     def detect_ppo_hook_pattern(self, today: float, yesterday: float, day_before: float) -> Optional[str]:
         """Detect PPO hook pattern from 3-day values"""
-        # Positive Hook: Today > Yesterday AND Yesterday < Day Before
-        if today > yesterday and yesterday < day_before:
-            return "positive"
         # Negative Hook: Today < Yesterday AND Yesterday > Day Before
-        elif today < yesterday and yesterday > day_before:
+        if today < yesterday and yesterday > day_before:
             return "negative"
+        # Positive Hook: Today > Yesterday AND Yesterday < Day Before
+        elif today > yesterday and yesterday < day_before:
+            return "positive"
         else:
             return None
 
