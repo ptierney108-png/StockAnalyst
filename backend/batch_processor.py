@@ -213,7 +213,7 @@ class BatchProcessor:
         return True
     
     async def _process_batch_job(self, job: BatchJob, process_function: Callable):
-        """Process a batch job with progress tracking"""
+        """Process a batch job with progress tracking and real-time partial results"""
         try:
             results = []
             start_time = time.time()
@@ -223,7 +223,11 @@ class BatchProcessor:
             api_call_count = 0
             errors = []
             
-            logger.info(f"Processing batch job {job.id} with {total_symbols} symbols")
+            # Phase 2: Real-time partial results streaming
+            partial_results_batch_size = 10  # Stream results every 10 processed stocks
+            last_partial_update = 0
+            
+            logger.info(f"Processing batch job {job.id} with {total_symbols} stocks (Phase 2: Partial Results Enabled)")
             
             for i, symbol in enumerate(job.symbols):
                 try:
@@ -232,12 +236,18 @@ class BatchProcessor:
                     job.progress['processed'] = processed_count
                     job.progress['percentage'] = (processed_count / total_symbols) * 100
                     
-                    # Estimate completion time
+                    # Estimate completion time with improved accuracy for long batches
                     if processed_count > 0:
                         elapsed_time = time.time() - start_time
                         avg_time_per_stock = elapsed_time / processed_count
                         remaining_stocks = total_symbols - processed_count
-                        estimated_seconds = remaining_stocks * avg_time_per_stock
+                        
+                        # Phase 2: Better ETA calculation for long batches
+                        if processed_count < 50:  # Early stage - conservative estimate
+                            estimated_seconds = remaining_stocks * (avg_time_per_stock * 1.2)
+                        else:  # Later stage - more accurate estimate
+                            estimated_seconds = remaining_stocks * avg_time_per_stock
+                        
                         job.progress['estimated_completion'] = (
                             datetime.utcnow() + timedelta(seconds=estimated_seconds)
                         ).isoformat()
@@ -253,19 +263,30 @@ class BatchProcessor:
                         # Apply filters to determine if stock should be included
                         if self._passes_filters(stock_data, job.filters):
                             results.append(stock_data)
+                            
+                            # Phase 2: Real-time partial results - update job with current results
+                            job.results = results.copy()  # Update partial results in real-time
                     
                     processed_count += 1
                     job.progress['api_calls_made'] = api_call_count
                     
-                    # Log progress every 50 stocks
-                    if processed_count % 50 == 0:
-                        logger.info(f"Batch {job.id}: Processed {processed_count}/{total_symbols} stocks")
+                    # Phase 2: Stream partial results every N stocks for better user feedback
+                    if (processed_count - last_partial_update) >= partial_results_batch_size:
+                        job.progress['partial_results_count'] = len(results)
+                        job.progress['last_partial_update'] = datetime.utcnow().isoformat()
+                        last_partial_update = processed_count
+                        logger.info(f"Batch {job.id}: Partial results update - {len(results)} matches from {processed_count}/{total_symbols} processed")
+                    
+                    # Log progress every 50 stocks (but less frequently for very large batches)
+                    progress_log_interval = min(50, max(10, total_symbols // 20))
+                    if processed_count % progress_log_interval == 0:
+                        logger.info(f"Batch {job.id}: Processed {processed_count}/{total_symbols} stocks ({len(results)} matches)")
                 
                 except Exception as e:
                     error_msg = f"Error processing {symbol}: {str(e)}"
                     logger.warning(error_msg)
                     errors.append(error_msg)
-                    job.progress['errors'] = errors[-10:]  # Keep last 10 errors
+                    job.progress['errors'] = errors[-20:]  # Keep last 20 errors for large batches
                     processed_count += 1
                     continue
             
@@ -276,6 +297,7 @@ class BatchProcessor:
             job.progress['processed'] = processed_count
             job.progress['percentage'] = 100.0
             job.progress['current_symbol'] = None
+            job.progress['partial_results_count'] = len(results)
             
             # Update statistics
             processing_time = time.time() - start_time
@@ -287,9 +309,11 @@ class BatchProcessor:
                 / self.stats['completed_jobs']
             )
             
+            # Phase 2: Enhanced completion logging for large batches
+            processing_minutes = processing_time / 60
             logger.info(
-                f"Batch job {job.id} completed: {len(results)} results from {processed_count} stocks "
-                f"in {processing_time:.1f}s ({api_call_count} API calls)"
+                f"Phase 2 Batch job {job.id} completed: {len(results)} matches from {processed_count} stocks "
+                f"in {processing_minutes:.1f} minutes ({api_call_count} API calls, {len(errors)} errors)"
             )
         
         except Exception as e:
