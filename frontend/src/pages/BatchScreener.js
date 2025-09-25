@@ -402,6 +402,11 @@ const BatchScreener = () => {
               <div className="flex items-center mb-2">
                 <TrendingUp className="h-4 w-4 mr-1 text-blue-600" />
                 <label className="font-medium text-gray-700">PPO Slope %</label>
+                <Tooltip 
+                  id="batch-ppo-tooltip"
+                  title="PPO Slope Calculation"
+                  content="Calculates the 3-day slope of the PPO oscillator using conditional logic. When PPO < 0: (today - yesterday)/yesterday. When PPO > 0: (yesterday - today)/yesterday. Higher values indicate stronger momentum changes."
+                />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Minimum Slope %</label>
