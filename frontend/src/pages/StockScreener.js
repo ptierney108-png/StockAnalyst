@@ -229,7 +229,7 @@ const StockScreener = () => {
           max: dmiMax
         },
         ppo_slope_filter: {
-          threshold: Math.abs(ppoSlopeThreshold)
+          threshold: ppoSlopeThreshold
         },
         ppo_hook_filter: ppoHookFilter,
         sector_filter: sectorFilter,
