@@ -1101,8 +1101,8 @@ const StockAnalysis = () => {
                 <div className="text-sm text-gray-600 bg-white p-3 rounded-lg border border-gray-200">
                   <span className="font-semibold">Calculation Formula:</span> 
                   {analysisData.indicators?.ppo > 0 ? 
-                    ' When PPO > 0: (Yesterday - Today) / |Yesterday| × 100' :
-                    ' When PPO < 0: (Today - Yesterday) / |Yesterday| × 100'
+                    ' When PPO > 0: (Yesterday - Today) / Yesterday × 100' :
+                    ' When PPO < 0: (Today - Yesterday) / Yesterday × 100'
                   }
                 </div>
               </div>
