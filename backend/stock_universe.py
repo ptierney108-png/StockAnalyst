@@ -220,13 +220,23 @@ STOCK_INDICES = {
     },
     "NASDAQ100": {
         "name": "NASDAQ-100",
-        "symbols": NASDAQ_TOP_100,
+        "symbols": NASDAQ_100,
         "description": "100 largest non-financial companies listed on NASDAQ"
+    },
+    "NASDAQ_COMPOSITE": {
+        "name": "NASDAQ Composite",
+        "symbols": NASDAQ_COMPOSITE,
+        "description": "Comprehensive list of major NASDAQ-listed companies"
     },
     "NYSE100": {
         "name": "NYSE Top 100", 
         "symbols": NYSE_TOP_100,
         "description": "100 largest companies listed on NYSE"
+    },
+    "NYSE_COMPOSITE": {
+        "name": "NYSE Composite",
+        "symbols": NYSE_COMPOSITE,
+        "description": "Comprehensive list of major NYSE-listed companies"
     },
     "DOW30": {
         "name": "Dow Jones Industrial Average",
