@@ -173,11 +173,11 @@ def calculate_ppo_slope(ppo_today: float, ppo_yesterday: float, ppo_day_before: 
     if ppo_yesterday == 0:
         return {"slope": 0, "slope_percentage": 0}
     
-    # Apply the conditional logic from requirements
+    # Calculate slope without absolute values - let the math produce natural results
     if ppo_today < 0:
-        slope = (ppo_today - ppo_yesterday) / abs(ppo_yesterday)
+        slope = (ppo_today - ppo_yesterday) / ppo_yesterday if ppo_yesterday != 0 else 0
     else:  # ppo_today > 0
-        slope = (ppo_yesterday - ppo_today) / abs(ppo_yesterday)
+        slope = (ppo_yesterday - ppo_today) / ppo_yesterday if ppo_yesterday != 0 else 0
     
     slope_percentage = slope * 100
     
