@@ -5680,6 +5680,10 @@ class StockAnalysisAPITester:
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
         
+        # CRITICAL PRIORITY: Test User's Permissive Filtering Issue (Current Review Request Focus)
+        print(f"\n🚨 CRITICAL PRIORITY: USER'S PERMISSIVE FILTERING DEBUG TEST")
+        self.test_critical_permissive_filtering_debug()
+        
         # CRITICAL PRIORITY: Test Hook Filtering Parameter Mismatch Fix (Current Review Request Focus)
         print(f"\n🎯 CRITICAL PRIORITY: HOOK FILTERING PARAMETER MISMATCH FIX")
         self.test_hook_filtering_parameter_mismatch_fix()
