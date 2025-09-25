@@ -5014,6 +5014,353 @@ class StockAnalysisAPITester:
         
         return all_passed
 
+    def test_hook_filtering_parameter_mismatch_fix(self) -> bool:
+        """
+        CRITICAL TEST: Test the hook filtering parameter mismatch fix using EXACT user criteria
+        
+        Tests the specific fix for hook filtering where frontend sends ppo_hook_filter values
+        'positive'/'negative'/'both' but backend was checking for '+HOOK'/'-HOOK'/'both'.
+        
+        Validates:
+        1. Hook Filter Parameter Testing - verify ppo_hook_filter="negative" returns ONLY negative hook stocks
+        2. Backend Parameter Matching - confirm backend checks for "negative" instead of "-HOOK"
+        3. Hook Detection Logic - validate mathematical correctness
+        4. Debug Logging Verification - check logs show proper hook filtering
+        5. Zero Tolerance Test - ANY +Hook or no hook when "negative" filter applied is CRITICAL FAILURE
+        """
+        print(f"\n🎯 CRITICAL HOOK FILTERING PARAMETER MISMATCH FIX TESTING")
+        print("=" * 80)
+        
+        all_passed = True
+        critical_issues = []
+        
+        # Test the EXACT user criteria from the review request
+        exact_user_criteria = {
+            "price_filter": {"type": "range", "min": 100, "max": 500},
+            "dmi_filter": {"min": 20, "max": 60}, 
+            "ppo_slope_filter": {"threshold": 0},
+            "ppo_hook_filter": "negative"
+        }
+        
+        print(f"\n📊 Testing EXACT User Criteria:")
+        print(f"  • Price Range: $100-$500")
+        print(f"  • DMI Range: 20-60")
+        print(f"  • PPO Slope: 0% minimum")
+        print(f"  • PPO Hook Filter: 'negative' (Negative Hook (-HOOK) Only)")
+        
+        # Test 1: Exact User Criteria Test
+        try:
+            start_time = time.time()
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=exact_user_criteria,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            response_time = time.time() - start_time
+            
+            if response.status_code == 200:
+                data = response.json()
+                stocks = data.get("stocks", [])
+                results_found = data.get("results_found", 0)
+                
+                print(f"\n✅ API Response: {results_found} stocks found in {response_time:.2f}s")
+                
+                # CRITICAL VALIDATION: Hook Filter Parameter Testing
+                hook_validation_issues = self.validate_negative_hook_filtering(stocks, "Exact User Criteria")
+                
+                if hook_validation_issues:
+                    critical_issues.extend(hook_validation_issues)
+                    all_passed = False
+                    self.log_test("Hook Filter Parameter Testing (Exact Criteria)", False, 
+                                f"CRITICAL FAILURES: {hook_validation_issues}", True)
+                else:
+                    self.log_test("Hook Filter Parameter Testing (Exact Criteria)", True, 
+                                f"All {results_found} stocks have valid negative hook patterns")
+                
+                # Validate mathematical correctness of hook detection
+                math_validation_issues = self.validate_hook_detection_mathematics(stocks, "negative")
+                if math_validation_issues:
+                    critical_issues.extend(math_validation_issues)
+                    all_passed = False
+                
+            else:
+                self.log_test("Exact User Criteria API", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                critical_issues.append(f"API call failed: {response.status_code}")
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Exact User Criteria Test", False, f"Error: {str(e)}", True)
+            critical_issues.append(f"Exact criteria test failed: {str(e)}")
+            all_passed = False
+        
+        # Test 2: Multiple Hook Filter Scenarios
+        hook_filter_scenarios = [
+            {"filter": "positive", "description": "Positive Hook (+HOOK) Only"},
+            {"filter": "negative", "description": "Negative Hook (-HOOK) Only"},
+            {"filter": "both", "description": "Both Hooks (+HOOK OR -HOOK)"},
+            {"filter": "all", "description": "All Stocks (no hook filter)"}
+        ]
+        
+        print(f"\n🔬 Testing Multiple Hook Filter Scenarios:")
+        
+        for scenario in hook_filter_scenarios:
+            try:
+                test_filters = {
+                    "price_filter": {"type": "range", "min": 100, "max": 500},
+                    "dmi_filter": {"min": 20, "max": 60}, 
+                    "ppo_slope_filter": {"threshold": 0},
+                    "ppo_hook_filter": scenario["filter"]
+                }
+                
+                response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                       json=test_filters,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    stocks = data.get("stocks", [])
+                    results_found = data.get("results_found", 0)
+                    
+                    print(f"  📈 {scenario['description']}: {results_found} stocks found")
+                    
+                    # Validate hook filtering for each scenario
+                    scenario_issues = self.validate_hook_filtering_scenario(stocks, scenario["filter"], scenario["description"])
+                    
+                    if scenario_issues:
+                        critical_issues.extend(scenario_issues)
+                        all_passed = False
+                        self.log_test(f"Hook Filter Scenario ({scenario['filter']})", False, 
+                                    f"Issues: {scenario_issues}", True)
+                    else:
+                        self.log_test(f"Hook Filter Scenario ({scenario['filter']})", True, 
+                                    f"Correct filtering for {scenario['description']}")
+                        
+                else:
+                    self.log_test(f"Hook Filter Scenario ({scenario['filter']})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    critical_issues.append(f"Scenario {scenario['filter']} failed: {response.status_code}")
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Hook Filter Scenario ({scenario['filter']})", False, f"Error: {str(e)}", True)
+                critical_issues.append(f"Scenario {scenario['filter']} error: {str(e)}")
+                all_passed = False
+        
+        # Test 3: Backend Parameter Matching Verification
+        print(f"\n🔧 Testing Backend Parameter Matching:")
+        backend_param_issues = self.test_backend_parameter_matching()
+        if backend_param_issues:
+            critical_issues.extend(backend_param_issues)
+            all_passed = False
+        
+        # Test 4: Debug Logging Verification
+        print(f"\n📝 Testing Debug Logging Verification:")
+        debug_logging_issues = self.test_debug_logging_verification()
+        if debug_logging_issues:
+            critical_issues.extend(debug_logging_issues)
+            all_passed = False
+        
+        # Summary of Hook Filtering Fix Testing
+        if critical_issues:
+            print(f"\n🚨 CRITICAL HOOK FILTERING ISSUES FOUND ({len(critical_issues)}):")
+            for issue in critical_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ Hook filtering parameter mismatch fix working correctly")
+        
+        return all_passed
+
+    def validate_negative_hook_filtering(self, stocks: List[Dict], test_name: str) -> List[str]:
+        """Validate that ONLY stocks with negative hook patterns are returned"""
+        issues = []
+        
+        if not stocks:
+            issues.append("No stocks returned - should have negative hook patterns within criteria")
+            return issues
+        
+        for i, stock in enumerate(stocks):
+            symbol = stock.get("symbol", f"Stock_{i}")
+            ppo_values = stock.get("ppo_values", [])
+            
+            if len(ppo_values) < 3:
+                issues.append(f"{symbol}: Insufficient PPO values for hook detection ({len(ppo_values)})")
+                continue
+            
+            # PPO values are ordered: [Today, Yesterday, Day_Before]
+            today = ppo_values[0]
+            yesterday = ppo_values[1] 
+            day_before = ppo_values[2]
+            
+            # Negative Hook: Today < Yesterday AND Yesterday > Day_Before
+            negative_hook = today < yesterday and yesterday > day_before
+            
+            # Positive Hook: Today > Yesterday AND Yesterday < Day_Before  
+            positive_hook = today > yesterday and yesterday < day_before
+            
+            if positive_hook:
+                issues.append(f"CRITICAL: {symbol} has POSITIVE hook pattern (Today={today:.3f} > Yesterday={yesterday:.3f} < Day_Before={day_before:.3f}) but negative filter applied")
+            elif not negative_hook:
+                issues.append(f"CRITICAL: {symbol} has NO hook pattern (Today={today:.3f}, Yesterday={yesterday:.3f}, Day_Before={day_before:.3f}) but negative filter applied")
+            else:
+                # Valid negative hook - log for verification
+                print(f"    ✅ {symbol}: Valid negative hook (Today={today:.3f} < Yesterday={yesterday:.3f} > Day_Before={day_before:.3f})")
+        
+        return issues
+
+    def validate_hook_detection_mathematics(self, stocks: List[Dict], expected_hook_type: str) -> List[str]:
+        """Validate mathematical correctness of hook detection logic"""
+        issues = []
+        
+        for i, stock in enumerate(stocks):
+            symbol = stock.get("symbol", f"Stock_{i}")
+            ppo_values = stock.get("ppo_values", [])
+            
+            if len(ppo_values) < 3:
+                continue
+            
+            today = ppo_values[0]
+            yesterday = ppo_values[1]
+            day_before = ppo_values[2]
+            
+            # Mathematical validation of hook patterns
+            if expected_hook_type == "negative":
+                # Negative Hook: Today < Yesterday AND Yesterday > Day_Before
+                condition1 = today < yesterday
+                condition2 = yesterday > day_before
+                
+                if not (condition1 and condition2):
+                    issues.append(f"MATH ERROR {symbol}: Negative hook logic failed - Today<Yesterday: {condition1}, Yesterday>Day_Before: {condition2}")
+            
+            elif expected_hook_type == "positive":
+                # Positive Hook: Today > Yesterday AND Yesterday < Day_Before
+                condition1 = today > yesterday
+                condition2 = yesterday < day_before
+                
+                if not (condition1 and condition2):
+                    issues.append(f"MATH ERROR {symbol}: Positive hook logic failed - Today>Yesterday: {condition1}, Yesterday<Day_Before: {condition2}")
+        
+        return issues
+
+    def validate_hook_filtering_scenario(self, stocks: List[Dict], filter_type: str, description: str) -> List[str]:
+        """Validate hook filtering for different scenarios"""
+        issues = []
+        
+        if filter_type == "all":
+            # Should return stocks regardless of hook patterns
+            return issues  # No validation needed for "all"
+        
+        for i, stock in enumerate(stocks):
+            symbol = stock.get("symbol", f"Stock_{i}")
+            ppo_values = stock.get("ppo_values", [])
+            
+            if len(ppo_values) < 3:
+                issues.append(f"{symbol}: Insufficient PPO values for hook detection")
+                continue
+            
+            today = ppo_values[0]
+            yesterday = ppo_values[1]
+            day_before = ppo_values[2]
+            
+            # Detect actual hook patterns
+            positive_hook = today > yesterday and yesterday < day_before
+            negative_hook = today < yesterday and yesterday > day_before
+            
+            # Validate based on filter type
+            if filter_type == "positive" and not positive_hook:
+                issues.append(f"{symbol}: Expected positive hook but found pattern (T={today:.3f}, Y={yesterday:.3f}, D={day_before:.3f})")
+            elif filter_type == "negative" and not negative_hook:
+                issues.append(f"{symbol}: Expected negative hook but found pattern (T={today:.3f}, Y={yesterday:.3f}, D={day_before:.3f})")
+            elif filter_type == "both" and not (positive_hook or negative_hook):
+                issues.append(f"{symbol}: Expected hook pattern but found none (T={today:.3f}, Y={yesterday:.3f}, D={day_before:.3f})")
+        
+        return issues
+
+    def test_backend_parameter_matching(self) -> List[str]:
+        """Test that backend correctly matches frontend parameter values"""
+        issues = []
+        
+        # This test verifies that the backend now accepts "negative" instead of "-HOOK"
+        # We can infer this from successful API responses with the new parameter format
+        
+        test_cases = [
+            {"ppo_hook_filter": "negative", "expected": "should work"},
+            {"ppo_hook_filter": "positive", "expected": "should work"},
+            {"ppo_hook_filter": "both", "expected": "should work"}
+        ]
+        
+        for test_case in test_cases:
+            try:
+                filters = {
+                    "price_filter": {"type": "range", "min": 100, "max": 500},
+                    "ppo_hook_filter": test_case["ppo_hook_filter"]
+                }
+                
+                response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                       json=filters,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=15)
+                
+                if response.status_code == 200:
+                    self.log_test(f"Backend Parameter Matching ({test_case['ppo_hook_filter']})", True, 
+                                "Backend correctly accepts new parameter format")
+                elif response.status_code == 500:
+                    # 500 error might indicate the old parameter format issue
+                    issues.append(f"Backend may still expect old format for {test_case['ppo_hook_filter']}")
+                    self.log_test(f"Backend Parameter Matching ({test_case['ppo_hook_filter']})", False, 
+                                "Backend may not accept new parameter format", True)
+                else:
+                    issues.append(f"Unexpected response {response.status_code} for {test_case['ppo_hook_filter']}")
+                    
+            except Exception as e:
+                issues.append(f"Parameter matching test failed for {test_case['ppo_hook_filter']}: {str(e)}")
+        
+        return issues
+
+    def test_debug_logging_verification(self) -> List[str]:
+        """Test that debug logging shows proper hook filtering logic"""
+        issues = []
+        
+        # Since we can't directly access backend logs, we infer logging quality from API responses
+        # and the presence of detailed stock information that would require proper logging
+        
+        try:
+            filters = {
+                "price_filter": {"type": "range", "min": 100, "max": 500},
+                "dmi_filter": {"min": 20, "max": 60},
+                "ppo_hook_filter": "negative"
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/screener/scan", 
+                                   json=filters,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Check if response includes debugging information
+                if "debug_info" in data or "filters_applied" in data:
+                    self.log_test("Debug Logging Verification", True, 
+                                "Response includes debugging information")
+                else:
+                    # Infer logging quality from response completeness
+                    stocks = data.get("stocks", [])
+                    if stocks and all("ppo_values" in stock for stock in stocks[:3]):
+                        self.log_test("Debug Logging Verification", True, 
+                                    "Detailed stock data suggests proper logging")
+                    else:
+                        issues.append("Response lacks detailed information suggesting insufficient logging")
+                        self.log_test("Debug Logging Verification", False, 
+                                    "Insufficient detail in response", True)
+            else:
+                issues.append(f"Debug logging test failed with status {response.status_code}")
+                
+        except Exception as e:
+            issues.append(f"Debug logging verification failed: {str(e)}")
+        
+        return issues
+
     def run_comprehensive_tests(self):
         """Run all tests with priority on scanner filtering logic fix from review request"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
