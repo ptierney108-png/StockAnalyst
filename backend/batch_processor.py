@@ -74,28 +74,33 @@ class RateLimiter:
     
     async def acquire(self):
         """Acquire permission to make an API call"""
-        async with self.lock:
-            now = time.time()
+        while True:
+            async with self.lock:
+                now = time.time()
+                
+                # Remove calls older than 1 minute
+                cutoff_time = now - 60
+                self.call_times = [t for t in self.call_times if t > cutoff_time]
+                
+                # Check if we can make another call
+                if len(self.call_times) >= self.calls_per_minute:
+                    # Calculate how long to wait
+                    oldest_call = min(self.call_times)
+                    wait_time = 60 - (now - oldest_call) + 0.1  # Add small buffer
+                    logger.info(f"Rate limit hit, waiting {wait_time:.2f} seconds")
+                    # Release lock before sleeping to avoid deadlock
+                else:
+                    # Record this call and exit the loop
+                    self.call_times.append(now)
+                    
+                    # Add small delay to spread calls evenly
+                    if len(self.call_times) > 1:
+                        await asyncio.sleep(1.0 / self.calls_per_second)
+                    
+                    return  # Exit successfully
             
-            # Remove calls older than 1 minute
-            cutoff_time = now - 60
-            self.call_times = [t for t in self.call_times if t > cutoff_time]
-            
-            # Check if we can make another call
-            if len(self.call_times) >= self.calls_per_minute:
-                # Calculate how long to wait
-                oldest_call = min(self.call_times)
-                wait_time = 60 - (now - oldest_call) + 0.1  # Add small buffer
-                logger.debug(f"Rate limit hit, waiting {wait_time:.2f} seconds")
-                await asyncio.sleep(wait_time)
-                return await self.acquire()  # Recursive call after waiting
-            
-            # Record this call
-            self.call_times.append(now)
-            
-            # Add small delay to spread calls evenly
-            if len(self.call_times) > 1:
-                await asyncio.sleep(1.0 / self.calls_per_second)
+            # Sleep outside the lock to avoid deadlock
+            await asyncio.sleep(wait_time)
 
 class BatchProcessor:
     """In-process batch processing system for stock scanning"""
