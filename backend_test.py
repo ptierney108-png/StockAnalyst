@@ -6608,7 +6608,7 @@ class StockAnalysisAPITester:
         return all_passed
 
     def run_comprehensive_tests(self):
-        """Run all tests with priority on scanner filtering logic fix from review request"""
+        """Run all tests with priority on UI-Backend matching validation from review request"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
         print("=" * 60)
         
@@ -6616,6 +6616,10 @@ class StockAnalysisAPITester:
         if not self.test_basic_connectivity():
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
+        
+        # CRITICAL PRIORITY: UI-Backend Filter Matching Validation (Current Review Request Focus)
+        print(f"\n🎯 CRITICAL PRIORITY: UI-BACKEND FILTER MATCHING VALIDATION")
+        self.test_ui_backend_filter_matching()
         
         # CRITICAL TEST: PPO Slope Absolute Value Removal (Primary focus of this review)
         print(f"\n🎯 CRITICAL TEST: PPO SLOPE ABSOLUTE VALUE REMOVAL")
