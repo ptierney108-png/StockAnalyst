@@ -20,9 +20,11 @@ logger = logging.getLogger(__name__)
 try:
     import aioredis
     REDIS_AVAILABLE = True
-except ImportError:
+except (ImportError, TypeError) as e:
     REDIS_AVAILABLE = False
-    logger.warning("aioredis not available, using in-memory cache only")
+    aioredis = None
+    logger = logging.getLogger(__name__)
+    logger.warning(f"aioredis not available ({e}), using in-memory cache only")
 
 @dataclass
 class CacheEntry:
