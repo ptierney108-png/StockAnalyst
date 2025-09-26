@@ -226,6 +226,7 @@ class BatchProcessor:
             id=job_id,
             symbols=interleaved_symbols,
             filters=filters,
+            indices=indices or [],  # Add indices to constructor
             status=BatchStatus.PENDING,
             created_at=datetime.utcnow()
         )
