@@ -2618,6 +2618,17 @@ async def get_screener_presets():
 
 # ===== BATCH PROCESSING ENDPOINTS =====
 
+def map_index_name_for_finnhub(index_key: str) -> str:
+    """Map internal index names to Finnhub function parameters"""
+    mapping = {
+        "SP500": "sp500",
+        "NASDAQ100": "nasdaq",  # Use nasdaq for NASDAQ100 (it's a subset)
+        "NASDAQ_COMPREHENSIVE": "nasdaq", 
+        "NYSE_COMPREHENSIVE": "nyse",
+        "DOW30": "sp500"  # Use sp500 for DOW30 as fallback (DOW30 is subset of SP500)
+    }
+    return mapping.get(index_key, "all")
+
 @api_router.get("/batch/indices")
 async def get_available_indices():
     """Get list of available stock indices for batch scanning with real-time counts"""
@@ -2626,8 +2637,9 @@ async def get_available_indices():
     # Add real-time stock counts using same method as batch scanning
     for index_key, index_data in indices_info.items():
         try:
-            # Use the same function that batch scanning uses to get accurate counts
-            symbols = get_stock_universe(index_key.lower())
+            # Map the index name properly for Finnhub integration
+            finnhub_index = map_index_name_for_finnhub(index_key)
+            symbols = get_stock_universe(finnhub_index)
             stock_count = len(symbols)
         except Exception as e:
             # Fallback to static count if dynamic count fails
@@ -2642,7 +2654,7 @@ async def get_available_indices():
     return {
         "success": True,
         "indices": indices_info,
-        "note": "Stock counts from real-time data. Estimated scan times based on 75 API calls per minute rate limit"
+        "note": "Stock counts from real-time Finnhub data. Estimated scan times based on 75 API calls per minute rate limit"
     }
 
 @api_router.post("/batch/scan", response_model=BatchScanResponse)
