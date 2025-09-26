@@ -27,7 +27,7 @@ from emergentintegrations.llm import chat
 
 # Import batch processing modules
 try:
-    from finnhub_stock_universe import get_stocks_by_index as get_stock_universe, get_total_stock_count as get_total_stocks_count, finnhub_universe
+    from finnhub_stock_universe import get_stocks_by_index as get_stock_universe, get_stocks_by_index, get_total_stock_count as get_total_stocks_count, finnhub_universe
     from stock_universe import get_all_indices, STOCK_INDICES  # Keep static indices for compatibility
     USING_FINNHUB = True
     print("Using Finnhub stock universe")
