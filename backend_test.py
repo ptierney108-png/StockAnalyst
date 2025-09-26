@@ -7371,6 +7371,442 @@ class StockAnalysisAPITester:
         
         return all_passed
 
+    def test_finnhub_batch_scanner_integration(self) -> bool:
+        """
+        COMPREHENSIVE FINNHUB BATCH SCANNER INTEGRATION TESTING
+        
+        Tests the upgraded Batch Scanner system with Finnhub API integration:
+        1. Finnhub Integration: Test stock universe expansion (29,363 symbols vs 9,816)
+        2. Stock Universe Endpoints: Test different indices (SP500, NASDAQ, NYSE, ALL)
+        3. Batch Scanner Core Functionality: Complete batch scanning workflow
+        4. Rate Limiting: Verify 75 calls/minute rate limiting
+        5. Error Handling: Test invalid indices, malformed requests
+        6. Performance: Check larger datasets impact on API response times
+        """
+        print(f"\n🌐 COMPREHENSIVE FINNHUB BATCH SCANNER INTEGRATION TESTING")
+        print("=" * 80)
+        
+        all_passed = True
+        finnhub_issues = []
+        
+        # 1. Test Finnhub Integration - Stock Universe Expansion
+        print(f"\n📊 Testing Finnhub Stock Universe Expansion")
+        try:
+            response = requests.get(f"{BACKEND_URL}/batch/indices", timeout=15)
+            if response.status_code == 200:
+                data = response.json()
+                indices = data.get("indices", [])
+                
+                # Validate expected indices are available
+                expected_indices = ["sp500", "nasdaq", "nyse", "all"]
+                available_indices = [idx["id"] for idx in indices]
+                
+                missing_indices = [idx for idx in expected_indices if idx not in available_indices]
+                if missing_indices:
+                    finnhub_issues.append(f"Missing expected indices: {missing_indices}")
+                    all_passed = False
+                    self.log_test("Finnhub Indices Availability", False, 
+                                f"Missing indices: {missing_indices}", True)
+                else:
+                    self.log_test("Finnhub Indices Availability", True, 
+                                f"All expected indices available: {available_indices}")
+                
+                # Check stock counts for universe expansion
+                total_stocks = 0
+                for idx in indices:
+                    stock_count = idx.get("stock_count", 0)
+                    total_stocks += stock_count
+                    print(f"  📈 {idx['id'].upper()}: {stock_count:,} stocks")
+                
+                # Validate universe expansion (should be much larger than 9,816)
+                if total_stocks > 25000:  # Conservative check for 29,363 total
+                    self.log_test("Stock Universe Expansion", True, 
+                                f"Total universe: {total_stocks:,} stocks (expanded from 9,816)")
+                else:
+                    finnhub_issues.append(f"Stock universe not expanded: {total_stocks:,} stocks")
+                    all_passed = False
+                    self.log_test("Stock Universe Expansion", False, 
+                                f"Expected >25,000 stocks, got {total_stocks:,}", True)
+                
+            else:
+                finnhub_issues.append(f"Batch indices endpoint failed: {response.status_code}")
+                all_passed = False
+                self.log_test("Batch Indices Endpoint", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                
+        except Exception as e:
+            finnhub_issues.append(f"Batch indices test failed: {str(e)}")
+            all_passed = False
+            self.log_test("Batch Indices Test", False, f"Error: {str(e)}", True)
+        
+        # 2. Test Different Index Datasets
+        print(f"\n📈 Testing Different Index Datasets")
+        index_tests = [
+            {"index": "sp500", "expected_min": 400, "expected_max": 600},
+            {"index": "nasdaq", "expected_min": 10000, "expected_max": 20000},
+            {"index": "nyse", "expected_min": 10000, "expected_max": 20000},
+            {"index": "all", "expected_min": 25000, "expected_max": 35000}
+        ]
+        
+        for test_case in index_tests:
+            index_name = test_case["index"]
+            try:
+                # Test batch scan creation for each index
+                scan_request = {
+                    "indices": [index_name],
+                    "filters": {
+                        "price_min": 10,
+                        "price_max": 1000,
+                        "market_cap": "all"
+                    }
+                }
+                
+                response = requests.post(f"{BACKEND_URL}/batch/scan", 
+                                       json=scan_request,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=20)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    batch_id = data.get("batch_id")
+                    estimated_stocks = data.get("estimated_stocks", 0)
+                    
+                    # Validate stock count is in expected range
+                    if test_case["expected_min"] <= estimated_stocks <= test_case["expected_max"]:
+                        self.log_test(f"Index Dataset ({index_name.upper()})", True, 
+                                    f"Estimated {estimated_stocks:,} stocks (within expected range)")
+                    else:
+                        finnhub_issues.append(f"{index_name} dataset size unexpected: {estimated_stocks:,}")
+                        self.log_test(f"Index Dataset ({index_name.upper()})", False, 
+                                    f"Expected {test_case['expected_min']:,}-{test_case['expected_max']:,}, got {estimated_stocks:,}")
+                        all_passed = False
+                    
+                    # Test batch status endpoint
+                    if batch_id:
+                        status_response = requests.get(f"{BACKEND_URL}/batch/status/{batch_id}", timeout=10)
+                        if status_response.status_code == 200:
+                            status_data = status_response.json()
+                            self.log_test(f"Batch Status ({index_name.upper()})", True, 
+                                        f"Status: {status_data.get('status', 'unknown')}")
+                        else:
+                            finnhub_issues.append(f"Batch status failed for {index_name}")
+                            all_passed = False
+                
+                else:
+                    finnhub_issues.append(f"Batch scan failed for {index_name}: {response.status_code}")
+                    all_passed = False
+                    self.log_test(f"Batch Scan ({index_name.upper()})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                
+            except Exception as e:
+                finnhub_issues.append(f"Index test failed for {index_name}: {str(e)}")
+                all_passed = False
+                self.log_test(f"Index Test ({index_name.upper()})", False, f"Error: {str(e)}", True)
+        
+        # 3. Test Batch Scanner Core Functionality
+        print(f"\n🔄 Testing Batch Scanner Core Functionality")
+        core_functionality_passed = self.test_batch_scanner_workflow()
+        if not core_functionality_passed:
+            all_passed = False
+            finnhub_issues.append("Batch scanner core functionality failed")
+        
+        # 4. Test Rate Limiting (75 calls/minute)
+        print(f"\n⚡ Testing Rate Limiting (75 calls/minute)")
+        rate_limiting_passed = self.test_batch_rate_limiting()
+        if not rate_limiting_passed:
+            all_passed = False
+            finnhub_issues.append("Rate limiting test failed")
+        
+        # 5. Test Error Handling
+        print(f"\n🔧 Testing Batch Scanner Error Handling")
+        error_handling_passed = self.test_batch_error_handling()
+        if not error_handling_passed:
+            all_passed = False
+            finnhub_issues.append("Error handling test failed")
+        
+        # 6. Test Performance with Larger Datasets
+        print(f"\n📊 Testing Performance with Larger Datasets")
+        performance_passed = self.test_batch_performance()
+        if not performance_passed:
+            all_passed = False
+            finnhub_issues.append("Performance test failed")
+        
+        # Summary of Finnhub Batch Scanner testing
+        if finnhub_issues:
+            print(f"\n🚨 FINNHUB BATCH SCANNER ISSUES FOUND ({len(finnhub_issues)}):")
+            for issue in finnhub_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ Finnhub Batch Scanner integration working correctly")
+        
+        return all_passed
+
+    def test_batch_scanner_workflow(self) -> bool:
+        """Test complete batch scanning workflow"""
+        all_passed = True
+        
+        try:
+            # 1. Start batch scan
+            scan_request = {
+                "indices": ["sp500"],
+                "filters": {
+                    "price_min": 50,
+                    "price_max": 500,
+                    "market_cap": "large"
+                }
+            }
+            
+            start_time = time.time()
+            response = requests.post(f"{BACKEND_URL}/batch/scan", 
+                                   json=scan_request,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=20)
+            
+            if response.status_code == 200:
+                data = response.json()
+                batch_id = data.get("batch_id")
+                estimated_time = data.get("estimated_time_minutes", 0)
+                
+                self.log_test("Batch Scan Creation", True, 
+                            f"Batch ID: {batch_id}, ETA: {estimated_time} minutes")
+                
+                # 2. Monitor progress via status endpoint
+                max_checks = 5
+                for i in range(max_checks):
+                    time.sleep(2)  # Wait 2 seconds between checks
+                    
+                    status_response = requests.get(f"{BACKEND_URL}/batch/status/{batch_id}", timeout=10)
+                    if status_response.status_code == 200:
+                        status_data = status_response.json()
+                        status = status_data.get("status", "unknown")
+                        progress = status_data.get("progress", 0)
+                        
+                        print(f"  📊 Check {i+1}: Status={status}, Progress={progress:.1f}%")
+                        
+                        if status == "completed":
+                            self.log_test("Batch Progress Monitoring", True, 
+                                        f"Batch completed after {i+1} checks")
+                            break
+                        elif status == "failed":
+                            self.log_test("Batch Progress Monitoring", False, 
+                                        "Batch failed during processing", True)
+                            all_passed = False
+                            break
+                    else:
+                        self.log_test("Batch Status Check", False, 
+                                    f"Status check failed: {status_response.status_code}", True)
+                        all_passed = False
+                        break
+                
+                # 3. Test partial results during scanning
+                partial_response = requests.get(f"{BACKEND_URL}/batch/partial-results/{batch_id}", timeout=10)
+                if partial_response.status_code == 200:
+                    partial_data = partial_response.json()
+                    partial_count = partial_data.get("partial_results_count", 0)
+                    self.log_test("Partial Results API", True, 
+                                f"Retrieved {partial_count} partial results")
+                else:
+                    self.log_test("Partial Results API", False, 
+                                f"Partial results failed: {partial_response.status_code}")
+                    all_passed = False
+                
+                # 4. Verify results retrieval when complete
+                results_response = requests.get(f"{BACKEND_URL}/batch/results/{batch_id}", timeout=15)
+                if results_response.status_code == 200:
+                    results_data = results_response.json()
+                    results_count = len(results_data.get("results", []))
+                    self.log_test("Batch Results Retrieval", True, 
+                                f"Retrieved {results_count} final results")
+                else:
+                    self.log_test("Batch Results Retrieval", False, 
+                                f"Results retrieval failed: {results_response.status_code}")
+                    all_passed = False
+                
+            else:
+                self.log_test("Batch Scan Creation", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Batch Scanner Workflow", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+
+    def test_batch_rate_limiting(self) -> bool:
+        """Test 75 calls/minute rate limiting"""
+        all_passed = True
+        
+        try:
+            # Test multiple rapid batch scan requests
+            rapid_requests = []
+            for i in range(5):  # Test 5 rapid requests
+                scan_request = {
+                    "indices": ["sp500"],
+                    "filters": {"price_min": 100, "price_max": 200}
+                }
+                
+                start_time = time.time()
+                response = requests.post(f"{BACKEND_URL}/batch/scan", 
+                                       json=scan_request,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=10)
+                end_time = time.time()
+                
+                rapid_requests.append({
+                    "request_num": i+1,
+                    "status_code": response.status_code,
+                    "response_time": end_time - start_time
+                })
+                
+                if response.status_code == 429:  # Rate limit exceeded
+                    self.log_test("Rate Limiting Detection", True, 
+                                f"Rate limit properly enforced at request {i+1}")
+                    break
+                elif response.status_code == 200:
+                    data = response.json()
+                    batch_id = data.get("batch_id")
+                    print(f"  ⚡ Request {i+1}: Success - Batch ID: {batch_id}")
+                else:
+                    print(f"  ❌ Request {i+1}: Failed - {response.status_code}")
+                
+                time.sleep(0.5)  # Small delay between requests
+            
+            # Analyze rate limiting behavior
+            successful_requests = sum(1 for req in rapid_requests if req["status_code"] == 200)
+            if successful_requests >= 3:  # Should handle at least 3 rapid requests
+                self.log_test("Rate Limiting Tolerance", True, 
+                            f"{successful_requests}/5 rapid requests successful")
+            else:
+                self.log_test("Rate Limiting Tolerance", False, 
+                            f"Only {successful_requests}/5 requests successful", True)
+                all_passed = False
+                
+        except Exception as e:
+            self.log_test("Rate Limiting Test", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+
+    def test_batch_error_handling(self) -> bool:
+        """Test error handling with invalid indices and malformed requests"""
+        all_passed = True
+        
+        # Test invalid indices
+        invalid_tests = [
+            {"indices": ["invalid_index"], "expected_error": "Invalid index"},
+            {"indices": [], "expected_error": "Empty indices"},
+            {"indices": ["sp500", "fake_index"], "expected_error": "Mixed valid/invalid"}
+        ]
+        
+        for test_case in invalid_tests:
+            try:
+                scan_request = {
+                    "indices": test_case["indices"],
+                    "filters": {"price_min": 10, "price_max": 100}
+                }
+                
+                response = requests.post(f"{BACKEND_URL}/batch/scan", 
+                                       json=scan_request,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=10)
+                
+                if response.status_code in [400, 422]:  # Expected error codes
+                    self.log_test(f"Error Handling ({test_case['expected_error']})", True, 
+                                f"Correctly returned {response.status_code}")
+                else:
+                    self.log_test(f"Error Handling ({test_case['expected_error']})", False, 
+                                f"Expected 400/422, got {response.status_code}")
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Error Handling ({test_case['expected_error']})", False, 
+                            f"Error: {str(e)}")
+                all_passed = False
+        
+        # Test malformed requests
+        malformed_tests = [
+            {"request": {}, "description": "Empty request"},
+            {"request": {"indices": "not_a_list"}, "description": "Invalid indices type"},
+            {"request": {"indices": ["sp500"], "filters": "not_a_dict"}, "description": "Invalid filters type"}
+        ]
+        
+        for test_case in malformed_tests:
+            try:
+                response = requests.post(f"{BACKEND_URL}/batch/scan", 
+                                       json=test_case["request"],
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=10)
+                
+                if response.status_code in [400, 422]:
+                    self.log_test(f"Malformed Request ({test_case['description']})", True, 
+                                f"Correctly rejected with {response.status_code}")
+                else:
+                    self.log_test(f"Malformed Request ({test_case['description']})", False, 
+                                f"Expected 400/422, got {response.status_code}")
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Malformed Request ({test_case['description']})", False, 
+                            f"Error: {str(e)}")
+                all_passed = False
+        
+        return all_passed
+
+    def test_batch_performance(self) -> bool:
+        """Test performance with larger datasets"""
+        all_passed = True
+        
+        # Test different dataset sizes
+        performance_tests = [
+            {"indices": ["sp500"], "description": "Medium dataset (~500 stocks)"},
+            {"indices": ["nasdaq"], "description": "Large dataset (~15,000 stocks)"},
+            {"indices": ["sp500", "nasdaq"], "description": "Combined dataset (~15,500 stocks)"}
+        ]
+        
+        for test_case in performance_tests:
+            try:
+                scan_request = {
+                    "indices": test_case["indices"],
+                    "filters": {
+                        "price_min": 20,
+                        "price_max": 300,
+                        "market_cap": "all"
+                    }
+                }
+                
+                start_time = time.time()
+                response = requests.post(f"{BACKEND_URL}/batch/scan", 
+                                       json=scan_request,
+                                       headers={"Content-Type": "application/json"},
+                                       timeout=30)
+                response_time = time.time() - start_time
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    estimated_stocks = data.get("estimated_stocks", 0)
+                    estimated_time = data.get("estimated_time_minutes", 0)
+                    
+                    # Performance should be reasonable even for large datasets
+                    if response_time < 5.0:  # API response should be quick
+                        self.log_test(f"Performance ({test_case['description']})", True, 
+                                    f"API response: {response_time:.2f}s, {estimated_stocks:,} stocks, ETA: {estimated_time}min")
+                    else:
+                        self.log_test(f"Performance ({test_case['description']})", False, 
+                                    f"Slow API response: {response_time:.2f}s", True)
+                        all_passed = False
+                else:
+                    self.log_test(f"Performance ({test_case['description']})", False, 
+                                f"HTTP {response.status_code}: {response.text}", True)
+                    all_passed = False
+                    
+            except Exception as e:
+                self.log_test(f"Performance ({test_case['description']})", False, 
+                            f"Error: {str(e)}", True)
+                all_passed = False
+        
+        return all_passed
+
     def run_comprehensive_tests(self):
         """Run all tests with priority on UI-Backend matching validation from review request"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
