@@ -241,6 +241,29 @@ const BatchScreener = () => {
     }, 0);
   };
 
+  const loadAiInsights = async () => {
+    if (!currentBatchId || batchResults.length === 0) {
+      setError('No batch results available for AI analysis');
+      return;
+    }
+
+    try {
+      setIsLoadingInsights(true);
+      setError(null);
+      
+      const response = await api.getBatchAiInsights(currentBatchId);
+      setAiInsights(response.insights);
+      setShowInsightsModal(true);
+      
+      console.log('✅ AI insights loaded successfully');
+    } catch (error) {
+      console.error('Failed to load AI insights:', error);
+      setError(`Failed to load AI insights: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setIsLoadingInsights(false);
+    }
+  };
+
   const exportToCSV = async () => {
     if (!currentBatchId || batchResults.length === 0) {
       setError('No batch results available for export');
