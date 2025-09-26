@@ -200,12 +200,12 @@ class BatchProcessor:
                         
                         self.jobs[job_id] = job
                         
-                        # Resume processing
-                        task = asyncio.create_task(self._process_batch_job(job_id))
-                        self.active_jobs[job_id] = task
+                        # Note: Job restoration requires manual restart via API
+                        # Cannot auto-resume due to process_function dependency from server
+                        job.status = BatchStatus.PENDING
                         restored_count += 1
                         
-                        logger.info(f"🔄 Restored batch job {job_id} - {job.progress['processed']}/{job.progress['total']} completed")
+                        logger.info(f"🔄 Restored batch job {job_id} - {job.progress['processed']}/{job.progress['total']} completed (PENDING restart)")
                 
                 except Exception as e:
                     logger.error(f"❌ Failed to restore job from {key}: {e}")
