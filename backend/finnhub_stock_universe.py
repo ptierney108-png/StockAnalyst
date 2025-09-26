@@ -153,6 +153,18 @@ def get_stocks_by_index(index: str) -> List[str]:
     exchange = index_map.get(index.lower(), "ALL")
     return finnhub_universe.get_universe_symbols(exchange)
 
+def get_index_to_finnhub_mapping(index_key):
+    """Map internal index names to Finnhub function parameters"""
+    mapping = {
+        "SP500": "sp500",
+        "NASDAQ100": "static_nasdaq100",  # Use static list for NASDAQ100 (top 100 NASDAQ companies)
+        "NASDAQ_COMPREHENSIVE": "static",  # Use static list for NASDAQ_COMPREHENSIVE (4,198 curated stocks)
+        "NYSE_COMPREHENSIVE": "nyse",
+        "DOW30": "sp500",  # Use sp500 for DOW30 as fallback (DOW30 is subset of SP500)
+        "RUSSELL2000": "static_russell2000"  # Use static Russell 2000 list
+    }
+    return mapping.get(index_key, "sp500")
+
 def get_total_stock_count() -> int:
     """Get total number of unique stocks across all exchanges"""
     return len(finnhub_universe.get_universe_symbols("ALL"))
