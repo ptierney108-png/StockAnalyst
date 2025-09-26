@@ -2791,6 +2791,145 @@ async def get_batch_results(batch_id: str):
         logger.error(f"Failed to get batch results for {batch_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get batch results: {str(e)}")
 
+@api_router.get("/batch/export/{batch_id}")
+async def export_batch_results_to_csv(batch_id: str):
+    """Export batch scan results to CSV format with comprehensive columns matching old online scanner"""
+    try:
+        # Get the batch job results
+        results = batch_processor.get_job_results(batch_id)
+        if results is None:
+            job_status = batch_processor.get_job_status(batch_id)
+            if job_status is None:
+                raise HTTPException(status_code=404, detail=f"Batch job {batch_id} not found")
+            if job_status['status'] != 'completed':
+                raise HTTPException(status_code=400, detail=f"Batch job {batch_id} is not completed. Status: {job_status['status']}")
+            raise HTTPException(status_code=404, detail=f"No results found for batch job {batch_id}")
+        
+        if not results:
+            raise HTTPException(status_code=400, detail="No results available for export")
+        
+        # Comprehensive CSV headers matching old online scanner (31 columns)
+        csv_headers = [
+            "Symbol",
+            "Company Name", 
+            "Sector",
+            "Industry",
+            "Price",
+            "Volume Today",
+            "Volume Avg 3M",
+            "Volume Year",
+            "1D Return %",
+            "5D Return %", 
+            "2W Return %",
+            "1M Return %",
+            "1Y Return %",
+            "DMI",
+            "ADX",
+            "DI+",
+            "DI-",
+            "PPO Day 1",
+            "PPO Day 2", 
+            "PPO Day 3",
+            "PPO Slope %",
+            "PPO Hook",
+            "Optionable",
+            "Call Bid",
+            "Call Ask",
+            "Put Bid", 
+            "Put Ask",
+            "Options Expiration",
+            "Last Earnings",
+            "Next Earnings",
+            "Days to Earnings"
+        ]
+        
+        # Helper function to safely format values for CSV
+        def safe_csv_value(value, is_string=False):
+            if value is None or value == "":
+                return "N/A"
+            if is_string:
+                # Escape quotes and wrap in quotes for CSV safety
+                escaped_value = str(value).replace('"', '""')
+                return f'"{escaped_value}"'
+            return str(value)
+        
+        def format_hook_pattern(hook_display):
+            """Format hook pattern for CSV export, Excel-safe"""
+            if not hook_display:
+                return "No Hook"
+            
+            # Clean the hook pattern and make it Excel-safe
+            clean_hook = str(hook_display).strip()
+            
+            # Replace problematic characters that Excel interprets as formulas
+            clean_hook = clean_hook.replace("+ Hook", "Positive Hook")
+            clean_hook = clean_hook.replace("- Hook", "Negative Hook") 
+            clean_hook = clean_hook.replace("⭐", "Positive Hook")
+            clean_hook = clean_hook.replace("⚠️", "Negative Hook")
+            
+            return clean_hook or "No Hook"
+        
+        # Generate CSV rows
+        csv_rows = [",".join(csv_headers)]  # Header row
+        
+        for stock in results:
+            row = [
+                safe_csv_value(stock.get("symbol", "N/A")),
+                safe_csv_value(stock.get("name", "Unknown"), is_string=True),
+                safe_csv_value(stock.get("sector", "N/A"), is_string=True), 
+                safe_csv_value(stock.get("industry", "N/A"), is_string=True),
+                safe_csv_value(f"{stock.get('price', 0):.2f}"),
+                safe_csv_value(stock.get("volume_today", "0")),
+                safe_csv_value(stock.get("volume_3m", "0")),
+                safe_csv_value(stock.get("volume_year", "0")),
+                safe_csv_value(f"{stock.get('returns', {}).get('1d', 0):.2f}%"),
+                safe_csv_value(f"{stock.get('returns', {}).get('5d', 0):.2f}%"),
+                safe_csv_value(f"{stock.get('returns', {}).get('2w', 0):.2f}%"),
+                safe_csv_value(f"{stock.get('returns', {}).get('1m', 0):.2f}%"),
+                safe_csv_value(f"{stock.get('returns', {}).get('1y', 0):.2f}%"),
+                safe_csv_value(f"{stock.get('dmi', 0):.2f}"),
+                safe_csv_value(f"{stock.get('adx', 0):.2f}"),
+                safe_csv_value(f"{stock.get('di_plus', 0):.2f}"),
+                safe_csv_value(f"{stock.get('di_minus', 0):.2f}"),
+                safe_csv_value(f"{stock.get('ppo_values', [0, 0, 0])[0]:.4f}"),
+                safe_csv_value(f"{stock.get('ppo_values', [0, 0, 0])[1]:.4f}"),
+                safe_csv_value(f"{stock.get('ppo_values', [0, 0, 0])[2]:.4f}"),
+                safe_csv_value(f"{stock.get('ppo_slope_percentage', 0):.2f}%"),
+                safe_csv_value(format_hook_pattern(stock.get("ppo_hook_display", "No Hook")), is_string=True),
+                safe_csv_value(stock.get("optionable", "No")),
+                safe_csv_value(f"{stock.get('call_bid', 0):.2f}" if stock.get('call_bid') else "N/A"),
+                safe_csv_value(f"{stock.get('call_ask', 0):.2f}" if stock.get('call_ask') else "N/A"), 
+                safe_csv_value(f"{stock.get('put_bid', 0):.2f}" if stock.get('put_bid') else "N/A"),
+                safe_csv_value(f"{stock.get('put_ask', 0):.2f}" if stock.get('put_ask') else "N/A"),
+                safe_csv_value(stock.get("options_expiration", "N/A"), is_string=True),
+                safe_csv_value(stock.get("last_earnings", "N/A"), is_string=True),
+                safe_csv_value(stock.get("next_earnings", "N/A"), is_string=True),
+                safe_csv_value(stock.get("days_to_earnings", "N/A"))
+            ]
+            csv_rows.append(",".join(row))
+        
+        csv_content = "\n".join(csv_rows)
+        
+        # Return CSV as downloadable file
+        from fastapi.responses import Response
+        
+        filename = f"batch-screener-results-{batch_id}-{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+        
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Length": str(len(csv_content.encode('utf-8')))
+            }
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to export batch results for {batch_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to export batch results: {str(e)}")
+
 @api_router.get("/batch/partial-results/{batch_id}")
 async def get_batch_partial_results(batch_id: str):
     """Phase 2: Get partial results of a running or completed batch job"""
