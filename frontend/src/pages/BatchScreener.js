@@ -245,6 +245,7 @@ const BatchScreener = () => {
     }
 
     try {
+      setIsExporting(true);
       setError(null);
       
       // Call backend API to get CSV file
@@ -277,6 +278,8 @@ const BatchScreener = () => {
     } catch (error) {
       console.error('Failed to export CSV:', error);
       setError(`Failed to export CSV: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setIsExporting(false);
     }
   };
 
