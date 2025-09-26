@@ -263,6 +263,18 @@ frontend:
         - working: true
           agent: "main"
           comment: "Updated BatchScreener component to use new backend CSV export API instead of client-side generation. Added exportBatchResultsToCSV function to api.js, implemented proper loading states with isExporting flag, disabled button during export, and enhanced error handling. Export button now shows 'Exporting...' with spinning icon during operation."
+
+  - task: "PPO Slope Tooltip Update"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/BatchScreener.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "Updated PPO Slope tooltip in BatchScreener to clarify that slope values are always converted to positive values using absolute value. Tooltip now explains that 'Higher values indicate stronger momentum changes regardless of direction.'"
         - working: true
           agent: "testing"
           comment: "✅ CSV EXPORT FRONTEND INTEGRATION VALIDATED: Frontend integration is properly implemented and ready for use. VALIDATION RESULTS: (1) Backend API Integration ✅: Frontend correctly calls /api/batch/export/{batch_id} endpoint instead of client-side CSV generation ✅ (2) API Service Function ✅: exportBatchResultsToCSV function properly implemented in api.js with correct endpoint URL and error handling ✅ (3) User Interface ✅: BatchScreener component includes proper loading states, disabled button during export, and 'Exporting...' indicator with spinning icon ✅ (4) Error Handling ✅: Enhanced error handling for failed exports and network issues ✅ (5) File Download ✅: Proper file download handling for CSV responses with correct Content-Disposition headers ✅ The frontend integration is production-ready and will work seamlessly once batch jobs are completed. Testing confirmed the backend API is functional and returns proper CSV format."
