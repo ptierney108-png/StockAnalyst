@@ -231,8 +231,8 @@ STOCK_INDICES = {
     "RUSSELL2000": {
         "name": "Russell 2000",
         "symbols": RUSSELL_2000,
-        "description": "Comprehensive small-cap coverage across all sectors (800+ stocks)",
-        "estimated_time_minutes": 11.0  # Updated for 800+ stocks
+        "description": "Complete Russell 2000 universe - all sectors, 2000+ small-cap stocks",
+        "estimated_time_minutes": 27.0  # Updated for 2000+ stocks with parallel processing
     }
 }
 
