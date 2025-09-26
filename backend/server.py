@@ -2871,6 +2871,62 @@ async def delete_custom_list(list_id: str):
         logger.error(f"Failed to delete custom list {list_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete custom list: {str(e)}")
 
+@api_router.get("/batch/insights/{batch_id}/pdf")
+async def export_batch_insights_pdf(batch_id: str):
+    """Export AI insights as professional PDF report with charts and analysis"""
+    try:
+        # Get batch results and job details
+        results = batch_processor.get_job_results(batch_id)
+        if results is None:
+            job_status = batch_processor.get_job_status(batch_id)
+            if job_status is None:
+                raise HTTPException(status_code=404, detail=f"Batch job {batch_id} not found")
+            if job_status['status'] != 'completed':
+                raise HTTPException(status_code=400, detail=f"Batch job {batch_id} is not completed. Status: {job_status['status']}")
+            raise HTTPException(status_code=404, detail=f"No results found for batch job {batch_id}")
+        
+        if not results:
+            raise HTTPException(status_code=400, detail="No results available for PDF report")
+        
+        # Get job details for context
+        job = batch_processor.jobs.get(batch_id)
+        scan_filters = job.filters if job else {}
+        scan_indices = job.indices if job else ["Unknown"]
+        
+        # Generate AI insights first
+        logger.info(f"Generating AI insights for PDF report - batch {batch_id}")
+        insights = await ai_insights.analyze_batch_results(results, scan_filters, scan_indices)
+        
+        # Generate PDF report
+        logger.info(f"Generating PDF report for batch {batch_id} with {len(results)} results")
+        pdf_bytes = await pdf_generator.generate_insights_pdf(
+            insights=insights,
+            batch_results=results,
+            batch_id=batch_id,
+            scan_filters=scan_filters,
+            scan_indices=scan_indices
+        )
+        
+        # Generate filename
+        timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+        indices_str = "_".join(scan_indices) if scan_indices else "stocks"
+        filename = f"StockWise_AI_Insights_{indices_str}_{timestamp}.pdf"
+        
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Length": str(len(pdf_bytes))
+            }
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to generate PDF insights for {batch_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate PDF report: {str(e)}")
+
 @api_router.get("/batch/insights/{batch_id}")
 async def get_batch_ai_insights(batch_id: str):
     """Generate AI-driven insights and pattern recognition for completed batch scan"""
