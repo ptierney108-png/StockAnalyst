@@ -57,6 +57,7 @@ const BatchScreener = () => {
   const [aiInsights, setAiInsights] = useState(null);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
   const [showInsightsModal, setShowInsightsModal] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   
   // Phase 2: Enhanced state for partial results and comprehensive scanning
   const [showPartialResults, setShowPartialResults] = useState(false);
