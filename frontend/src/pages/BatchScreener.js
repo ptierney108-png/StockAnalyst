@@ -1014,7 +1014,25 @@ const BatchScreener = () => {
                 )}
               </div>
               
-              <div className="mt-6 flex justify-end">
+              <div className="mt-6 flex justify-between">
+                <button
+                  onClick={exportAiInsightsPDF}
+                  disabled={isExportingPDF}
+                  className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg flex items-center space-x-2 transition-colors"
+                >
+                  {isExportingPDF ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span>Generating PDF...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      <span>Export PDF Report</span>
+                    </>
+                  )}
+                </button>
+                
                 <button
                   onClick={() => setShowInsightsModal(false)}
                   className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
