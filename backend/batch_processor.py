@@ -146,15 +146,15 @@ class BatchProcessor:
         try:
             job_data = {
                 'job_id': job_id,
-                'status': job.status,
+                'status': job.status.value if hasattr(job.status, 'value') else str(job.status),
                 'symbols': job.symbols,
                 'filters': job.filters,
                 'indices': job.indices,
-                'processed_count': job.processed_count,
-                'total_count': job.total_count,
-                'results': job.results,
-                'errors': job.errors,
-                'start_time': job.start_time.isoformat() if job.start_time else None,
+                'processed_count': job.progress.get('processed', 0),
+                'total_count': job.progress.get('total', len(job.symbols)),
+                'results': job.results or [],
+                'errors': job.progress.get('errors', []),
+                'start_time': job.started_at.isoformat() if job.started_at else None,
                 'last_updated': datetime.utcnow().isoformat()
             }
             
