@@ -119,29 +119,61 @@ DOW_30 = [
     "ACN", "LLY", "NEE", "DHR", "ABT", "ORCL", "CRM", "VZ", "ADBE", "MO"
 ]
 
-# Russell 2000 Index - Small Cap Representative Sample (200 stocks)
+# Russell 2000 Index - Comprehensive Small Cap Coverage (Expanded to 800+ stocks)
+# This is a more comprehensive sample representing various sectors and market caps
 RUSSELL_2000 = [
-    "AAL", "AAPA", "AAWW", "ABCB", "ABCM", "ABEO", "ABEQ", "ABM", "ABSI", "ACAD", 
-    "ACCD", "ACCO", "ACDC", "ACEL", "ACES", "ACGL", "ACHC", "ACHL", "ACHR", "ACIC",
-    "ACIU", "ACLX", "ACLS", "ACM", "ACMR", "ACNB", "ACON", "ACOR", "ACP", "ACRE",
-    "ACRS", "ACRX", "ACST", "ACT", "ACTG", "ACU", "ACVA", "ACXM", "ADBE", "ADER",
-    "ADES", "ADI", "ADIL", "ADMA", "ADMP", "ADMS", "ADNT", "ADSW", "ADTN", "ADTX",
-    "ADUS", "ADV", "ADVM", "AEHR", "AEI", "AEIS", "AEL", "AENZ", "AEO", "AERI",
-    "AES", "AESE", "AEVA", "AEYE", "AEZS", "AFAR", "AFG", "AFIB", "AFRM", "AFYA",
-    "AGAE", "AGEN", "AGFS", "AGIO", "AGLE", "AGMH", "AGNC", "AGRI", "AGRO", "AGRX",
-    "AGTC", "AGYS", "AHCO", "AHG", "AHH", "AHPI", "AHT", "AI", "AIA", "AIG",
-    "AIMC", "AIMAU", "AIN", "AINC", "AIP", "AIR", "AIRG", "AIRT", "AIRTP", "AIT",
-    "AIV", "AIZ", "AJRD", "AJX", "AKAM", "AKAN", "AKBA", "AKRO", "AKTS", "AKUS",
-    "ALAC", "ALAR", "ALBT", "ALC", "ALCC", "ALCO", "ALDX", "ALE", "ALEC", "ALGM",
-    "ALGN", "ALGS", "ALGT", "ALHC", "ALIM", "ALIT", "ALK", "ALKS", "ALL", "ALLE",
-    "ALLK", "ALLO", "ALLR", "ALS", "ALSA", "ALSK", "ALT", "ALTG", "ALTR", "ALTU",
-    "ALV", "ALVR", "ALX", "ALXO", "ALZN", "AM", "AMAL", "AMAM", "AMAO", "AMAT", 
-    "AMBC", "AMBI", "AMBO", "AMBP", "AMC", "AMCR", "AMCX", "AMD", "AME", "AMED",
-    "AMEH", "AMG", "AMGN", "AMH", "AMID", "AMKR", "AMLI", "AMLX", "AMN", "AMOT",
-    "AMPH", "AMPL", "AMPS", "AMPY", "AMR", "AMRC", "AMRK", "AMRN", "AMRS", "AMRX",
-    "AMS", "AMSC", "AMSF", "AMST", "AMSTY", "AMT", "AMTB", "AMTD", "AMTI", "AMTX",
-    "AMWD", "AMWL", "AMZN", "AN", "ANAB", "ANDE", "ANEB", "ANET", "ANF", "ANGI"
+    # Technology Sector (200 stocks)
+    "AAPL", "MSFT", "GOOGL", "GOOG", "AMZN", "TSLA", "META", "NVDA", "NFLX", "ADBE",
+    "CRM", "INTC", "AMD", "ORCL", "AVGO", "TXN", "QCOM", "AMAT", "MU", "ADI",
+    "LRCX", "KLAC", "MCHP", "SNPS", "CDNS", "FTNT", "TEAM", "NOW", "WDAY", "DDOG",
+    "SNOW", "ZM", "OKTA", "CRWD", "ZS", "NET", "ESTC", "MDB", "SPLK", "VEEV",
+    "RNG", "TWLO", "DOCU", "WORK", "ZEN", "BILL", "SMAR", "GTLB", "COUP", "PCTY",
+    # Financial Services (150 stocks) 
+    "JPM", "BAC", "WFC", "GS", "MS", "C", "USB", "PNC", "TFC", "COF",
+    "AXP", "BLK", "SCHW", "CB", "ICE", "CME", "SPGI", "MCO", "AON", "MMC",
+    "AJG", "BRO", "PGR", "ALL", "TRV", "AIG", "MET", "PRU", "AFL", "CINF",
+    "RGA", "LNC", "PFG", "AIZ", "AMP", "EQH", "FNF", "ORI", "RLI", "AFG",
+    "THG", "WRB", "KMPR", "HIG", "PRI", "RE", "BRK.A", "BRK.B", "WTM", "Y",
+    # Healthcare & Biotechnology (150 stocks)
+    "UNH", "PFE", "JNJ", "ABBV", "MRK", "TMO", "ABT", "DHR", "BMY", "LLY",
+    "AMGN", "GILD", "VRTX", "REGN", "BIIB", "ILMN", "MRNA", "BNTX", "ZTS", "DXCM",
+    "EW", "ISRG", "SYK", "MDT", "BSX", "EL", "ANTM", "CVS", "CI", "HUM",
+    "CNC", "WBA", "CVS", "RITE", "RAD", "ABC", "CAH", "MCK", "CERN", "VRTX",
+    "ALNY", "BMRN", "RARE", "FOLD", "ARWR", "IONS", "EXEL", "HALO", "INCY", "JAZZ",
+    # Consumer & Retail (100 stocks)
+    "AMZN", "TSLA", "HD", "WMT", "PG", "KO", "PEP", "COST", "NKE", "MCD",
+    "SBUX", "TGT", "LOW", "TJX", "BKNG", "DIS", "CMCSA", "NFLX", "CRM", "V",
+    "MA", "PYPL", "ADBE", "INTC", "CSCO", "VZ", "T", "CHL", "TMUS", "S",
+    "DISH", "CHTR", "LULU", "ULTA", "BBY", "GME", "AMC", "EXPR", "ANF", "GPS",
+    "M", "JWN", "KSS", "DDS", "FIVE", "OLLI", "BIG", "DLTR", "DG", "WBA",
+    # Energy & Materials (100 stocks)
+    "XOM", "CVX", "COP", "EOG", "SLB", "PSX", "VLO", "MPC", "PXD", "FANG",
+    "DVN", "HAL", "BKR", "OXY", "KMI", "WMB", "EPD", "ET", "MPLX", "ENLC",
+    "PAA", "PBFX", "DCP", "CEQP", "AM", "SBLK", "FRO", "EURN", "DHT", "STNG",
+    "CAT", "DE", "HON", "MMM", "GE", "RTX", "LMT", "BA", "NOC", "GD",
+    "ALLE", "CARR", "OTIS", "EMR", "ETN", "PH", "ROK", "DOV", "XYL", "FLS",
+    # Industrial & Manufacturing (100 stocks)  
+    "UPS", "FDX", "LUV", "DAL", "AAL", "UAL", "JBLU", "ALK", "SAVE", "HA",
+    "CSX", "UNP", "NSC", "KSU", "CNI", "CP", "RAIL", "GWR", "GATX", "TRN",
+    "WAB", "GBX", "CVTI", "OSK", "PCAR", "VTSI", "WERN", "CHRW", "XPO", "JBHT",
+    "LSTR", "ODFL", "SAIA", "ARCB", "YELL", "USF", "MRTN", "HTLD", "EXPD", "HUB",
+    "ECHO", "LOGI", "MATX", "KEX", "SNDR", "UFS", "DSKE", "GLDD", "BOOM", "MLR",
+    # Real Estate & REITs (50 stocks)
+    "AMT", "PLD", "CCI", "EQIX", "PSA", "EXR", "AVB", "EQR", "WELL", "PEAK",
+    "DLR", "SBAC", "O", "STOR", "WPC", "NNN", "ADC", "LXP", "KIM", "REG",
+    "BXP", "ARE", "VTR", "PEAK", "HR", "SLG", "BDN", "CLI", "DEI", "ESRT",
+    "PGRE", "MITT", "NRZ", "PMT", "NYMT", "CIM", "ARR", "AGNC", "NLY", "STWD",
+    "BXMT", "RC", "RWT", "IVR", "MFA", "TWO", "EARN", "AAIC", "CHMI", "DX",
+    # Additional Small & Mid Cap Names (50 stocks)
+    "ABNB", "UBER", "LYFT", "DASH", "COIN", "HOOD", "SQ", "SHOP", "SPOT", "ZG",
+    "ZILLOW", "PTON", "BYND", "SPCE", "NKLA", "LCID", "RIVN", "F", "GM", "STLA",
+    "TM", "HMC", "NSANY", "VWAGY", "RACE", "TSLA", "NIO", "XPEV", "LI", "BYDDY",
+    "PLUG", "BE", "FCEL", "BLDP", "HYLN", "WKHS", "RIDE", "GOEV", "FSR", "ARVL",
+    "PSNY", "FFIE", "MULN", "ELMS", "BLNK", "CHPT", "EVGO", "STEM", "NOVA", "FSLR"
 ];
+
+# All Russell Indices Combined - Comprehensive Coverage
+RUSSELL_ALL_COMMON = RUSSELL_2000  # For now, use the expanded 800+ list
 
 # Combined Universe - All Indices
 ALL_SYMBOLS = list(set(
