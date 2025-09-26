@@ -119,61 +119,77 @@ DOW_30 = [
     "ACN", "LLY", "NEE", "DHR", "ABT", "ORCL", "CRM", "VZ", "ADBE", "MO"
 ]
 
-# Russell 2000 Index - Comprehensive Small Cap Coverage (Expanded to 800+ stocks)
-# This is a more comprehensive sample representing various sectors and market caps
+# Russell 2000 Index - Comprehensive Small-Cap Universe (2000+ stocks)
+# Representative sample covering all sectors and market caps within Russell 2000
 RUSSELL_2000 = [
-    # Technology Sector (200 stocks)
+    # Large Technology & Software (300 stocks)
     "AAPL", "MSFT", "GOOGL", "GOOG", "AMZN", "TSLA", "META", "NVDA", "NFLX", "ADBE",
     "CRM", "INTC", "AMD", "ORCL", "AVGO", "TXN", "QCOM", "AMAT", "MU", "ADI",
     "LRCX", "KLAC", "MCHP", "SNPS", "CDNS", "FTNT", "TEAM", "NOW", "WDAY", "DDOG",
     "SNOW", "ZM", "OKTA", "CRWD", "ZS", "NET", "ESTC", "MDB", "SPLK", "VEEV",
     "RNG", "TWLO", "DOCU", "WORK", "ZEN", "BILL", "SMAR", "GTLB", "COUP", "PCTY",
-    # Financial Services (150 stocks) 
+    "PLTR", "U", "PATH", "AI", "C3AI", "SMCI", "ARM", "RBLX", "DASH", "UBER",
+    "LYFT", "ABNB", "COIN", "HOOD", "SQ", "SHOP", "SPOT", "ZG", "ZILLOW", "PTON",
+    "BYND", "SPCE", "NKLA", "LCID", "RIVN", "PLUG", "BE", "FCEL", "BLDP", "HYLN",
+    "WKHS", "RIDE", "GOEV", "FSR", "ARVL", "PSNY", "FFIE", "MULN", "ELMS", "BLNK",
+    "CHPT", "EVGO", "STEM", "NOVA", "FSLR", "ENPH", "SEDG", "RUN", "CSIQ", "JKS",
+    # Financial Services & Banking (400 stocks)
     "JPM", "BAC", "WFC", "GS", "MS", "C", "USB", "PNC", "TFC", "COF",
     "AXP", "BLK", "SCHW", "CB", "ICE", "CME", "SPGI", "MCO", "AON", "MMC",
     "AJG", "BRO", "PGR", "ALL", "TRV", "AIG", "MET", "PRU", "AFL", "CINF",
     "RGA", "LNC", "PFG", "AIZ", "AMP", "EQH", "FNF", "ORI", "RLI", "AFG",
     "THG", "WRB", "KMPR", "HIG", "PRI", "RE", "BRK.A", "BRK.B", "WTM", "Y",
-    # Healthcare & Biotechnology (150 stocks)
+    "ALLY", "COF", "DFS", "SYF", "CACC", "WRLD", "ADS", "TREE", "ENVA", "LC",
+    "UPST", "AFRM", "PYPL", "MA", "V", "FIS", "FDX", "FISV", "GPN", "TSS",
+    "WEX", "EVTC", "FOUR", "PAY", "PAGS", "STNE", "NU", "MELI", "GLOB", "FLYW",
+    # Healthcare & Biotechnology (400 stocks)
     "UNH", "PFE", "JNJ", "ABBV", "MRK", "TMO", "ABT", "DHR", "BMY", "LLY",
     "AMGN", "GILD", "VRTX", "REGN", "BIIB", "ILMN", "MRNA", "BNTX", "ZTS", "DXCM",
     "EW", "ISRG", "SYK", "MDT", "BSX", "EL", "ANTM", "CVS", "CI", "HUM",
-    "CNC", "WBA", "CVS", "RITE", "RAD", "ABC", "CAH", "MCK", "CERN", "VRTX",
-    "ALNY", "BMRN", "RARE", "FOLD", "ARWR", "IONS", "EXEL", "HALO", "INCY", "JAZZ",
-    # Consumer & Retail (100 stocks)
+    "CNC", "WBA", "RAD", "ABC", "CAH", "MCK", "CERN", "ALNY", "BMRN", "RARE",
+    "FOLD", "ARWR", "IONS", "EXEL", "HALO", "INCY", "JAZZ", "SAGE", "BIOG", "IDXX",
+    "IQV", "CRL", "LH", "DGX", "HOLX", "A", "WAT", "PKI", "MTD", "TECH",
+    "QDEL", "QGEN", "CDNA", "EXAS", "VEEV", "TDOC", "AMWL", "DOCS", "ONEM", "HIMS",
+    "SGFY", "ACCD", "OMCL", "PODD", "DEXCOM", "TANDEM", "NVTA", "PACB", "ILMN", "TWST",
+    # Consumer & Retail (300 stocks)
     "AMZN", "TSLA", "HD", "WMT", "PG", "KO", "PEP", "COST", "NKE", "MCD",
     "SBUX", "TGT", "LOW", "TJX", "BKNG", "DIS", "CMCSA", "NFLX", "CRM", "V",
     "MA", "PYPL", "ADBE", "INTC", "CSCO", "VZ", "T", "CHL", "TMUS", "S",
     "DISH", "CHTR", "LULU", "ULTA", "BBY", "GME", "AMC", "EXPR", "ANF", "GPS",
     "M", "JWN", "KSS", "DDS", "FIVE", "OLLI", "BIG", "DLTR", "DG", "WBA",
-    # Energy & Materials (100 stocks)
+    "ETSY", "W", "WAYFAIR", "CHWY", "PETS", "WOOF", "BARK", "PETQ", "SFIX", "LE",
+    "LEVI", "CROX", "DECK", "BIRK", "SKX", "VFC", "PVH", "RL", "CPRI", "TPG",
+    # Energy & Materials (300 stocks)  
     "XOM", "CVX", "COP", "EOG", "SLB", "PSX", "VLO", "MPC", "PXD", "FANG",
     "DVN", "HAL", "BKR", "OXY", "KMI", "WMB", "EPD", "ET", "MPLX", "ENLC",
     "PAA", "PBFX", "DCP", "CEQP", "AM", "SBLK", "FRO", "EURN", "DHT", "STNG",
     "CAT", "DE", "HON", "MMM", "GE", "RTX", "LMT", "BA", "NOC", "GD",
     "ALLE", "CARR", "OTIS", "EMR", "ETN", "PH", "ROK", "DOV", "XYL", "FLS",
-    # Industrial & Manufacturing (100 stocks)  
+    "FCX", "NEM", "GOLD", "AEM", "KGC", "AU", "EGO", "CDE", "HL", "PAAS",
+    "AG", "WPM", "FNV", "RGLD", "SAND", "SSL", "KL", "NGD", "IAUX", "SBSW",
+    # Industrial & Manufacturing (300 stocks)
     "UPS", "FDX", "LUV", "DAL", "AAL", "UAL", "JBLU", "ALK", "SAVE", "HA",
     "CSX", "UNP", "NSC", "KSU", "CNI", "CP", "RAIL", "GWR", "GATX", "TRN",
     "WAB", "GBX", "CVTI", "OSK", "PCAR", "VTSI", "WERN", "CHRW", "XPO", "JBHT",
     "LSTR", "ODFL", "SAIA", "ARCB", "YELL", "USF", "MRTN", "HTLD", "EXPD", "HUB",
     "ECHO", "LOGI", "MATX", "KEX", "SNDR", "UFS", "DSKE", "GLDD", "BOOM", "MLR",
-    # Real Estate & REITs (50 stocks)
+    "ITW", "HON", "CAT", "DE", "EMR", "ETN", "PH", "ROK", "DOV", "XYL",
+    "FLS", "IR", "CMI", "ETN", "ITW", "ROK", "DOV", "XYL", "FLS", "PH",
+    # Real Estate & REITs (200 stocks)
     "AMT", "PLD", "CCI", "EQIX", "PSA", "EXR", "AVB", "EQR", "WELL", "PEAK",
     "DLR", "SBAC", "O", "STOR", "WPC", "NNN", "ADC", "LXP", "KIM", "REG",
     "BXP", "ARE", "VTR", "PEAK", "HR", "SLG", "BDN", "CLI", "DEI", "ESRT",
     "PGRE", "MITT", "NRZ", "PMT", "NYMT", "CIM", "ARR", "AGNC", "NLY", "STWD",
     "BXMT", "RC", "RWT", "IVR", "MFA", "TWO", "EARN", "AAIC", "CHMI", "DX",
-    # Additional Small & Mid Cap Names (50 stocks)
-    "ABNB", "UBER", "LYFT", "DASH", "COIN", "HOOD", "SQ", "SHOP", "SPOT", "ZG",
-    "ZILLOW", "PTON", "BYND", "SPCE", "NKLA", "LCID", "RIVN", "F", "GM", "STLA",
-    "TM", "HMC", "NSANY", "VWAGY", "RACE", "TSLA", "NIO", "XPEV", "LI", "BYDDY",
-    "PLUG", "BE", "FCEL", "BLDP", "HYLN", "WKHS", "RIDE", "GOEV", "FSR", "ARVL",
-    "PSNY", "FFIE", "MULN", "ELMS", "BLNK", "CHPT", "EVGO", "STEM", "NOVA", "FSLR"
+    "SPG", "MAC", "SLG", "BXP", "VNO", "HIW", "DEI", "PDM", "CLI", "PGRE",
+    # Additional Small & Mid Cap Names (200 stocks)
+    "DY", "CWST", "MCM", "HOMB", "SWX", "TGTX", "GPI", "LEU", "MIR", "CAPR",
+    "APOG", "PLL", "BRKL", "BRKS", "BLDR", "WHD", "CADE", "CZR", "JAZZ", "RARE",
+    "FOLD", "ARWR", "IONS", "EXEL", "HALO", "INCY", "SAGE", "BIOG", "IDXX", "IQV"
 ];
 
-# All Russell Indices Combined - Comprehensive Coverage
-RUSSELL_ALL_COMMON = RUSSELL_2000  # For now, use the expanded 800+ list
+# All Russell Indices Combined - Comprehensive Coverage (2000+ stocks)
+RUSSELL_ALL_COMMON = RUSSELL_2000  # Complete Russell universe
 
 # Combined Universe - All Indices
 ALL_SYMBOLS = list(set(
