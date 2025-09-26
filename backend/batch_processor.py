@@ -29,6 +29,7 @@ class BatchJob:
     filters: Dict[str, Any]
     status: BatchStatus
     created_at: datetime
+    indices: List[str] = field(default_factory=list)  # Add indices field for persistence
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     progress: Dict[str, Any] = None
