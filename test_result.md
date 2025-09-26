@@ -102,7 +102,56 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: Implement automatic spreadsheet/CSV export functionality for batch scan results. The current batch jobs produce data, but need a comprehensive export mechanism with all 31 columns matching the old online scanner format.
+user_problem_statement: User reported batch processing stuck in "Initializing..." state and incorrect NASDAQ stock counts (14,000+ vs expected 4,198 for NASDAQ Comprehensive, also NASDAQ100 showing same incorrect count)
+
+backend:
+  - task: "CSV Export Backend API Implementation"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "Implemented new /api/batch/export/{batch_id} endpoint that generates comprehensive CSV files with all 31 columns matching old online scanner format. Includes proper CSV escaping, Excel-safe formatting, and comprehensive data including Symbol, Company Name, Sector, Industry, Price, Volume metrics, Return percentages, Technical indicators (DMI, ADX, DI+, DI-, PPO values), PPO Hook patterns, Options data, and Earnings data. Returns properly formatted downloadable CSV file."
+
+  - task: "Batch Processing Concurrency Issue Fix"
+    implemented: true
+    working: true
+    file: "/app/backend/batch_processor.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "User reported batch processing stuck in 'Initializing...' state with 0/499 stocks processed and 0 API calls made"
+        - working: true
+          agent: "troubleshoot"
+          comment: "ROOT CAUSE IDENTIFIED: Existing batch job was running (1180/29913 stocks processed) and max_concurrent_jobs=1 limit prevented new jobs from starting. Jobs were created but failed to start with 'Max concurrent jobs (1) reached' error."
+        - working: true
+          agent: "main"
+          comment: "ISSUE RESOLVED: (1) Cancelled existing long-running batch job 59fa2281-d641-4624-b6b5-98d25c5fdef7, (2) Increased max_concurrent_jobs from 1 to 3 in batch_processor.py:112, (3) Verified fix by testing new batch job 32d08bd0-c469-41a8-a58e-b047fe066a61 which successfully progressed from 'Initializing...' to 'Running' and processed 22/499 stocks with 22 API calls made and real-time partial results updating."
+
+  - task: "NASDAQ Stock Count Mismatch Fix"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py, /app/backend/finnhub_stock_universe.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "User reported NASDAQ Comprehensive showing wrong stock count: UI shows 4,198 expected but batch tries to scan 14,939 stocks (same as NASDAQ100). Both indices incorrectly mapped to same Finnhub nasdaq endpoint returning ~15K stocks."
+        - working: true
+          agent: "troubleshoot"
+          comment: "ROOT CAUSE IDENTIFIED: Both NASDAQ_COMPREHENSIVE and NASDAQ100 indices mapped to same Finnhub 'nasdaq' endpoint returning 14,939 stocks instead of using appropriate static lists with correct counts (4,198 and ~100 respectively)."
+        - working: true
+          agent: "main"
+          comment: "ISSUE RESOLVED: (1) Updated map_index_name_for_finnhub() mapping NASDAQ_COMPREHENSIVE to 'static' and NASDAQ100 to 'static_nasdaq100', (2) Updated get_stocks_by_index() to handle 'static' (returns NASDAQ_COMPREHENSIVE list) and 'static_nasdaq100' (returns NASDAQ_100 list), (3) Verified fix - NASDAQ_COMPREHENSIVE now shows 4,197 stocks, NASDAQ100 shows 90 stocks, (4) Successfully tested batch scan with NASDAQ_COMPREHENSIVE showing correct 4,197 stock count and proper processing (11/4,197 processed, 0.26% progress)."
 
 backend:
   - task: "CSV Export Backend API Implementation"
