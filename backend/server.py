@@ -2804,6 +2804,71 @@ async def get_batch_results(batch_id: str):
         logger.error(f"Failed to get batch results for {batch_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get batch results: {str(e)}")
 
+@api_router.post("/custom-lists/upload")
+async def upload_custom_stock_list(
+    file: UploadFile = File(...),
+    list_name: Optional[str] = Form(None)
+):
+    """Upload custom stock list from CSV/Excel file"""
+    try:
+        result = await custom_list_manager.process_uploaded_file(file, list_name)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to upload custom list: {e}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+@api_router.get("/custom-lists")
+async def get_custom_lists():
+    """Get all uploaded custom stock lists"""
+    try:
+        lists = custom_list_manager.get_all_custom_lists()
+        return {
+            "success": True,
+            "custom_lists": lists,
+            "total_count": len(lists)
+        }
+    except Exception as e:
+        logger.error(f"Failed to get custom lists: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get custom lists: {str(e)}")
+
+@api_router.get("/custom-lists/{list_id}")
+async def get_custom_list_details(list_id: str):
+    """Get detailed information about a specific custom list"""
+    try:
+        custom_list = custom_list_manager.get_custom_list(list_id)
+        if not custom_list:
+            raise HTTPException(status_code=404, detail=f"Custom list {list_id} not found")
+        
+        return {
+            "success": True,
+            "custom_list": custom_list
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get custom list {list_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get custom list: {str(e)}")
+
+@api_router.delete("/custom-lists/{list_id}")
+async def delete_custom_list(list_id: str):
+    """Delete a custom stock list"""
+    try:
+        success = custom_list_manager.delete_custom_list(list_id)
+        if not success:
+            raise HTTPException(status_code=404, detail=f"Custom list {list_id} not found")
+        
+        return {
+            "success": True,
+            "message": f"Custom list {list_id} deleted successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete custom list {list_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete custom list: {str(e)}")
+
 @api_router.get("/batch/insights/{batch_id}")
 async def get_batch_ai_insights(batch_id: str):
     """Generate AI-driven insights and pattern recognition for completed batch scan"""
