@@ -2620,12 +2620,20 @@ async def get_screener_presets():
 
 @api_router.get("/batch/indices")
 async def get_available_indices():
-    """Get list of available stock indices for batch scanning"""
+    """Get list of available stock indices for batch scanning with real-time counts"""
     indices_info = get_all_indices()
     
-    # Add stock counts and estimated processing times
+    # Add real-time stock counts using same method as batch scanning
     for index_key, index_data in indices_info.items():
-        stock_count = len(index_data['symbols'])
+        try:
+            # Use the same function that batch scanning uses to get accurate counts
+            symbols = get_stock_universe(index_key.lower())
+            stock_count = len(symbols)
+        except Exception as e:
+            # Fallback to static count if dynamic count fails
+            stock_count = len(index_data['symbols'])
+            logger.warning(f"Failed to get dynamic count for {index_key}, using static: {e}")
+        
         estimated_minutes = max(1, (stock_count / 75))  # 75 API calls per minute
         
         indices_info[index_key]['stock_count'] = stock_count
@@ -2634,7 +2642,7 @@ async def get_available_indices():
     return {
         "success": True,
         "indices": indices_info,
-        "note": "Estimated scan times based on 75 API calls per minute rate limit"
+        "note": "Stock counts from real-time data. Estimated scan times based on 75 API calls per minute rate limit"
     }
 
 @api_router.post("/batch/scan", response_model=BatchScanResponse)
