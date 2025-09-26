@@ -129,7 +129,7 @@ def get_stocks_by_index(index: str) -> List[str]:
     Get stocks by index name (compatible with existing interface)
     
     Args:
-        index: "sp500", "nasdaq", "nyse", "all", "static", "static_nasdaq100"
+        index: "sp500", "nasdaq", "nyse", "all", "static", "static_nasdaq100", "static_russell2000"
     
     Returns:
         List of stock symbols
@@ -142,6 +142,10 @@ def get_stocks_by_index(index: str) -> List[str]:
     if index.lower() == "static_nasdaq100":
         from stock_universe import NASDAQ_100
         return NASDAQ_100
+        
+    if index.lower() == "static_russell2000":
+        from stock_universe import RUSSELL_2000
+        return RUSSELL_2000
     
     index_map = {
         "sp500": "SP500",
