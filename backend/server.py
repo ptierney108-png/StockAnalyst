@@ -1420,8 +1420,8 @@ def create_demo_analysis_data(symbol: str) -> Dict[str, Any]:
         ppo=ppo_base,
         ppo_signal=ppo_base * 0.85,  # Signal typically lags PPO
         ppo_histogram=ppo_base * 0.15,  # Histogram is difference
-        ppo_slope=(hash(symbol) % 40) / 100 - 0.2,  # Range: -0.2 to +0.2
-        ppo_slope_percentage=((hash(symbol) % 40) / 100 - 0.2) * 100,
+        ppo_slope=abs((hash(symbol) % 40) / 100 - 0.2),  # Range: 0 to +0.2 (always positive)
+        ppo_slope_percentage=abs(((hash(symbol) % 40) / 100 - 0.2) * 100),  # Range: 0 to +20 (always positive)
         dmi_plus=15 + (hash(symbol) % 25),  # Range: 15-40
         dmi_minus=10 + (hash(symbol) % 20),  # Range: 10-30
         adx=20 + (hash(symbol) % 35),       # Range: 20-55
