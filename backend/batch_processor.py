@@ -111,6 +111,7 @@ class BatchProcessor:
         self.active_jobs: Dict[str, asyncio.Task] = {}
         self.rate_limiter = RateLimiter(calls_per_minute=75)
         self.max_concurrent_jobs = 3  # Allow up to 3 concurrent batch jobs for better user experience
+        self.max_parallel_requests = 5  # Number of parallel API calls per job (Phase 2 Performance)
         
         # Redis client for job persistence
         self.redis_client = None
