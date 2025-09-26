@@ -7381,6 +7381,10 @@ class StockAnalysisAPITester:
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
         
+        # HIGHEST PRIORITY: Finnhub Batch Scanner Integration Testing (Current Review Request Focus)
+        print(f"\n🌐 HIGHEST PRIORITY: FINNHUB BATCH SCANNER INTEGRATION TESTING")
+        self.test_finnhub_batch_scanner_integration()
+        
         # CRITICAL PRIORITY: UI-Backend Filter Matching Validation (Current Review Request Focus)
         print(f"\n🎯 CRITICAL PRIORITY: UI-BACKEND FILTER MATCHING VALIDATION")
         self.test_ui_backend_filter_matching()
