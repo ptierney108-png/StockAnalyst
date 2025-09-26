@@ -555,6 +555,54 @@ class BatchProcessor:
                     logger.debug(f"❌ {symbol} filtered out: Hook type {hook_type} not in [positive, negative]")
                     return False
             
+            # Sector filter (Phase 3 Enhancement)
+            if 'sector_filter' in filters and filters['sector_filter'] != 'all':
+                sector_filter = filters['sector_filter']
+                stock_sector = stock_data.get('sector', 'Unknown')
+                if sector_filter.lower() not in stock_sector.lower():
+                    logger.debug(f"❌ {symbol} filtered out: Sector {stock_sector} not matching {sector_filter}")
+                    return False
+            
+            # Market Cap filter (Phase 3 Enhancement)
+            if 'market_cap_filter' in filters and filters['market_cap_filter']:
+                cap_filter = filters['market_cap_filter']
+                market_cap = stock_data.get('market_cap', 0)
+                
+                if cap_filter.get('type') == 'range':
+                    min_cap = cap_filter.get('min', 0)
+                    max_cap = cap_filter.get('max', float('inf'))
+                    if not (min_cap <= market_cap <= max_cap):
+                        logger.debug(f"❌ {symbol} filtered out: Market cap {market_cap} not in range [{min_cap}, {max_cap}]")
+                        return False
+                elif cap_filter.get('type') == 'category':
+                    category = cap_filter.get('category', 'all')
+                    # Define market cap categories (in billions)
+                    if category == 'large' and market_cap < 10_000_000_000:  # >$10B
+                        return False
+                    elif category == 'mid' and not (2_000_000_000 <= market_cap < 10_000_000_000):  # $2B-$10B
+                        return False
+                    elif category == 'small' and market_cap >= 2_000_000_000:  # <$2B
+                        return False
+            
+            # Volume filter (Phase 3 Enhancement)
+            if 'volume_filter' in filters and filters['volume_filter']:
+                vol_filter = filters['volume_filter']
+                volume_today = stock_data.get('volume_today', 0)
+                volume_3m = stock_data.get('volume_3m', 0)
+                
+                if vol_filter.get('type') == 'min_volume':
+                    min_volume = vol_filter.get('min', 0)
+                    if volume_today < min_volume:
+                        logger.debug(f"❌ {symbol} filtered out: Volume {volume_today} < {min_volume}")
+                        return False
+                elif vol_filter.get('type') == 'volume_ratio':
+                    min_ratio = vol_filter.get('min_ratio', 1.0)
+                    if volume_3m > 0:
+                        ratio = volume_today / volume_3m
+                        if ratio < min_ratio:
+                            logger.debug(f"❌ {symbol} filtered out: Volume ratio {ratio:.2f} < {min_ratio}")
+                            return False
+            
             logger.debug(f"✅ {symbol} passed all filters")
             return True
             
