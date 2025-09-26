@@ -2684,7 +2684,7 @@ async def start_batch_scan(request: BatchScanRequest, background_tasks: Backgrou
         all_symbols = set()
         for index in request.indices:
             finnhub_index = map_index_name_for_finnhub(index)
-            symbols = get_stock_universe(finnhub_index)
+            symbols = get_stocks_by_index(finnhub_index)  # Use the correct Finnhub function
             all_symbols.update(symbols)
         
         symbols_list = list(all_symbols)
