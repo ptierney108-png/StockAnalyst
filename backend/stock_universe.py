@@ -179,6 +179,12 @@ STOCK_INDICES = {
         "symbols": DOW_30,
         "description": "30 prominent companies representing various industries",
         "estimated_time_minutes": 0.5
+    },
+    "RUSSELL2000": {
+        "name": "Russell 2000",
+        "symbols": RUSSELL_2000,
+        "description": "Small-cap representative sample from Russell 2000 index (200 stocks)",
+        "estimated_time_minutes": 2.7
     }
 }
 
