@@ -26,7 +26,15 @@ import numpy as np
 from emergentintegrations.llm import chat
 
 # Import batch processing modules
-from stock_universe import get_stock_universe, get_all_indices, get_total_stocks_count, STOCK_INDICES
+try:
+    from finnhub_stock_universe import get_stocks_by_index as get_stock_universe, get_total_stock_count as get_total_stocks_count, finnhub_universe
+    from stock_universe import get_all_indices, STOCK_INDICES  # Keep static indices for compatibility
+    USING_FINNHUB = True
+    logger.info("Using Finnhub stock universe")
+except ImportError:
+    from stock_universe import get_stock_universe, get_all_indices, get_total_stocks_count, STOCK_INDICES
+    USING_FINNHUB = False
+    logger.info("Using static stock universe")
 from batch_cache import cache_manager, BatchCacheManager
 from batch_processor import batch_processor, BatchProcessor, BatchStatus
 
