@@ -158,7 +158,14 @@ class BatchProcessor:
         Interleave symbols from different indices to provide faster user feedback
         Instead of processing all SP500 then all NASDAQ, mix them for better progress distribution
         """
-        from stock_universe import get_stock_universe
+        try:
+            from finnhub_stock_universe import get_stocks_by_index as get_stock_universe
+            USING_FINNHUB = True
+            logger.info("Using Finnhub stock universe")
+        except ImportError:
+            from stock_universe import get_stock_universe
+            USING_FINNHUB = False
+            logger.info("Using static stock universe")
         
         # Group symbols by their source index
         index_groups = {}
