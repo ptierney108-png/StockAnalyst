@@ -750,23 +750,43 @@ const BatchScreener = () => {
                 </p>
               </div>
               
-              <button
-                onClick={exportToCSV}
-                disabled={isExporting || batchResults.length === 0}
-                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg flex items-center space-x-2 transition-colors"
-              >
-                {isExporting ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    <span>Exporting...</span>
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4" />
-                    <span>Export CSV</span>
-                  </>
-                )}
-              </button>
+              <div className="flex space-x-4">
+                <button
+                  onClick={exportToCSV}
+                  disabled={isExporting || batchResults.length === 0}
+                  className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg flex items-center space-x-2 transition-colors"
+                >
+                  {isExporting ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span>Exporting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      <span>Export CSV</span>
+                    </>
+                  )}
+                </button>
+                
+                <button
+                  onClick={loadAiInsights}
+                  disabled={isLoadingInsights || batchResults.length === 0}
+                  className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg flex items-center space-x-2 transition-colors"
+                >
+                  {isLoadingInsights ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span>Analyzing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="h-4 w-4" />
+                      <span>AI Insights</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Results Table */}
