@@ -103,13 +103,17 @@ class RateLimiter:
             await asyncio.sleep(wait_time)
 
 class BatchProcessor:
-    """In-process batch processing system for stock scanning"""
+    """In-process batch processing system for stock scanning with Redis persistence"""
     
     def __init__(self):
         self.jobs: Dict[str, BatchJob] = {}
         self.active_jobs: Dict[str, asyncio.Task] = {}
         self.rate_limiter = RateLimiter(calls_per_minute=75)
         self.max_concurrent_jobs = 3  # Allow up to 3 concurrent batch jobs for better user experience
+        
+        # Redis client for job persistence
+        self.redis_client = None
+        self._initialize_redis()
         
         # Statistics
         self.stats = {
@@ -120,6 +124,92 @@ class BatchProcessor:
             'total_api_calls': 0,
             'average_processing_time': 0.0
         }
+    
+    def _initialize_redis(self):
+        """Initialize Redis client for job persistence"""
+        try:
+            import redis
+            self.redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
+            # Test connection
+            self.redis_client.ping()
+            logger.info("✅ Redis connected - batch job persistence enabled")
+        except Exception as e:
+            logger.warning(f"⚠️ Redis not available ({e}) - using memory-only mode")
+            self.redis_client = None
+    
+    async def _save_job_state(self, job_id: str, job: BatchJob):
+        """Save job state to Redis for persistence"""
+        if not self.redis_client:
+            return
+        
+        try:
+            job_data = {
+                'job_id': job_id,
+                'status': job.status,
+                'symbols': job.symbols,
+                'filters': job.filters,
+                'indices': job.indices,
+                'processed_count': job.processed_count,
+                'total_count': job.total_count,
+                'results': job.results,
+                'errors': job.errors,
+                'start_time': job.start_time.isoformat() if job.start_time else None,
+                'last_updated': datetime.utcnow().isoformat()
+            }
+            
+            # Save with 6 hour expiry
+            self.redis_client.setex(f"batch_job:{job_id}", 21600, json.dumps(job_data))
+            logger.debug(f"💾 Saved job state for {job_id}")
+        except Exception as e:
+            logger.error(f"❌ Failed to save job state for {job_id}: {e}")
+    
+    async def _restore_jobs_from_redis(self):
+        """Restore active jobs from Redis on startup"""
+        if not self.redis_client:
+            return
+        
+        try:
+            # Find all batch job keys
+            job_keys = self.redis_client.keys("batch_job:*")
+            restored_count = 0
+            
+            for key in job_keys:
+                try:
+                    job_data = json.loads(self.redis_client.get(key))
+                    job_id = job_data['job_id']
+                    
+                    # Only restore jobs that were running
+                    if job_data['status'] == 'running':
+                        # Recreate BatchJob object
+                        job = BatchJob(
+                            symbols=job_data['symbols'],
+                            filters=job_data['filters'],
+                            indices=job_data['indices']
+                        )
+                        job.status = 'running'
+                        job.processed_count = job_data['processed_count']
+                        job.total_count = job_data['total_count']
+                        job.results = job_data['results']
+                        job.errors = job_data['errors']
+                        job.start_time = datetime.fromisoformat(job_data['start_time']) if job_data['start_time'] else None
+                        
+                        self.jobs[job_id] = job
+                        
+                        # Resume processing
+                        task = asyncio.create_task(self._process_batch_job(job_id))
+                        self.active_jobs[job_id] = task
+                        restored_count += 1
+                        
+                        logger.info(f"🔄 Restored batch job {job_id} - {job.processed_count}/{job.total_count} completed")
+                
+                except Exception as e:
+                    logger.error(f"❌ Failed to restore job from {key}: {e}")
+            
+            if restored_count > 0:
+                logger.info(f"✅ Restored {restored_count} active batch jobs from Redis")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to restore jobs from Redis: {e}")
     
     def create_batch_job(self, symbols: List[str], filters: Dict[str, Any], indices: List[str] = None) -> str:
         """Create a new batch processing job with interleaved processing support"""
