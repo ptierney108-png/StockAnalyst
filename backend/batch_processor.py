@@ -402,6 +402,9 @@ class BatchProcessor:
             job.progress['current_symbol'] = None
             job.progress['partial_results_count'] = len(results)
             
+            # 💾 Final job state save on completion
+            await self._save_job_state(job.id, job)
+            
             # Update statistics
             processing_time = time.time() - start_time
             self.stats['completed_jobs'] += 1
