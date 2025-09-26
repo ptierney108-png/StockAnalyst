@@ -317,7 +317,7 @@ class BatchProcessor:
         return True
     
     async def _process_batch_job(self, job: BatchJob, process_function: Callable):
-        """Process a batch job with progress tracking and real-time partial results"""
+        """Process a batch job with progress tracking, real-time partial results, and parallel processing"""
         try:
             results = []
             start_time = time.time()
@@ -331,48 +331,58 @@ class BatchProcessor:
             partial_results_batch_size = 10  # Stream results every 10 processed stocks
             last_partial_update = 0
             
-            logger.info(f"Processing batch job {job.id} with {total_symbols} stocks (Phase 2: Partial Results Enabled)")
+            logger.info(f"🚀 Processing batch job {job.id} with {total_symbols} stocks (Phase 2: Parallel Processing + Partial Results)")
             
-            for i, symbol in enumerate(job.symbols):
+            # Phase 2: Parallel processing with batches
+            batch_size = self.max_parallel_requests
+            symbol_batches = [job.symbols[i:i + batch_size] for i in range(0, total_symbols, batch_size)]
+            
+            for batch_index, symbol_batch in enumerate(symbol_batches):
                 try:
-                    # Update progress
-                    job.progress['current_symbol'] = symbol
-                    job.progress['processed'] = processed_count
-                    job.progress['percentage'] = (processed_count / total_symbols) * 100
+                    # Process batch of symbols in parallel
+                    batch_results = await self._process_symbol_batch_parallel(
+                        symbol_batch, job.filters, process_function, job.id
+                    )
                     
-                    # Estimate completion time with improved accuracy for long batches
+                    # Update counters
+                    api_call_count += len(symbol_batch)
+                    
+                    # Process results from this batch
+                    for symbol, stock_data, error in batch_results:
+                        processed_count += 1
+                        
+                        # Update progress
+                        job.progress['current_symbol'] = symbol
+                        job.progress['processed'] = processed_count
+                        job.progress['percentage'] = (processed_count / total_symbols) * 100
+                        
+                        if error:
+                            errors.append(f"Error processing {symbol}: {error}")
+                            job.progress['errors'] = errors[-20:]  # Keep last 20 errors
+                            continue
+                        
+                        if stock_data and self._passes_filters(stock_data, job.filters):
+                            results.append(stock_data)
+                            # Phase 2: Real-time partial results - update job with current results
+                            job.results = results.copy()
+                    
+                    job.progress['api_calls_made'] = api_call_count
+                    
+                    # Enhanced ETA calculation for parallel processing
                     if processed_count > 0:
                         elapsed_time = time.time() - start_time
                         avg_time_per_stock = elapsed_time / processed_count
                         remaining_stocks = total_symbols - processed_count
                         
-                        # Phase 2: Better ETA calculation for long batches
+                        # Account for parallel processing speedup
                         if processed_count < 50:  # Early stage - conservative estimate
-                            estimated_seconds = remaining_stocks * (avg_time_per_stock * 1.2)
-                        else:  # Later stage - more accurate estimate
+                            estimated_seconds = remaining_stocks * (avg_time_per_stock * 1.1)
+                        else:  # Later stage - more accurate estimate with parallel benefit
                             estimated_seconds = remaining_stocks * avg_time_per_stock
                         
                         job.progress['estimated_completion'] = (
                             datetime.utcnow() + timedelta(seconds=estimated_seconds)
                         ).isoformat()
-                    
-                    # Rate limiting
-                    await self.rate_limiter.acquire()
-                    
-                    # Process the stock
-                    stock_data = await process_function(symbol, job.filters)
-                    api_call_count += 1
-                    
-                    if stock_data:
-                        # Apply filters to determine if stock should be included
-                        if self._passes_filters(stock_data, job.filters):
-                            results.append(stock_data)
-                            
-                            # Phase 2: Real-time partial results - update job with current results
-                            job.results = results.copy()  # Update partial results in real-time
-                    
-                    processed_count += 1
-                    job.progress['api_calls_made'] = api_call_count
                     
                     # Phase 2: Stream partial results every N stocks for better user feedback
                     if (processed_count - last_partial_update) >= partial_results_batch_size:
@@ -383,21 +393,23 @@ class BatchProcessor:
                         # 💾 Save job state for persistence (every 10 stocks)
                         await self._save_job_state(job.id, job)
                         
-                        logger.info(f"Batch {job.id}: Partial results update - {len(results)} matches from {processed_count}/{total_symbols} processed")
+                        logger.info(f"🚀 Batch {job.id} (Parallel): {len(results)} matches from {processed_count}/{total_symbols} processed")
                     
-                    # Log progress every 50 stocks (but less frequently for very large batches)
+                    # Log progress for larger intervals
                     progress_log_interval = min(50, max(10, total_symbols // 20))
                     if processed_count % progress_log_interval == 0:
                         # 💾 Save job state for persistence (every 50 stocks)
                         await self._save_job_state(job.id, job)
-                        logger.info(f"Batch {job.id}: Processed {processed_count}/{total_symbols} stocks ({len(results)} matches)")
+                        processing_time = time.time() - start_time
+                        rate = processed_count / processing_time if processing_time > 0 else 0
+                        logger.info(f"🚀 Batch {job.id} (Parallel): Processed {processed_count}/{total_symbols} stocks ({len(results)} matches) - {rate:.1f} stocks/sec")
                 
                 except Exception as e:
-                    error_msg = f"Error processing {symbol}: {str(e)}"
+                    error_msg = f"Error processing batch {batch_index}: {str(e)}"
                     logger.warning(error_msg)
                     errors.append(error_msg)
-                    job.progress['errors'] = errors[-20:]  # Keep last 20 errors for large batches
-                    processed_count += 1
+                    # Still increment processed count for the entire batch
+                    processed_count += len(symbol_batch)
                     continue
             
             # Job completed successfully
@@ -422,11 +434,14 @@ class BatchProcessor:
                 / self.stats['completed_jobs']
             )
             
-            # Phase 2: Enhanced completion logging for large batches
+            # Phase 2: Enhanced completion logging for parallel processing
             processing_minutes = processing_time / 60
+            rate = processed_count / processing_time if processing_time > 0 else 0
+            speedup = rate / (75/60) if (75/60) > 0 else 1  # Compare to 75 calls/minute baseline
             logger.info(
-                f"Phase 2 Batch job {job.id} completed: {len(results)} matches from {processed_count} stocks "
-                f"in {processing_minutes:.1f} minutes ({api_call_count} API calls, {len(errors)} errors)"
+                f"🚀 Phase 2 Parallel Batch job {job.id} completed: {len(results)} matches from {processed_count} stocks "
+                f"in {processing_minutes:.1f} minutes ({api_call_count} API calls, {len(errors)} errors) "
+                f"- Rate: {rate:.1f} stocks/sec ({speedup:.1f}x speedup)"
             )
         
         except Exception as e:
@@ -445,6 +460,37 @@ class BatchProcessor:
             # Clean up
             if job.id in self.active_jobs:
                 del self.active_jobs[job.id]
+
+    async def _process_symbol_batch_parallel(self, symbol_batch: List[str], filters: Dict[str, Any], 
+                                           process_function: Callable, job_id: str) -> List[tuple]:
+        """Process a batch of symbols in parallel with rate limiting"""
+        async def process_single_symbol(symbol: str):
+            try:
+                # Rate limiting for each request
+                await self.rate_limiter.acquire()
+                
+                # Process the stock
+                stock_data = await process_function(symbol, filters)
+                return (symbol, stock_data, None)
+                
+            except Exception as e:
+                logger.warning(f"Error processing {symbol} in batch: {e}")
+                return (symbol, None, str(e))
+        
+        # Process all symbols in the batch concurrently
+        tasks = [process_single_symbol(symbol) for symbol in symbol_batch]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Handle any exceptions from gather
+        processed_results = []
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                symbol = symbol_batch[i] if i < len(symbol_batch) else "unknown"
+                processed_results.append((symbol, None, str(result)))
+            else:
+                processed_results.append(result)
+        
+        return processed_results
     
     def _passes_filters(self, stock_data: Dict[str, Any], filters: Dict[str, Any]) -> bool:
         """Check if stock data passes the specified filters"""
