@@ -211,6 +211,15 @@ const api = {
     });
     return response.data;
   },
+
+  // AI Insights PDF Export
+  exportBatchInsightsPDF: async (batchId) => {
+    const response = await apiClient.get(`/batch/insights/${batchId}/pdf`, {
+      responseType: 'blob', // Important for PDF download
+      timeout: 90000 // Longer timeout for PDF generation with charts
+    });
+    return response;
+  },
 };
 
 export default api;
