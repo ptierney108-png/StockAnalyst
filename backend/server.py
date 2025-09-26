@@ -182,16 +182,18 @@ def calculate_ppo(prices: List[float], fast_period: int = 12, slow_period: int =
     return {"ppo": ppo, "signal": signal, "histogram": histogram}
 
 def calculate_ppo_slope(ppo_today: float, ppo_yesterday: float, ppo_day_before: float) -> Dict[str, float]:
-    """Calculate PPO slope using the specific formula"""
+    """Calculate PPO slope using the specific formula - ALWAYS RETURN POSITIVE VALUES"""
     if ppo_yesterday == 0:
         return {"slope": 0, "slope_percentage": 0}
     
-    # Calculate slope without absolute values - let the math produce natural results
+    # Calculate slope - ensure result is always positive using absolute value
     if ppo_today < 0:
         slope = (ppo_today - ppo_yesterday) / ppo_yesterday if ppo_yesterday != 0 else 0
     else:  # ppo_today > 0
         slope = (ppo_yesterday - ppo_today) / ppo_yesterday if ppo_yesterday != 0 else 0
     
+    # Apply absolute value to ensure slope is always positive
+    slope = abs(slope)
     slope_percentage = slope * 100
     
     return {"slope": slope, "slope_percentage": slope_percentage}
