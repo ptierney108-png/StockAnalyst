@@ -37,14 +37,15 @@ class FinnhubStockUniverse:
             return pd.DataFrame()
     
     def get_sp500_symbols(self) -> List[str]:
-        """Get S&P 500 symbols from Wikipedia"""
+        """Get S&P 500 symbols from Wikipedia with fallback to static list"""
         try:
             url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
             tables = pd.read_html(url)
             return tables[0]["Symbol"].tolist()
         except Exception as e:
-            print(f"Error fetching S&P 500 symbols: {e}")
-            return []
+            print(f"Error fetching S&P 500 symbols from Wikipedia: {e}")
+            print("Using static S&P 500 fallback list")
+            return SP500_SYMBOLS
     
     def get_universe_symbols(self, exchange: str = "ALL") -> List[str]:
         """
