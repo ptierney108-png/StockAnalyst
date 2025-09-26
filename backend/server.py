@@ -35,7 +35,7 @@ except ImportError:
     from stock_universe import get_stock_universe, get_all_indices, get_total_stocks_count, STOCK_INDICES
     USING_FINNHUB = False
     print("Using static stock universe")
-from batch_cache import cache_manager, BatchCacheManager
+from .ai_insights import ai_insights, cache_manager
 from batch_processor import batch_processor, BatchProcessor, BatchStatus
 
 ROOT_DIR = Path(__file__).parent
