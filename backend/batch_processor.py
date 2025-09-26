@@ -109,7 +109,7 @@ class BatchProcessor:
         self.jobs: Dict[str, BatchJob] = {}
         self.active_jobs: Dict[str, asyncio.Task] = {}
         self.rate_limiter = RateLimiter(calls_per_minute=75)
-        self.max_concurrent_jobs = 1  # Process one batch at a time for now
+        self.max_concurrent_jobs = 3  # Allow up to 3 concurrent batch jobs for better user experience
         
         # Statistics
         self.stats = {
