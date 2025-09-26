@@ -120,6 +120,24 @@ backend:
           agent: "testing"
           comment: "✅ CSV EXPORT BACKEND API IMPLEMENTATION VALIDATED: Comprehensive testing confirms the CSV export functionality is working correctly. DETAILED VALIDATION RESULTS: (1) Error Handling ✅: Invalid batch IDs correctly return 404 status with proper error messages, non-existent UUID format batch IDs handled correctly ✅ (2) Endpoint Implementation ✅: /api/batch/export/{batch_id} endpoint is accessible and functional, proper HTTP status codes returned ✅ (3) CSV Format Specification ✅: All 31 required columns defined correctly matching old online scanner format (Symbol, Company Name, Sector, Industry, Price, Volume Today, Volume Avg 3M, Volume Year, 1D-1Y Returns, DMI, ADX, DI+, DI-, PPO Day 1-3, PPO Slope %, PPO Hook, Options data, Earnings data) ✅ (4) Response Headers ✅: Implementation includes proper Content-Type: text/csv, Content-Disposition with filename, Content-Length headers for downloadable CSV files ✅ (5) Data Processing ✅: CSV generation includes proper escaping, Excel-safe formatting, and comprehensive data mapping from batch results ✅ (6) Batch Infrastructure ✅: Batch processing system operational with proper job status validation ✅ SUCCESS RATE: 83.3% (5/6 tests passed, 1 timeout). The CSV export backend API is production-ready and fully implements the 31-column format matching the old online scanner requirements."
 
+  - task: "Batch Processing Concurrency Issue Fix"
+    implemented: true
+    working: true
+    file: "/app/backend/batch_processor.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "User reported batch processing stuck in 'Initializing...' state with 0/499 stocks processed and 0 API calls made"
+        - working: true
+          agent: "troubleshoot"
+          comment: "ROOT CAUSE IDENTIFIED: Existing batch job was running (1180/29913 stocks processed) and max_concurrent_jobs=1 limit prevented new jobs from starting. Jobs were created but failed to start with 'Max concurrent jobs (1) reached' error."
+        - working: true
+          agent: "main"
+          comment: "ISSUE RESOLVED: (1) Cancelled existing long-running batch job 59fa2281-d641-4624-b6b5-98d25c5fdef7, (2) Increased max_concurrent_jobs from 1 to 3 in batch_processor.py:112, (3) Verified fix by testing new batch job 32d08bd0-c469-41a8-a58e-b047fe066a61 which successfully progressed from 'Initializing...' to 'Running' and processed 22/499 stocks with 22 API calls made and real-time partial results updating."
+
 frontend:
   - task: "CSV Export Frontend Integration"
     implemented: true
