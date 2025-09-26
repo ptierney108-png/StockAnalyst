@@ -372,11 +372,17 @@ class BatchProcessor:
                         job.progress['partial_results_count'] = len(results)
                         job.progress['last_partial_update'] = datetime.utcnow().isoformat()
                         last_partial_update = processed_count
+                        
+                        # 💾 Save job state for persistence (every 10 stocks)
+                        await self._save_job_state(job.id, job)
+                        
                         logger.info(f"Batch {job.id}: Partial results update - {len(results)} matches from {processed_count}/{total_symbols} processed")
                     
                     # Log progress every 50 stocks (but less frequently for very large batches)
                     progress_log_interval = min(50, max(10, total_symbols // 20))
                     if processed_count % progress_log_interval == 0:
+                        # 💾 Save job state for persistence (every 50 stocks)
+                        await self._save_job_state(job.id, job)
                         logger.info(f"Batch {job.id}: Processed {processed_count}/{total_symbols} stocks ({len(results)} matches)")
                 
                 except Exception as e:
