@@ -203,6 +203,14 @@ const api = {
     });
     return response;
   },
+
+  // AI Insights API
+  getBatchAiInsights: async (batchId) => {
+    const response = await apiClient.get(`/batch/insights/${batchId}`, {
+      timeout: 30000 // Longer timeout for AI processing
+    });
+    return response.data;
+  },
 };
 
 export default api;
