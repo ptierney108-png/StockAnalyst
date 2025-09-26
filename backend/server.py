@@ -37,6 +37,7 @@ except ImportError:
     print("Using static stock universe")
 from .ai_insights import ai_insights, cache_manager
 from batch_processor import batch_processor, BatchProcessor, BatchStatus
+from .custom_lists import custom_list_manager
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
