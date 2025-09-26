@@ -7807,6 +7807,368 @@ class StockAnalysisAPITester:
         
         return all_passed
 
+    def test_csv_export_functionality(self) -> bool:
+        """
+        COMPREHENSIVE CSV EXPORT FUNCTIONALITY TESTING
+        
+        Tests the newly implemented CSV export functionality for batch scanner results:
+        1. Test /api/batch/export/{batch_id} endpoint with valid batch jobs
+        2. Verify CSV format includes all 31 columns matching old online scanner
+        3. Test CSV content with actual batch scan results
+        4. Validate proper file download response headers
+        5. Test error handling for invalid/missing batch jobs
+        """
+        print(f"\n📊 COMPREHENSIVE CSV EXPORT FUNCTIONALITY TESTING")
+        print("=" * 70)
+        
+        all_passed = True
+        csv_issues = []
+        
+        # Step 1: Check if there are existing completed batch jobs
+        print(f"\n🔍 Checking for existing completed batch jobs...")
+        existing_batch_id = self.find_completed_batch_job()
+        
+        if existing_batch_id:
+            print(f"✅ Found existing completed batch job: {existing_batch_id}")
+            test_batch_id = existing_batch_id
+        else:
+            print(f"⚠️ No existing completed batch jobs found. Creating new batch job...")
+            test_batch_id = self.create_test_batch_job()
+            if not test_batch_id:
+                self.log_test("CSV Export - Batch Job Creation", False, 
+                            "Failed to create test batch job for CSV export testing", True)
+                return False
+        
+        # Step 2: Test CSV export with valid batch job
+        print(f"\n📄 Testing CSV export with batch job: {test_batch_id}")
+        csv_export_success = self.test_csv_export_endpoint(test_batch_id)
+        if not csv_export_success:
+            all_passed = False
+            csv_issues.append("CSV export endpoint failed")
+        
+        # Step 3: Test error cases
+        print(f"\n🚨 Testing CSV export error cases...")
+        error_handling_success = self.test_csv_export_error_cases()
+        if not error_handling_success:
+            all_passed = False
+            csv_issues.append("CSV export error handling failed")
+        
+        # Step 4: Test CSV format validation
+        print(f"\n📋 Testing CSV format validation...")
+        if test_batch_id:
+            format_validation_success = self.test_csv_format_validation(test_batch_id)
+            if not format_validation_success:
+                all_passed = False
+                csv_issues.append("CSV format validation failed")
+        
+        # Summary
+        if csv_issues:
+            print(f"\n🚨 CSV EXPORT ISSUES FOUND ({len(csv_issues)}):")
+            for issue in csv_issues:
+                print(f"  • {issue}")
+        else:
+            print(f"\n✅ CSV export functionality working correctly")
+        
+        return all_passed
+    
+    def find_completed_batch_job(self) -> Optional[str]:
+        """Find an existing completed batch job for testing"""
+        try:
+            # Try to get batch stats to see if there are any jobs
+            response = requests.get(f"{BACKEND_URL}/batch/stats", timeout=10)
+            if response.status_code == 200:
+                stats = response.json()
+                completed_jobs = stats.get("completed_jobs", 0)
+                if completed_jobs > 0:
+                    # We know there are completed jobs, but we need to find their IDs
+                    # Since there's no endpoint to list all jobs, we'll return None
+                    # and create a new job instead
+                    pass
+            return None
+        except Exception as e:
+            print(f"Error checking batch stats: {e}")
+            return None
+    
+    def create_test_batch_job(self) -> Optional[str]:
+        """Create a small test batch job for CSV export testing"""
+        try:
+            # Create a small batch job with DOW30 (30 stocks) for faster completion
+            batch_request = {
+                "indices": ["DOW30"],
+                "filters": {
+                    "price_filter": {"type": "under", "under": 1000},
+                    "dmi_filter": {"min": 0, "max": 100},
+                    "ppo_slope_filter": {"threshold": -100},
+                    "ppo_hook_filter": "all"
+                },
+                "force_refresh": False
+            }
+            
+            print(f"Creating test batch job with DOW30 index...")
+            response = requests.post(f"{BACKEND_URL}/batch/scan", 
+                                   json=batch_request,
+                                   headers={"Content-Type": "application/json"},
+                                   timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                batch_id = data.get("batch_id")
+                print(f"✅ Created batch job: {batch_id}")
+                
+                # Wait for completion (with timeout)
+                print(f"⏳ Waiting for batch job completion...")
+                if self.wait_for_batch_completion(batch_id, timeout_minutes=5):
+                    print(f"✅ Batch job completed: {batch_id}")
+                    return batch_id
+                else:
+                    print(f"⚠️ Batch job did not complete within timeout")
+                    return batch_id  # Return anyway for partial testing
+            else:
+                print(f"❌ Failed to create batch job: {response.status_code} - {response.text}")
+                return None
+                
+        except Exception as e:
+            print(f"Error creating test batch job: {e}")
+            return None
+    
+    def wait_for_batch_completion(self, batch_id: str, timeout_minutes: int = 5) -> bool:
+        """Wait for batch job to complete"""
+        import time
+        start_time = time.time()
+        timeout_seconds = timeout_minutes * 60
+        
+        while time.time() - start_time < timeout_seconds:
+            try:
+                response = requests.get(f"{BACKEND_URL}/batch/status/{batch_id}", timeout=10)
+                if response.status_code == 200:
+                    status_data = response.json()
+                    status = status_data.get("status")
+                    progress = status_data.get("progress", 0)
+                    
+                    print(f"  Status: {status}, Progress: {progress}%")
+                    
+                    if status == "completed":
+                        return True
+                    elif status in ["failed", "cancelled"]:
+                        print(f"❌ Batch job failed or was cancelled: {status}")
+                        return False
+                    
+                    time.sleep(10)  # Wait 10 seconds before checking again
+                else:
+                    print(f"Error checking batch status: {response.status_code}")
+                    time.sleep(5)
+                    
+            except Exception as e:
+                print(f"Error waiting for batch completion: {e}")
+                time.sleep(5)
+        
+        print(f"⚠️ Timeout waiting for batch completion")
+        return False
+    
+    def test_csv_export_endpoint(self, batch_id: str) -> bool:
+        """Test the CSV export endpoint with a valid batch ID"""
+        try:
+            print(f"  Testing CSV export for batch ID: {batch_id}")
+            
+            start_time = time.time()
+            response = requests.get(f"{BACKEND_URL}/batch/export/{batch_id}", timeout=30)
+            response_time = time.time() - start_time
+            
+            if response.status_code == 200:
+                # Validate response headers
+                content_type = response.headers.get("content-type", "")
+                content_disposition = response.headers.get("content-disposition", "")
+                content_length = response.headers.get("content-length", "")
+                
+                header_issues = []
+                if "text/csv" not in content_type:
+                    header_issues.append(f"Wrong content-type: {content_type}")
+                if "attachment" not in content_disposition:
+                    header_issues.append(f"Missing attachment in content-disposition: {content_disposition}")
+                if not content_length:
+                    header_issues.append("Missing content-length header")
+                
+                if header_issues:
+                    self.log_test("CSV Export Headers", False, 
+                                f"Header issues: {header_issues}", True)
+                    return False
+                
+                # Validate CSV content
+                csv_content = response.text
+                csv_lines = csv_content.split('\n')
+                
+                if len(csv_lines) < 2:  # At least header + 1 data row
+                    self.log_test("CSV Export Content", False, 
+                                f"Insufficient CSV content: {len(csv_lines)} lines", True)
+                    return False
+                
+                # Validate CSV headers (31 columns)
+                header_line = csv_lines[0]
+                headers = [h.strip('"') for h in header_line.split(',')]
+                
+                expected_headers = [
+                    "Symbol", "Company Name", "Sector", "Industry", "Price",
+                    "Volume Today", "Volume Avg 3M", "Volume Year",
+                    "1D Return %", "5D Return %", "2W Return %", "1M Return %", "1Y Return %",
+                    "DMI", "ADX", "DI+", "DI-",
+                    "PPO Day 1", "PPO Day 2", "PPO Day 3", "PPO Slope %", "PPO Hook",
+                    "Optionable", "Call Bid", "Call Ask", "Put Bid", "Put Ask", "Options Expiration",
+                    "Last Earnings", "Next Earnings", "Days to Earnings"
+                ]
+                
+                if len(headers) != 31:
+                    self.log_test("CSV Export Headers Count", False, 
+                                f"Expected 31 headers, got {len(headers)}", True)
+                    return False
+                
+                missing_headers = [h for h in expected_headers if h not in headers]
+                if missing_headers:
+                    self.log_test("CSV Export Headers Content", False, 
+                                f"Missing headers: {missing_headers}", True)
+                    return False
+                
+                # Validate data rows
+                data_rows = [line for line in csv_lines[1:] if line.strip()]
+                if len(data_rows) == 0:
+                    self.log_test("CSV Export Data", False, "No data rows in CSV", True)
+                    return False
+                
+                # Validate first data row format
+                first_row = data_rows[0].split(',')
+                if len(first_row) != 31:
+                    self.log_test("CSV Export Data Format", False, 
+                                f"First data row has {len(first_row)} columns, expected 31", True)
+                    return False
+                
+                self.log_test("CSV Export Endpoint", True, 
+                            f"CSV export successful: {len(data_rows)} stocks, {response_time:.2f}s")
+                
+                # Log sample data for verification
+                print(f"    📊 CSV Export Details:")
+                print(f"      • File size: {len(csv_content)} bytes")
+                print(f"      • Data rows: {len(data_rows)}")
+                print(f"      • Headers: {len(headers)} columns")
+                print(f"      • Sample symbol: {first_row[0] if first_row else 'N/A'}")
+                
+                return True
+                
+            else:
+                self.log_test("CSV Export Endpoint", False, 
+                            f"HTTP {response.status_code}: {response.text}", True)
+                return False
+                
+        except Exception as e:
+            self.log_test("CSV Export Endpoint", False, f"Error: {str(e)}", True)
+            return False
+    
+    def test_csv_export_error_cases(self) -> bool:
+        """Test CSV export error handling"""
+        all_passed = True
+        
+        # Test 1: Invalid batch ID
+        try:
+            response = requests.get(f"{BACKEND_URL}/batch/export/invalid-batch-id", timeout=10)
+            if response.status_code == 404:
+                self.log_test("CSV Export - Invalid Batch ID", True, 
+                            "Correctly returned 404 for invalid batch ID")
+            else:
+                self.log_test("CSV Export - Invalid Batch ID", False, 
+                            f"Expected 404, got {response.status_code}", True)
+                all_passed = False
+        except Exception as e:
+            self.log_test("CSV Export - Invalid Batch ID", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        # Test 2: Non-existent batch ID (valid UUID format)
+        try:
+            fake_uuid = "12345678-1234-1234-1234-123456789012"
+            response = requests.get(f"{BACKEND_URL}/batch/export/{fake_uuid}", timeout=10)
+            if response.status_code == 404:
+                self.log_test("CSV Export - Non-existent Batch ID", True, 
+                            "Correctly returned 404 for non-existent batch ID")
+            else:
+                self.log_test("CSV Export - Non-existent Batch ID", False, 
+                            f"Expected 404, got {response.status_code}", True)
+                all_passed = False
+        except Exception as e:
+            self.log_test("CSV Export - Non-existent Batch ID", False, f"Error: {str(e)}", True)
+            all_passed = False
+        
+        return all_passed
+    
+    def test_csv_format_validation(self, batch_id: str) -> bool:
+        """Test detailed CSV format validation"""
+        try:
+            response = requests.get(f"{BACKEND_URL}/batch/export/{batch_id}", timeout=30)
+            
+            if response.status_code != 200:
+                self.log_test("CSV Format Validation", False, 
+                            f"Could not get CSV for validation: {response.status_code}", True)
+                return False
+            
+            csv_content = response.text
+            csv_lines = csv_content.split('\n')
+            
+            # Validate CSV structure
+            validation_issues = []
+            
+            # Check header line
+            if not csv_lines or not csv_lines[0]:
+                validation_issues.append("Missing or empty header line")
+                return False
+            
+            headers = [h.strip('"') for h in csv_lines[0].split(',')]
+            
+            # Validate specific column content in data rows
+            data_rows = [line for line in csv_lines[1:] if line.strip()]
+            
+            if data_rows:
+                # Check first few rows for data quality
+                for i, row_line in enumerate(data_rows[:3]):
+                    row = [cell.strip('"') for cell in row_line.split(',')]
+                    
+                    if len(row) != 31:
+                        validation_issues.append(f"Row {i+1} has {len(row)} columns, expected 31")
+                        continue
+                    
+                    # Validate specific fields
+                    symbol = row[0]
+                    if not symbol or symbol == "N/A":
+                        validation_issues.append(f"Row {i+1} has invalid symbol: {symbol}")
+                    
+                    price = row[4]
+                    try:
+                        float(price)
+                    except ValueError:
+                        if price != "N/A":
+                            validation_issues.append(f"Row {i+1} has invalid price: {price}")
+                    
+                    # Check PPO values format
+                    ppo_day1 = row[17]
+                    try:
+                        float(ppo_day1)
+                    except ValueError:
+                        if ppo_day1 != "N/A":
+                            validation_issues.append(f"Row {i+1} has invalid PPO Day 1: {ppo_day1}")
+                    
+                    # Check hook pattern is Excel-safe
+                    ppo_hook = row[21]
+                    if ppo_hook.startswith('+') or ppo_hook.startswith('-'):
+                        validation_issues.append(f"Row {i+1} has Excel-unsafe hook pattern: {ppo_hook}")
+            
+            if validation_issues:
+                self.log_test("CSV Format Validation", False, 
+                            f"Validation issues: {validation_issues}", True)
+                return False
+            else:
+                self.log_test("CSV Format Validation", True, 
+                            f"CSV format validation passed for {len(data_rows)} rows")
+                return True
+                
+        except Exception as e:
+            self.log_test("CSV Format Validation", False, f"Error: {str(e)}", True)
+            return False
+
     def run_comprehensive_tests(self):
         """Run all tests with priority on UI-Backend matching validation from review request"""
         print("🚀 Starting Comprehensive Stock Analysis API Tests")
