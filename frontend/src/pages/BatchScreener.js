@@ -52,6 +52,7 @@ const BatchScreener = () => {
   const [forceRefresh, setForceRefresh] = useState(false);
   const [error, setError] = useState(null);
   const [showTooltip, setShowTooltip] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
   
   // Phase 2: Enhanced state for partial results and comprehensive scanning
   const [showPartialResults, setShowPartialResults] = useState(false);
