@@ -194,6 +194,15 @@ const api = {
     const response = await apiClient.get(`/batch/partial-results/${batchId}`);
     return response.data;
   },
+
+  // CSV Export API
+  exportBatchResultsToCSV: async (batchId) => {
+    const response = await apiClient.get(`/batch/export/${batchId}`, {
+      responseType: 'blob', // Important for file download
+      timeout: 60000 // Longer timeout for large datasets
+    });
+    return response;
+  },
 };
 
 export default api;
