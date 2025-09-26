@@ -289,5 +289,8 @@ class StockInsightsAI:
             'risk_factors': ["Statistical analysis only - limited insight depth"]
         }
 
+# Import cache_manager for compatibility
+from batch_cache import cache_manager
+
 # Global instance
 ai_insights = StockInsightsAI()
