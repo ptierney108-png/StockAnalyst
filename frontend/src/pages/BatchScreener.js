@@ -20,7 +20,8 @@ import {
   Pause,
   Clock,
   Database,
-  Zap
+  Zap,
+  Brain
 } from 'lucide-react';
 import api from '../services/api';
 
