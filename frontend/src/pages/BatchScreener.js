@@ -243,6 +243,51 @@ const BatchScreener = () => {
     }, 0);
   };
 
+  const exportAiInsightsPDF = async () => {
+    if (!currentBatchId || batchResults.length === 0) {
+      setError('No batch results available for PDF export');
+      return;
+    }
+
+    try {
+      setIsExportingPDF(true);
+      setError(null);
+      
+      console.log('Generating AI Insights PDF report...');
+      const response = await api.exportBatchInsightsPDF(currentBatchId);
+      
+      // Create download link for the PDF
+      const blob = response.data;
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Get filename from response headers or create default
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `StockWise_AI_Insights_${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log('✅ AI Insights PDF exported successfully:', filename);
+    } catch (error) {
+      console.error('Failed to export AI Insights PDF:', error);
+      setError(`Failed to export PDF: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
   const loadAiInsights = async () => {
     if (!currentBatchId || batchResults.length === 0) {
       setError('No batch results available for AI analysis');
