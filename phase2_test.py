@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://market-scanner-27.preview.emergentagent.com/api"
+BACKEND_URL = "https://stockwise-120.preview.emergentagent.com/api"
 
 def test_phase2_stock_universe_expansion():
     """Test Phase 2 Stock Universe Expansion"""

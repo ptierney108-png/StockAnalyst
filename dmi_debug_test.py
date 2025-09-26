@@ -9,7 +9,7 @@ import json
 import time
 
 # Configuration
-BACKEND_URL = "https://market-scanner-27.preview.emergentagent.com/api"
+BACKEND_URL = "https://stockwise-120.preview.emergentagent.com/api"
 
 def debug_dmi_calculation():
     """Debug DMI calculation to understand why values are not varying"""
