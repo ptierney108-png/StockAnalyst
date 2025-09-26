@@ -584,24 +584,64 @@ class BatchProcessor:
                     elif category == 'small' and market_cap >= 2_000_000_000:  # <$2B
                         return False
             
-            # Volume filter (Phase 3 Enhancement)
+            # Volume filter (Phase 3 Enhancement - Advanced Options)
             if 'volume_filter' in filters and filters['volume_filter']:
                 vol_filter = filters['volume_filter']
                 volume_today = stock_data.get('volume_today', 0)
                 volume_3m = stock_data.get('volume_3m', 0)
+                volume_year = stock_data.get('volume_year', 0)
                 
-                if vol_filter.get('type') == 'min_volume':
+                filter_type = vol_filter.get('type', 'min_volume')
+                
+                if filter_type == 'min_volume':
                     min_volume = vol_filter.get('min', 0)
                     if volume_today < min_volume:
-                        logger.debug(f"❌ {symbol} filtered out: Volume {volume_today} < {min_volume}")
+                        logger.debug(f"❌ {symbol} filtered out: Daily volume {volume_today} < {min_volume}")
                         return False
-                elif vol_filter.get('type') == 'volume_ratio':
+                        
+                elif filter_type == 'daily_avg_volume':
+                    min_daily_avg = vol_filter.get('min_daily_avg', 0)
+                    daily_avg_volume = stock_data.get('daily_avg_volume', 0)
+                    if daily_avg_volume < min_daily_avg:
+                        logger.debug(f"❌ {symbol} filtered out: Daily avg volume {daily_avg_volume} < {min_daily_avg}")
+                        return False
+                        
+                elif filter_type == '3m_avg_volume':
+                    min_3m_avg = vol_filter.get('min_3m_avg', 0)
+                    if volume_3m < min_3m_avg:
+                        logger.debug(f"❌ {symbol} filtered out: 3M avg volume {volume_3m} < {min_3m_avg}")
+                        return False
+                        
+                elif filter_type == 'yearly_volume':
+                    min_yearly = vol_filter.get('min_yearly', 0)
+                    if volume_year < min_yearly:
+                        logger.debug(f"❌ {symbol} filtered out: Yearly volume {volume_year} < {min_yearly}")
+                        return False
+                        
+                elif filter_type == 'volume_ratio_3m':
                     min_ratio = vol_filter.get('min_ratio', 1.0)
                     if volume_3m > 0:
                         ratio = volume_today / volume_3m
                         if ratio < min_ratio:
-                            logger.debug(f"❌ {symbol} filtered out: Volume ratio {ratio:.2f} < {min_ratio}")
+                            logger.debug(f"❌ {symbol} filtered out: Volume ratio (vs 3M) {ratio:.2f} < {min_ratio}")
                             return False
+                            
+                elif filter_type == 'volume_ratio_yearly':
+                    min_ratio_yearly = vol_filter.get('min_ratio_yearly', 1.0)
+                    if volume_year > 0:
+                        ratio_yearly = volume_today / volume_year
+                        if ratio_yearly < min_ratio_yearly:
+                            logger.debug(f"❌ {symbol} filtered out: Volume ratio (vs yearly) {ratio_yearly:.2f} < {min_ratio_yearly}")
+                            return False
+                            
+                elif filter_type == 'volume_spike':
+                    # Detect volume spikes (today's volume significantly higher than average)
+                    spike_threshold = vol_filter.get('spike_threshold', 2.0)  # 2x normal volume
+                    avg_volume = max(volume_3m, volume_year, 1)  # Use highest average, avoid division by zero
+                    spike_ratio = volume_today / avg_volume if avg_volume > 0 else 0
+                    if spike_ratio < spike_threshold:
+                        logger.debug(f"❌ {symbol} filtered out: Volume spike ratio {spike_ratio:.2f} < {spike_threshold}")
+                        return False
             
             logger.debug(f"✅ {symbol} passed all filters")
             return True
