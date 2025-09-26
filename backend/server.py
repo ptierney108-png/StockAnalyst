@@ -39,6 +39,7 @@ from ai_insights import ai_insights
 from batch_cache import cache_manager
 from batch_processor import batch_processor, BatchProcessor, BatchStatus
 from custom_lists import custom_list_manager
+from pdf_reports import pdf_generator
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
