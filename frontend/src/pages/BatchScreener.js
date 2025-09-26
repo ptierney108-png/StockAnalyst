@@ -726,10 +726,20 @@ const BatchScreener = () => {
               
               <button
                 onClick={exportToCSV}
-                className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center space-x-2 transition-colors"
+                disabled={isExporting || batchResults.length === 0}
+                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg flex items-center space-x-2 transition-colors"
               >
-                <Download className="h-4 w-4" />
-                <span>Export CSV</span>
+                {isExporting ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <span>Exporting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    <span>Export CSV</span>
+                  </>
+                )}
               </button>
             </div>
 
