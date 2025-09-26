@@ -2634,7 +2634,8 @@ def map_index_name_for_finnhub(index_key: str) -> str:
         "NASDAQ100": "static_nasdaq100",  # Use static list for NASDAQ100 (top 100 NASDAQ companies)
         "NASDAQ_COMPREHENSIVE": "static",  # Use static list for NASDAQ_COMPREHENSIVE (4,198 curated stocks)
         "NYSE_COMPREHENSIVE": "nyse",
-        "DOW30": "sp500"  # Use sp500 for DOW30 as fallback (DOW30 is subset of SP500)
+        "DOW30": "sp500",  # Use sp500 for DOW30 as fallback (DOW30 is subset of SP500)
+        "RUSSELL2000": "static_russell2000"  # Use static Russell 2000 list
     }
     return mapping.get(index_key, "all")
 
