@@ -2803,6 +2803,45 @@ async def get_batch_results(batch_id: str):
         logger.error(f"Failed to get batch results for {batch_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get batch results: {str(e)}")
 
+@api_router.get("/batch/insights/{batch_id}")
+async def get_batch_ai_insights(batch_id: str):
+    """Generate AI-driven insights and pattern recognition for completed batch scan"""
+    try:
+        # Get batch results
+        results = batch_processor.get_job_results(batch_id)
+        if results is None:
+            job_status = batch_processor.get_job_status(batch_id)
+            if job_status is None:
+                raise HTTPException(status_code=404, detail=f"Batch job {batch_id} not found")
+            if job_status['status'] != 'completed':
+                raise HTTPException(status_code=400, detail=f"Batch job {batch_id} is not completed. Status: {job_status['status']}")
+            raise HTTPException(status_code=404, detail=f"No results found for batch job {batch_id}")
+        
+        if not results:
+            raise HTTPException(status_code=400, detail="No results available for AI analysis")
+        
+        # Get job details for context
+        job = batch_processor.jobs.get(batch_id)
+        scan_filters = job.filters if job else {}
+        scan_indices = job.indices if job else ["Unknown"]
+        
+        # Generate AI insights
+        logger.info(f"Generating AI insights for batch {batch_id} with {len(results)} results")
+        insights = await ai_insights.analyze_batch_results(results, scan_filters, scan_indices)
+        
+        return {
+            "success": True,
+            "batch_id": batch_id,
+            "insights": insights,
+            "results_count": len(results)
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to generate AI insights for {batch_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate AI insights: {str(e)}")
+
 @api_router.get("/batch/export/{batch_id}")
 async def export_batch_results_to_csv(batch_id: str):
     """Export batch scan results to CSV format with comprehensive columns matching old online scanner"""
