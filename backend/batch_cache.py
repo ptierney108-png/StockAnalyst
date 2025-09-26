@@ -16,15 +16,16 @@ import os
 
 logger = logging.getLogger(__name__)
 
-# Try to import aioredis, but handle gracefully if not available
+# Try to import Redis clients, handle gracefully if not available
 try:
-    import aioredis
+    import redis.asyncio as redis
     REDIS_AVAILABLE = True
-except (ImportError, TypeError) as e:
+    logger.info("Redis client available - persistence enabled")
+except ImportError as e:
     REDIS_AVAILABLE = False
-    aioredis = None
+    redis = None
     logger = logging.getLogger(__name__)
-    logger.warning(f"aioredis not available ({e}), using in-memory cache only")
+    logger.warning(f"Redis not available ({e}), using in-memory cache only")
 
 @dataclass
 class CacheEntry:
@@ -78,7 +79,7 @@ class BatchCacheManager:
         try:
             # Try to connect to Redis (will use default local Redis if available)
             redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
-            self.redis_client = await aioredis.from_url(
+            self.redis_client = redis.from_url(
                 redis_url, 
                 encoding="utf-8", 
                 decode_responses=True,
