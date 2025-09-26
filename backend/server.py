@@ -2653,7 +2653,7 @@ async def start_batch_scan(request: BatchScanRequest, background_tasks: Backgrou
         # Collect all symbols from selected indices (remove duplicates)
         all_symbols = set()
         for index in request.indices:
-            symbols = get_stock_universe(index)
+            symbols = get_stock_universe(index.lower())
             all_symbols.update(symbols)
         
         symbols_list = list(all_symbols)
