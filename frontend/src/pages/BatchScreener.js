@@ -884,6 +884,102 @@ const BatchScreener = () => {
           </div>
         )}
       </div>
+      
+      {/* AI Insights Modal */}
+      {showInsightsModal && aiInsights && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <Brain className="h-6 w-6 text-purple-600" />
+                  <h3 className="text-xl font-semibold text-gray-900">AI Insights & Pattern Recognition</h3>
+                </div>
+                <button
+                  onClick={() => setShowInsightsModal(false)}
+                  className="text-gray-400 hover:text-gray-600 p-2"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="mb-4 p-3 bg-purple-50 rounded-lg">
+                <div className="flex items-center space-x-2 text-sm text-purple-700">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Analysis completed • {aiInsights.analysis_metadata?.stocks_analyzed || 0} stocks analyzed</span>
+                  <span>• Model: {aiInsights.analysis_metadata?.model_used || 'AI'}</span>
+                </div>
+              </div>
+              
+              <div className="space-y-6">
+                {/* AI Analysis */}
+                <div>
+                  <h4 className="text-lg font-medium text-gray-900 mb-3">Professional Market Analysis</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">
+                      {aiInsights.ai_analysis}
+                    </pre>
+                  </div>
+                </div>
+                
+                {/* Key Insights */}
+                {aiInsights.key_insights && aiInsights.key_insights.length > 0 && (
+                  <div>
+                    <h4 className="text-lg font-medium text-gray-900 mb-3">Key Insights</h4>
+                    <ul className="space-y-2">
+                      {aiInsights.key_insights.slice(0, 8).map((insight, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <span className="text-sm text-gray-700">{insight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {/* Recommendations */}
+                {aiInsights.recommendations && aiInsights.recommendations.length > 0 && (
+                  <div>
+                    <h4 className="text-lg font-medium text-gray-900 mb-3">Top Recommendations</h4>
+                    <ul className="space-y-2">
+                      {aiInsights.recommendations.map((rec, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm text-gray-700">{rec}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {/* Risk Factors */}
+                {aiInsights.risk_factors && aiInsights.risk_factors.length > 0 && (
+                  <div>
+                    <h4 className="text-lg font-medium text-gray-900 mb-3">Risk Assessment</h4>
+                    <ul className="space-y-2">
+                      {aiInsights.risk_factors.map((risk, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm text-gray-700">{risk}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowInsightsModal(false)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                >
+                  Close Analysis
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
