@@ -427,6 +427,10 @@ class BatchProcessor:
             job.status = BatchStatus.FAILED
             job.error = str(e)
             job.completed_at = datetime.utcnow()
+            
+            # 💾 Save final job state on failure
+            await self._save_job_state(job.id, job)
+            
             self.stats['failed_jobs'] += 1
             logger.error(f"Batch job {job.id} failed: {e}")
         
