@@ -453,7 +453,7 @@ const BatchScreener = () => {
                 <Tooltip 
                   id="batch-ppo-tooltip"
                   title="PPO Slope Calculation"
-                  content="Calculates the 3-day slope of the PPO oscillator using conditional logic. When PPO < 0: (today - yesterday)/yesterday. When PPO > 0: (yesterday - today)/yesterday. Higher values indicate stronger momentum changes."
+                  content="Calculates the 3-day slope of the PPO oscillator using conditional logic. When PPO < 0: (today - yesterday)/yesterday. When PPO > 0: (yesterday - today)/yesterday. The result is always converted to a positive value using absolute value. Higher values indicate stronger momentum changes regardless of direction."
                 />
               </div>
               <div>
