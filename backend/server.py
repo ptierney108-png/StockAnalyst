@@ -1139,11 +1139,13 @@ async def get_advanced_stock_data(symbol: str, timeframe: str = "1D") -> Dict[st
                 ppo_day_before = ppo_values[-3]
                 ppo_slope_data = calculate_ppo_slope(ppo_today, ppo_yesterday, ppo_day_before)
             elif len(ppo_values) >= 2:
-                # Simplified slope with 2 values
+                # Simplified slope with 2 values - ALWAYS POSITIVE
                 ppo_today = ppo_values[-1]
                 ppo_yesterday = ppo_values[-2]
                 if ppo_yesterday != 0:
                     slope = (ppo_today - ppo_yesterday) / ppo_yesterday
+                    # Apply absolute value to ensure slope is always positive
+                    slope = abs(slope)
                     ppo_slope_data = {"slope": slope, "slope_percentage": slope * 100}
             
             # Add PPO slope to indicators
