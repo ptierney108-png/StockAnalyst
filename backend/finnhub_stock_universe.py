@@ -129,11 +129,16 @@ def get_stocks_by_index(index: str) -> List[str]:
     Get stocks by index name (compatible with existing interface)
     
     Args:
-        index: "sp500", "nasdaq", "nyse", "all"
+        index: "sp500", "nasdaq", "nyse", "all", "static"
     
     Returns:
         List of stock symbols
     """
+    # Handle static NASDAQ_COMPREHENSIVE list
+    if index.lower() == "static":
+        from stock_universe import NASDAQ_COMPREHENSIVE
+        return NASDAQ_COMPREHENSIVE
+    
     index_map = {
         "sp500": "SP500",
         "nasdaq": "NASDAQ", 
