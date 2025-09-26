@@ -8179,6 +8179,10 @@ class StockAnalysisAPITester:
             print("❌ Basic connectivity failed. Stopping tests.")
             return self.results
         
+        # HIGHEST PRIORITY: CSV Export Functionality Testing (Current Review Request Focus)
+        print(f"\n📊 HIGHEST PRIORITY: CSV EXPORT FUNCTIONALITY TESTING")
+        self.test_csv_export_functionality()
+        
         # HIGHEST PRIORITY: Finnhub Batch Scanner Integration Testing (Current Review Request Focus)
         print(f"\n🌐 HIGHEST PRIORITY: FINNHUB BATCH SCANNER INTEGRATION TESTING")
         self.test_finnhub_batch_scanner_integration()
