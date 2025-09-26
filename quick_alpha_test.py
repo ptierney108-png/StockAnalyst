@@ -6,7 +6,7 @@ Quick Alpha Vantage API Test
 import requests
 import json
 
-BACKEND_URL = "https://stockwise-120.preview.emergentagent.com/api"
+BACKEND_URL = "https://market-analyzer-95.preview.emergentagent.com/api"
 
 def main():
     print("💰 QUICK ALPHA VANTAGE API TEST")

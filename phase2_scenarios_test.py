@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://stockwise-120.preview.emergentagent.com/api"
+BACKEND_URL = "https://market-analyzer-95.preview.emergentagent.com/api"
 
 def test_small_multi_index_scenario():
     """Test Small Multi-Index Test (Fast) scenario from review request"""

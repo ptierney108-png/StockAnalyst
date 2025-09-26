@@ -14,7 +14,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 
 # Configuration
-BACKEND_URL = "https://stockwise-120.preview.emergentagent.com/api"
+BACKEND_URL = "https://market-analyzer-95.preview.emergentagent.com/api"
 TEST_SYMBOLS = ["WFC", "AAPL", "GOOGL", "MSFT"]  # Specific symbols mentioned in review request
 
 class CriticalFixesTester:

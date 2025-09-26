@@ -8,7 +8,7 @@ import requests
 import json
 import time
 
-BACKEND_URL = "https://stockwise-120.preview.emergentagent.com/api"
+BACKEND_URL = "https://market-analyzer-95.preview.emergentagent.com/api"
 
 def test_ppo_fix_requirements():
     """Test all requirements from the review request"""
