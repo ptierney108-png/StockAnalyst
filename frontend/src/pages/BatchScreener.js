@@ -237,67 +237,46 @@ const BatchScreener = () => {
     }, 0);
   };
 
-  const exportToCSV = () => {
-    if (batchResults.length === 0) return;
+  const exportToCSV = async () => {
+    if (!currentBatchId || batchResults.length === 0) {
+      setError('No batch results available for export');
+      return;
+    }
 
-    const headers = [
-      'Symbol', 'Name', 'Sector', 'Price', 'DMI', 'ADX', 'DI+', 'DI-',
-      'PPO Today', 'PPO Yesterday', 'PPO 2-Days-Ago', 'PPO Slope %', 
-      'PPO Hook', '1D Return', '5D Return', '1M Return', '1Y Return',
-      'Volume Today', 'Volume 3M', 'Data Source'
-    ];
-
-    // Function to safely format hook pattern for CSV
-    const formatHookPattern = (hookDisplay) => {
-      if (!hookDisplay) return 'No Hook';
+    try {
+      setError(null);
       
-      // Clean the hook pattern and make it Excel-safe
-      let cleanHook = String(hookDisplay).trim();
+      // Call backend API to get CSV file
+      const response = await api.exportBatchResultsToCSV(currentBatchId);
       
-      // Replace problematic characters that Excel interprets as formulas
-      cleanHook = cleanHook.replace(/^\+/, 'Positive ');  // + Hook -> Positive Hook
-      cleanHook = cleanHook.replace(/^-/, 'Negative ');    // - Hook -> Negative Hook
-      cleanHook = cleanHook.replace(/^=/, 'Equals ');      // Any = signs
-      cleanHook = cleanHook.replace(/^@/, 'At ');          // Any @ signs
+      // Create download link for the CSV file
+      const blob = response.data;
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
       
-      return cleanHook || 'No Hook';
-    };
-
-    const csvContent = [
-      headers.join(','),
-      ...batchResults.map(stock => [
-        stock.symbol,
-        `"${stock.name}"`,
-        stock.sector,
-        stock.price?.toFixed(2) || '0',
-        stock.dmi?.toFixed(2) || '0',
-        stock.adx?.toFixed(2) || '0',
-        stock.di_plus?.toFixed(2) || '0',
-        stock.di_minus?.toFixed(2) || '0',
-        stock.ppo_values?.[0]?.toFixed(4) || '0',
-        stock.ppo_values?.[1]?.toFixed(4) || '0',
-        stock.ppo_values?.[2]?.toFixed(4) || '0',
-        stock.ppo_slope_percentage?.toFixed(2) || '0',
-        `"${formatHookPattern(stock.ppo_hook_display)}"`, // Excel-safe hook pattern
-        stock.returns?.['1d']?.toFixed(2) || '0',
-        stock.returns?.['5d']?.toFixed(2) || '0', 
-        stock.returns?.['1m']?.toFixed(2) || '0',
-        stock.returns?.['1y']?.toFixed(2) || '0',
-        stock.volume_today || '0',
-        stock.volume_3m || '0',
-        stock.data_source || 'unknown'
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `batch-screener-results-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+      // Get filename from response headers or create default
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `batch-screener-results-${new Date().toISOString().split('T')[0]}.csv`;
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log(`✅ CSV export successful: ${filename}`);
+    } catch (error) {
+      console.error('Failed to export CSV:', error);
+      setError(`Failed to export CSV: ${error.response?.data?.detail || error.message}`);
+    }
   };
 
   return (
