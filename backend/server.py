@@ -2018,6 +2018,9 @@ async def startup_event():
         # Initialize cache manager
         await cache_manager.initialize()
         
+        # 🔄 Restore active batch jobs from Redis persistence
+        await batch_processor._restore_jobs_from_redis()
+        
         # Clean up old jobs
         batch_processor.cleanup_old_jobs(max_age_hours=24)
         
