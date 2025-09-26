@@ -183,16 +183,20 @@ class BatchProcessor:
                     if job_data['status'] == 'running':
                         # Recreate BatchJob object
                         job = BatchJob(
+                            id=job_id,
                             symbols=job_data['symbols'],
                             filters=job_data['filters'],
-                            indices=job_data['indices']
+                            indices=job_data['indices'],
+                            status=BatchStatus.RUNNING,
+                            created_at=datetime.utcnow()
                         )
-                        job.status = 'running'
-                        job.processed_count = job_data['processed_count']
-                        job.total_count = job_data['total_count']
+                        
+                        # Restore progress and results
+                        job.progress['processed'] = job_data['processed_count']
+                        job.progress['total'] = job_data['total_count'] 
                         job.results = job_data['results']
-                        job.errors = job_data['errors']
-                        job.start_time = datetime.fromisoformat(job_data['start_time']) if job_data['start_time'] else None
+                        job.progress['errors'] = job_data['errors']
+                        job.started_at = datetime.fromisoformat(job_data['start_time']) if job_data['start_time'] else None
                         
                         self.jobs[job_id] = job
                         
@@ -201,7 +205,7 @@ class BatchProcessor:
                         self.active_jobs[job_id] = task
                         restored_count += 1
                         
-                        logger.info(f"🔄 Restored batch job {job_id} - {job.processed_count}/{job.total_count} completed")
+                        logger.info(f"🔄 Restored batch job {job_id} - {job.progress['processed']}/{job.progress['total']} completed")
                 
                 except Exception as e:
                     logger.error(f"❌ Failed to restore job from {key}: {e}")
