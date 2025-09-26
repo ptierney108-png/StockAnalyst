@@ -119,6 +119,35 @@ DOW_30 = [
     "ACN", "LLY", "NEE", "DHR", "ABT", "ORCL", "CRM", "VZ", "ADBE", "MO"
 ]
 
+# Russell 2000 Index - Small Cap Representative Sample (200 stocks)
+RUSSELL_2000 = [
+    "AAL", "AAPA", "AAWW", "ABCB", "ABCM", "ABEO", "ABEQ", "ABM", "ABSI", "ACAD", 
+    "ACCD", "ACCO", "ACDC", "ACEL", "ACES", "ACGL", "ACHC", "ACHL", "ACHR", "ACIC",
+    "ACIU", "ACLX", "ACLS", "ACM", "ACMR", "ACNB", "ACON", "ACOR", "ACP", "ACRE",
+    "ACRS", "ACRX", "ACST", "ACT", "ACTG", "ACU", "ACVA", "ACXM", "ADBE", "ADER",
+    "ADES", "ADI", "ADIL", "ADMA", "ADMP", "ADMS", "ADNT", "ADSW", "ADTN", "ADTX",
+    "ADUS", "ADV", "ADVM", "AEHR", "AEI", "AEIS", "AEL", "AENZ", "AEO", "AERI",
+    "AES", "AESE", "AEVA", "AEYE", "AEZS", "AFAR", "AFG", "AFIB", "AFRM", "AFYA",
+    "AGAE", "AGEN", "AGFS", "AGIO", "AGLE", "AGMH", "AGNC", "AGRI", "AGRO", "AGRX",
+    "AGTC", "AGYS", "AHCO", "AHG", "AHH", "AHPI", "AHT", "AI", "AIA", "AIG",
+    "AIMC", "AIMAU", "AIN", "AINC", "AIP", "AIR", "AIRG", "AIRT", "AIRTP", "AIT",
+    "AIV", "AIZ", "AJRD", "AJX", "AKAM", "AKAN", "AKBA", "AKRO", "AKTS", "AKUS",
+    "ALAC", "ALAR", "ALBT", "ALC", "ALCC", "ALCO", "ALDX", "ALE", "ALEC", "ALGM",
+    "ALGN", "ALGS", "ALGT", "ALHC", "ALIM", "ALIT", "ALK", "ALKS", "ALL", "ALLE",
+    "ALLK", "ALLO", "ALLR", "ALS", "ALSA", "ALSK", "ALT", "ALTG", "ALTR", "ALTU",
+    "ALV", "ALVR", "ALX", "ALXO", "ALZN", "AM", "AMAL", "AMAM", "AMAO", "AMAT", 
+    "AMBC", "AMBI", "AMBO", "AMBP", "AMC", "AMCR", "AMCX", "AMD", "AME", "AMED",
+    "AMEH", "AMG", "AMGN", "AMH", "AMID", "AMKR", "AMLI", "AMLX", "AMN", "AMOT",
+    "AMPH", "AMPL", "AMPS", "AMPY", "AMR", "AMRC", "AMRK", "AMRN", "AMRS", "AMRX",
+    "AMS", "AMSC", "AMSF", "AMST", "AMSTY", "AMT", "AMTB", "AMTD", "AMTI", "AMTX",
+    "AMWD", "AMWL", "AMZN", "AN", "ANAB", "ANDE", "ANEB", "ANET", "ANF", "ANGI"
+];
+
+# Combined Universe - All Indices
+ALL_SYMBOLS = list(set(
+    SP500_SYMBOLS + NASDAQ_100 + NASDAQ_COMPREHENSIVE + DOW_30 + NYSE_COMPREHENSIVE + RUSSELL_2000
+))
+
 # Index definitions for batch processing - Phase 2 Complete Coverage
 STOCK_INDICES = {
     "SP500": {
