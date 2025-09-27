@@ -961,10 +961,10 @@ const BatchScreener = () => {
                 {/* AI Analysis */}
                 <div>
                   <h4 className="text-lg font-medium text-gray-900 mb-3">Professional Market Analysis</h4>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">
+                  <div className="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
+                    <div className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed">
                       {aiInsights.ai_analysis}
-                    </pre>
+                    </div>
                   </div>
                 </div>
                 
