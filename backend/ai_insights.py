@@ -191,47 +191,149 @@ class StockInsightsAI:
         }
     
     def _extract_key_insights(self, ai_response: str) -> List[str]:
-        """Extract key insights from AI response"""
-        # Simple extraction - look for numbered points or bullet points
+        """Extract key insights from AI response with improved parsing"""
         insights = []
         lines = ai_response.split('\n')
         
+        # Look for sections with insights
+        in_insights_section = False
+        in_recommendations_section = False
+        
         for line in lines:
-            line = line.strip()
-            if (line.startswith('1.') or line.startswith('2.') or 
-                line.startswith('3.') or line.startswith('4.') or 
-                line.startswith('5.') or line.startswith('-') or
-                line.startswith('*')):
-                insights.append(line)
+            line_clean = line.strip()
+            
+            # Detect section headers
+            if any(keyword in line_clean.lower() for keyword in ['market sentiment', 'key insight', 'finding', 'analysis']):
+                in_insights_section = True
+                continue
+            elif any(keyword in line_clean.lower() for keyword in ['recommendation', 'suggestion']):
+                in_insights_section = False
+                in_recommendations_section = True
+                continue
+            elif line_clean.startswith('##') or line_clean.startswith('**'):
+                in_insights_section = False
+                in_recommendations_section = False
+                continue
+            
+            # Extract insights from relevant sections
+            if in_insights_section and line_clean:
+                if (line_clean.startswith('1.') or line_clean.startswith('2.') or 
+                    line_clean.startswith('3.') or line_clean.startswith('4.') or 
+                    line_clean.startswith('5.') or line_clean.startswith('-') or
+                    line_clean.startswith('*') or line_clean.startswith('•')):
+                    
+                    # Clean up the text
+                    clean_insight = line_clean.lstrip('123456789.-*•').strip()
+                    if len(clean_insight) > 10:  # Ignore very short entries
+                        insights.append(clean_insight)
+                elif len(line_clean) > 20 and not line_clean.startswith('#'):
+                    # Include longer descriptive lines
+                    insights.append(line_clean)
+        
+        # If no insights found, extract from the entire response
+        if not insights:
+            for line in lines:
+                line_clean = line.strip()
+                if (line_clean and not line_clean.startswith('#') and 
+                    len(line_clean) > 15 and 
+                    any(keyword in line_clean.lower() for keyword in 
+                        ['stock', 'market', 'trend', 'momentum', 'volume', 'price', 'sector'])):
+                    insights.append(line_clean)
         
         return insights[:10]  # Limit to top 10 insights
     
     def _extract_recommendations(self, ai_response: str) -> List[str]:
-        """Extract specific stock recommendations"""
+        """Extract specific stock recommendations with improved parsing"""
         recommendations = []
         lines = ai_response.split('\n')
         
-        # Look for sections mentioning recommendations or specific stocks
+        # Look for recommendation sections
         in_recommendations = False
+        in_top_performers = False
+        
         for line in lines:
-            if 'recommendation' in line.lower() or 'top' in line.lower():
+            line_clean = line.strip()
+            
+            # Detect recommendation sections
+            if any(keyword in line_clean.lower() for keyword in 
+                  ['recommendation', 'top', 'attention', 'buy', 'watch', 'focus']):
                 in_recommendations = True
                 continue
+            elif any(keyword in line_clean.lower() for keyword in 
+                    ['risk', 'caution', 'technical', 'appendix']):
+                in_recommendations = False
+                continue
             
-            if in_recommendations and line.strip():
-                if any(word in line.lower() for word in ['buy', 'sell', 'hold', 'watch', 'attention']):
-                    recommendations.append(line.strip())
+            # Extract recommendations
+            if in_recommendations and line_clean:
+                if (line_clean.startswith(('1.', '2.', '3.', '4.', '5.')) or
+                    line_clean.startswith('-') or line_clean.startswith('•') or
+                    any(word in line_clean.upper() for word in 
+                        ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NEE', 'MO', 'ORCL'])):
+                    
+                    # Clean recommendation text
+                    clean_rec = line_clean.lstrip('123456789.-*•').strip()
+                    if len(clean_rec) > 5:
+                        recommendations.append(clean_rec)
+                elif (len(line_clean) > 20 and 
+                      any(keyword in line_clean.lower() for keyword in 
+                          ['should', 'consider', 'focus', 'attention', 'strong', 'potential'])):
+                    recommendations.append(line_clean)
+        
+        # If no recommendations found, look for stock symbols with context
+        if not recommendations:
+            for line in lines:
+                line_clean = line.strip()
+                if any(symbol in line_clean.upper() for symbol in 
+                      ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'JPM', 'UNH', 'JNJ', 'WMT', 'PG']):
+                    if len(line_clean) > 10:
+                        recommendations.append(line_clean)
         
         return recommendations[:5]  # Limit to top 5 recommendations
     
     def _extract_risk_factors(self, ai_response: str) -> List[str]:
-        """Extract risk factors from AI response"""
+        """Extract risk factors with improved parsing"""
         risks = []
         lines = ai_response.split('\n')
         
+        in_risk_section = False
+        
         for line in lines:
-            if any(word in line.lower() for word in ['risk', 'caution', 'warning', 'concern']):
-                risks.append(line.strip())
+            line_clean = line.strip()
+            
+            # Detect risk sections
+            if any(keyword in line_clean.lower() for keyword in 
+                  ['risk', 'caution', 'warning', 'concern', 'challenge']):
+                in_risk_section = True
+                if len(line_clean) > 10:  # If the header line itself contains risk info
+                    risks.append(line_clean)
+                continue
+            elif any(keyword in line_clean.lower() for keyword in 
+                    ['recommendation', 'technical', 'appendix']):
+                in_risk_section = False
+                continue
+            
+            # Extract risk content
+            if in_risk_section and line_clean:
+                if (line_clean.startswith(('1.', '2.', '3.', '4.', '5.')) or
+                    line_clean.startswith('-') or line_clean.startswith('•') or
+                    any(keyword in line_clean.lower() for keyword in 
+                        ['low', 'high', 'limited', 'volatile', 'decline', 'pressure'])):
+                    
+                    clean_risk = line_clean.lstrip('123456789.-*•').strip()
+                    if len(clean_risk) > 10:
+                        risks.append(clean_risk)
+                elif len(line_clean) > 15:
+                    risks.append(line_clean)
+        
+        # Fallback: look for any risk-related content
+        if not risks:
+            for line in lines:
+                line_clean = line.strip()
+                if (len(line_clean) > 15 and 
+                    any(keyword in line_clean.lower() for keyword in 
+                        ['risk', 'concern', 'caution', 'volatility', 'decline', 'pressure', 'low volume'])):
+                    risks.append(line_clean)
         
         return risks[:5]  # Limit to top 5 risks
     
